@@ -40,7 +40,7 @@ const Button = ({
     "flex items-center justify-center px-3 py-1.5 border rounded",
     rest.className,
     {
-      "opacity-80": loading || disabled,
+      "opacity-60 cursor-not-allowed": loading || disabled,
       "bg-blue-500 border-blue-500 hover:bg-blue-600 hover:border-blue-600 text-white":
         primary,
       "border-green-600 bg-green-600 hover:bg-green-700 text-white": success,

@@ -67,5 +67,7 @@ export {
   useLazyGetTemplatesByDesignSubtypeIdQuery,
   useSaveDesignWithSubDesignsMutation,
   useGetDesignsByFiltersPaginatedMutation,
+  useLazyGetDesignByIdQuery,
+  useUpdateMutation,
 } from "./apis/designApi";
 export type AppDispatch = typeof store.dispatch;

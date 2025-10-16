@@ -87,8 +87,9 @@ const DesignPage = () => {
 
   const handleSearchClick = () => {
     setSelectedElements([]);
+    setPage(1);
     trigger({
-      page,
+      page: 1,
       limit,
       name: name || undefined,
       country: country || undefined,
@@ -202,18 +203,13 @@ const DesignPage = () => {
             </div>
           </div>
         </div>
-        {/* <h1 className="text-3xl font-semibold text-center mb-4">
-          Diseño de elementos
-        </h1>
-        <h2>Buscar el o los elementos para agregar diseños</h2>
-        <h3 className="font-bold mt-5">Filtros</h3> */}
         {isLoadingCountries || isLoadingSubTypes ? (
           <div className="flex justify-between justify-items-center align-middle min-w-[70rem] mb-5">
             <FilterSkeleton />
           </div>
         ) : (
           <div className="border-b border-gray-200 flex justify-center">
-            <div className="flex max-w-[65rem] min-w-[62rem] justify-between mb-5">
+            <div className="flex max-w-[65rem] min-w-[66rem] justify-between mb-5">
               <Select
                 options={countries?.map(
                   (country) =>
@@ -255,7 +251,7 @@ const DesignPage = () => {
                 isLoading={false}
                 placeholder="Subtipo"
                 errorKey="country"
-                className="w-60"
+                className="w-[21rem]"
               />
               <Button
                 primary

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Select from "../components/core/Select";
 import {
   useGetDesignTypesQuery,
@@ -8,6 +8,7 @@ import {
   useLazyGetDesignSubtypeWithFunctionsByIdQuery,
   useLazyGetTemplatesByDesignSubtypeIdQuery,
   useGetElementsByFiltersPaginatedMutation,
+  useLazyGetDesignByIdQuery,
 } from "../store";
 import { Option } from "../components/core/Select";
 import ElementCard from "../components/elements/ElementCard";
@@ -24,8 +25,11 @@ import { useAlert } from "../hooks/useAlert";
 import { FaList, FaRegCheckCircle } from "react-icons/fa";
 
 const ElementsDesignPage = () => {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const idsParam = searchParams.get("ids");
+  const designIdParam = searchParams.get("designId");
+  const [createdDesignId, setCreatedDesignId] = useState<number | null>(null);
   const [selectedType, setSelectedType] = useState<number | null>(null);
   const [page, setPage] = useState<number>(1);
   const [limit] = useState<number>(6);
@@ -33,6 +37,7 @@ const ElementsDesignPage = () => {
   const [selectedElements, setSelectedElements] = useState<ElementResponse[]>(
     []
   );
+  const [showSpreadSheet, setShowSpreadSheet] = useState(true);
   const { alert, showAlert, hideAlert } = useAlert();
   const [newSelectedElements, setNewSelectedElements] = useState<
     ElementResponse[]
@@ -89,9 +94,51 @@ const ElementsDesignPage = () => {
     }
   );
 
+  // If designIdParam is present, fetch the design and set its elements as selected
+  const [
+    triggerDesignById,
+    {
+      data: designData,
+      error: errorDesignData,
+      isLoading: isLoadingDesignData,
+    },
+  ] = useLazyGetDesignByIdQuery();
+
+  useEffect(() => {
+    if (designIdParam) {
+      const designId = parseInt(designIdParam, 10);
+      if (!isNaN(designId)) {
+        setSelectedElements([]);
+        setSelectedType(null);
+        setSelectedSubType(null);
+
+        triggerDesignById(designId);
+      }
+    }
+  }, [designIdParam, triggerDesignById]);
+
+  useEffect(() => {
+    if (designData && designData.designElements) {
+      setSelectedElements(designData.designElements.map((de) => de.element));
+      if (designData.designSubType && designData.designSubType.designType) {
+        setSelectedType(designData.designSubType.designType.id);
+      }
+      if (designData.designSubType) {
+        setSelectedSubType(designData.designSubType.id);
+        trigger(designData.designSubType.id);
+        triggerTemplates(designData.designSubType.id);
+      }
+    }
+  }, [designData, trigger, triggerTemplates]);
+
   useEffect(() => {
     if (!isLoadingElements) {
       setSelectedElements(elements || []);
+      setSelectedType(
+        elements && elements.length > 0
+          ? elements[0].subType.designType.id
+          : null
+      );
     }
   }, [elements, isLoadingElements]);
 
@@ -118,6 +165,20 @@ const ElementsDesignPage = () => {
     "Error obteniendo funciones del sub tipo": errorSubTypeWithFunctions,
     "Error obteniendo plantillas": errorTemplates,
   });
+
+  useEffect(() => {
+    if (subTypes && subTypes.length > 0 && selectedElements.length > 0) {
+      const phase = selectedElements[0].sapReference?.split("-")[0];
+      const filteredSubType = subTypes.find((st) =>
+        phase ? st.code.startsWith(phase) : false
+      );
+      if (filteredSubType) {
+        setSelectedSubType(filteredSubType.id);
+        trigger(filteredSubType.id);
+        triggerTemplates(filteredSubType.id);
+      }
+    }
+  }, [subTypes, selectedElements, trigger, triggerTemplates]);
 
   const handleElementCheck = (element: ElementResponse) => {
     if (selectedElements.length > 1) {
@@ -209,13 +270,38 @@ const ElementsDesignPage = () => {
   };
 
   const handleNavigateToDesignList = () => {
-    window.location.href = "/design/list";
+    navigate("/design/list");
+  };
+
+  const handleContinueEditing = (designId: number) => {
+    window.location.href = `/elements/design?designId=${designId}`;
+  };
+
+  const handleNewDesign = () => {
+    navigate("/design");
+  };
+
+  const handleBack = () => {
+    navigate(-1);
+  };
+
+  const resetToInitialState = () => {
+    setShowSpreadSheet(false);
   };
 
   return (
     <>
       <div className="flex flex-col items-center justify-center p-4">
-        {showModalAfterSaveDesign && (
+        <div className="w-full flex items-start">
+          <button
+            onClick={handleBack}
+            className="flex items-center text-rymel-blue hover:text-blue-800 transition-colors"
+          >
+            <span className="mr-2">←</span>
+            Volver
+          </button>
+        </div>
+        {showModalAfterSaveDesign && createdDesignId && (
           <div className="flex justify-center w-1/2 mb-4 bg-green-50 border-green-200 border px-4 py-2 rounded">
             <FaRegCheckCircle className="h-6 w-6" />
             <div className="text-green-800">
@@ -225,17 +311,20 @@ const ElementsDesignPage = () => {
                 </span>
                 <div className="flex flex-wrap gap-2">
                   <Button
-                    onClick={() => setShowModalAfterSaveDesign(false)}
+                    onClick={() =>
+                      handleContinueEditing(
+                        createdDesignId ?? Number(designIdParam)
+                      )
+                    }
                     className="border-green-300 text-green-700 hover:bg-green-100  bg-transparent"
                   >
                     Seguir editando
                   </Button>
                   <Button
-                    onClick={() => setShowModalAfterSaveDesign(false)}
-                    className="border-green-300 text-green-700 hover:bg-green-100 bg-transparent"
-                    icon={<FaPlus />}
+                    onClick={handleNewDesign}
+                    className="border-green-300 text-green-700 hover:bg-green-100  bg-transparent"
                   >
-                    Duplicar diseño
+                    Crear nuevo diseño
                   </Button>
                   <Button
                     onClick={handleNavigateToDesignList}
@@ -249,12 +338,14 @@ const ElementsDesignPage = () => {
             </div>
           </div>
         )}
+
         <h1 className="text-2xl font-bold text-center">Diseño de Elementos</h1>
         <Button
           primary
           icon={<FaPlus />}
           className="mt-4"
           onClick={handleAddNewElements}
+          disabled={showModalAfterSaveDesign}
         >
           Agregar elementos
         </Button>
@@ -289,6 +380,7 @@ const ElementsDesignPage = () => {
             error={elementTypeErrors}
             errorKey="type"
             className="w-60"
+            disabled
           />
           <Select
             options={subTypes?.map(
@@ -304,18 +396,32 @@ const ElementsDesignPage = () => {
             placeholder="Selecciona un sub tipo"
             error={elementTypeErrors}
             errorKey="subType"
-            disabled={!selectedType}
+            disabled
             className="w-60"
           />
         </div>
       </div>
-      {subTypeWithFunctions && templatesData && (
+      {subTypeWithFunctions && templatesData && showSpreadSheet && (
         <SpreadSheet
           subTypeWithFunctions={subTypeWithFunctions}
           templates={templatesData}
-          elementIds={ids}
+          elementIds={selectedElements.map((el) => el.id)}
           designSubtypeId={selectedSubType}
           setShowModalAfterSaveDesign={setShowModalAfterSaveDesign}
+          sheetsInitialData={
+            designData?.subDesigns.map((sd) => sd.data) || [
+              {
+                id: "sheet1",
+                name: "SubDiseño1",
+                cells: {},
+                columnWidths: {},
+                rowHeights: {},
+              },
+            ]
+          }
+          designId={Number(designIdParam)}
+          resetToInitialState={resetToInitialState}
+          setCreatedDesignId={setCreatedDesignId}
         />
       )}
       {showErrorAlert && (
@@ -329,8 +435,6 @@ const ElementsDesignPage = () => {
         isOpen={isOpen}
         onClose={() => {
           handleToggleModal();
-          //onSearchChange("");
-          //onPageChange(1);
         }}
         title="Elementos disponibles"
         size="full"

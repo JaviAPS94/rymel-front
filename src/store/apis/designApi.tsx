@@ -1,5 +1,6 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import {
+  Design,
   DesignFunctionEvaluation,
   DesignFunctionEvaluationResponse,
   DesignsPaginated,
@@ -8,6 +9,7 @@ import {
   DesignType,
   DesignWithSubDesigns,
   Template,
+  UpdateDesignParams,
 } from "../../commons/types";
 
 const designApi = createApi({
@@ -42,7 +44,10 @@ const designApi = createApi({
     getTemplatesByDesignSubtypeId: builder.query<Template[], number>({
       query: (designSubtypeId) => `/design/templates/${designSubtypeId}`,
     }),
-    saveDesignWithSubDesigns: builder.mutation<null, DesignWithSubDesigns>({
+    saveDesignWithSubDesigns: builder.mutation<
+      { id: number },
+      DesignWithSubDesigns
+    >({
       query: (designData) => ({
         url: "/design",
         method: "POST",
@@ -59,6 +64,21 @@ const designApi = createApi({
         body: getDesignsParams,
       }),
     }),
+    getDesignById: builder.query<Design, number>({
+      query: (designId) => `/design/by-id/${designId}`,
+    }),
+    update: builder.mutation<void, UpdateDesignParams>({
+      query: (updateDesignParams) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { id, ...bodyData } = updateDesignParams;
+        return {
+          url: `/design/${updateDesignParams.id}`,
+          method: "PUT",
+          body: bodyData,
+        };
+      },
+      invalidatesTags: ["Design"],
+    }),
   }),
 });
 
@@ -70,5 +90,7 @@ export const {
   useLazyGetTemplatesByDesignSubtypeIdQuery,
   useSaveDesignWithSubDesignsMutation,
   useGetDesignsByFiltersPaginatedMutation,
+  useLazyGetDesignByIdQuery,
+  useUpdateMutation,
 } = designApi;
 export { designApi };

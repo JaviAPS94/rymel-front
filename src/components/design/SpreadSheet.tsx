@@ -16,6 +16,7 @@ import {
 import {
   useEvaluateFunctionMutation,
   useSaveDesignWithSubDesignsMutation,
+  useUpdateMutation,
 } from "../../store";
 import { Modal } from "../core/Modal";
 import Stepper from "../core/Stepper";
@@ -29,6 +30,8 @@ import SheetTabs from "./SheetTabs";
 import FunctionLibraryModal from "./FunctionLibraryModal";
 import TemplateLibraryModal from "./TemplateLibraryModal";
 import { CustomFunction } from "./spreadsheet-types";
+import { useAlert } from "../../hooks/useAlert";
+import Alert from "../core/Alert";
 
 interface Sheet {
   id: string;
@@ -52,6 +55,10 @@ interface SpreadSheetProps {
   elementIds: number[];
   designSubtypeId: number | null;
   setShowModalAfterSaveDesign: (show: boolean) => void;
+  sheetsInitialData?: Sheet[];
+  designId?: number;
+  resetToInitialState?: () => void;
+  setCreatedDesignId?: (id: number) => void;
 }
 
 const SpreadSheet = ({
@@ -60,16 +67,22 @@ const SpreadSheet = ({
   elementIds,
   designSubtypeId,
   setShowModalAfterSaveDesign,
+  sheetsInitialData = [],
+  designId,
+  resetToInitialState,
+  setCreatedDesignId,
 }: SpreadSheetProps) => {
-  const [sheets, setSheets] = useState<Sheet[]>([
-    {
-      id: "sheet1",
-      name: "SubDiseño1",
-      cells: {},
-      columnWidths: {},
-      rowHeights: {},
-    },
-  ]);
+  const [sheets, setSheets] = useState<Sheet[]>(
+    sheetsInitialData || [
+      {
+        id: "sheet1",
+        name: "SubDiseño1",
+        cells: {},
+        columnWidths: {},
+        rowHeights: {},
+      },
+    ]
+  );
   const [activeSheetId, setActiveSheetId] = useState<string>("sheet1");
   const [selectedCell, setSelectedCell] = useState<string>("A1");
   const [formulaInput, setFormulaInput] = useState<string>("");
@@ -110,6 +123,41 @@ const SpreadSheet = ({
   const [evaluateFunction] = useEvaluateFunctionMutation();
   const [saveDesignWithSubDesigns, saveDesignWithSubDesignsResult] =
     useSaveDesignWithSubDesignsMutation();
+  const [updateDesign, updateDesignResult] = useUpdateMutation();
+  const { alert, showAlert, hideAlert } = useAlert();
+
+  useEffect(() => {
+    if (
+      updateDesignResult.isSuccess ||
+      saveDesignWithSubDesignsResult.isSuccess
+    ) {
+      console.log("entra aca");
+      updateDesignResult.reset();
+      saveDesignWithSubDesignsResult.reset();
+      resetToInitialState?.();
+      setShowModalAfterSaveDesign(true);
+      handleScrollToTop();
+    }
+    if (updateDesignResult.isError || saveDesignWithSubDesignsResult.isError) {
+      updateDesignResult.reset();
+      saveDesignWithSubDesignsResult.reset();
+      showAlert("Error guardando diseño. Inténtalo de nuevo.", "error");
+    }
+  }, [updateDesignResult, saveDesignWithSubDesignsResult, showAlert]);
+
+  useEffect(() => {
+    if (saveDesignWithSubDesignsResult.isSuccess) {
+      setCreatedDesignId?.(saveDesignWithSubDesignsResult.data.id);
+    }
+    if (updateDesignResult.isSuccess) {
+      setCreatedDesignId?.(designId!);
+    }
+  }, [
+    saveDesignWithSubDesignsResult,
+    updateDesignResult,
+    setCreatedDesignId,
+    designId,
+  ]);
 
   // Template state
   const [showTemplateLibrary, setShowTemplateLibrary] =
@@ -448,11 +496,9 @@ const SpreadSheet = ({
       }
 
       try {
-        // Handle custom functions first (before replacing cell references)
         for (const func of customFunctions) {
           const funcRegex = new RegExp(`${func.code}\\(([^)]*)\\)`, "g");
 
-          // Use a more sophisticated approach for async replacements
           const matches = expression.match(funcRegex);
           if (matches) {
             for (const match of matches) {
@@ -486,9 +532,6 @@ const SpreadSheet = ({
           }
         }
 
-        // Rest of the function remains the same
-        // ...existing code...
-        // Handle basic functions
         expression = expression.replace(/SUM$$([^)]*)$$/g, (_, range) => {
           if (!range.trim()) {
             return "0";
@@ -1107,7 +1150,11 @@ const SpreadSheet = ({
   );
 
   useEffect(() => {
-    if (templates.length === 1 && !initialTemplateLoaded) {
+    if (
+      templates.length === 1 &&
+      !initialTemplateLoaded &&
+      Object.keys(sheetsInitialData[0].cells).length === 0
+    ) {
       const initialTemplate = templates[0];
       loadTemplate(initialTemplate);
       setInitialTemplateLoaded(true);
@@ -1167,10 +1214,17 @@ const SpreadSheet = ({
       subDesigns: subDesignData,
     };
 
-    setShowModalAfterSaveDesign(true);
-    handleScrollToTop();
-
-    //await saveDesignWithSubDesigns(designData);
+    if (designId) {
+      const updatedDesignData: DesignWithSubDesigns & { id: number } = {
+        ...designData,
+        id: designId,
+      };
+      console.log("Updating design:", updatedDesignData);
+      await updateDesign(updatedDesignData);
+    } else {
+      console.log("Saving new design:", designData);
+      await saveDesignWithSubDesigns(designData);
+    }
   };
 
   return (
@@ -1198,7 +1252,8 @@ const SpreadSheet = ({
             >
               Instrucciones de uso
             </Button>
-            {templates.length > 1 && (
+            {(templates.length > 1 ||
+              Object.keys(sheetsInitialData[0].cells).length > 0) && (
               <Button
                 info
                 onClick={() => setShowTemplateLibrary(true)}
@@ -1210,8 +1265,14 @@ const SpreadSheet = ({
             )}
             <Button
               primary
-              loading={saveDesignWithSubDesignsResult.isLoading}
-              disabled={saveDesignWithSubDesignsResult.isLoading}
+              loading={
+                saveDesignWithSubDesignsResult.isLoading ||
+                updateDesignResult.isLoading
+              }
+              disabled={
+                saveDesignWithSubDesignsResult.isLoading ||
+                updateDesignResult.isLoading
+              }
               onClick={() => handleSaveDesignWithSubDesigns()}
               className="px-4 py-2 rounded font-medium"
               icon={<FaSave />}
@@ -1331,6 +1392,14 @@ const SpreadSheet = ({
           onCancel={handleCancel}
         />
       </Modal>
+      {alert.visible && (
+        <Alert
+          success={alert.type === "success"}
+          error={alert.type === "error"}
+          message={alert.message}
+          onClose={hideAlert}
+        />
+      )}
     </div>
   );
 };

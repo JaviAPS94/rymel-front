@@ -121,8 +121,9 @@ export default function DesignList({ onSelectDesign }: DesignListProps) {
   };
 
   const handleSearchClick = () => {
+    setPage(1);
     triggerGetDesignsByFilters({
-      page,
+      page: 1,
       limit,
       name: name || undefined,
       country: country || undefined,

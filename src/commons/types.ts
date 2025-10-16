@@ -1,3 +1,5 @@
+import { Sheet } from "../components/design/spreadsheet-types";
+
 export type Country = {
   id: number;
   name: string;
@@ -68,9 +70,13 @@ export type NormResponse = {
 export type ElementResponse = {
   id: number;
   values: Record<string, unknown>[];
-  subType: BaseType;
+  subType: SubTypeWithDesignType;
   norm: NormResponse;
   sapReference?: string;
+};
+
+export type SubTypeWithDesignType = BaseType & {
+  designType: DesignType;
 };
 
 export type GetElementsParams = {
@@ -210,6 +216,7 @@ export type DesignType = {
 export type DesignSubtype = {
   id: number;
   name: string;
+  code: string;
   designTypeId: number;
   designTypeName: string;
   designFunctions?: DesignFunction[];
@@ -268,7 +275,7 @@ export type SubDesignData = {
   id?: number;
   name: string;
   code: string;
-  data: Record<string, unknown>;
+  data: Sheet;
 };
 
 export type DesignWithSubDesigns = {
@@ -278,3 +285,5 @@ export type DesignWithSubDesigns = {
   subDesigns: SubDesignData[];
   designSubtypeId: number;
 };
+
+export type UpdateDesignParams = Partial<DesignWithSubDesigns> & { id: number };
