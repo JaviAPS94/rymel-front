@@ -14,11 +14,12 @@ import { FileUploadHandle } from "../components/core/FileUpload";
 import { useParams } from "react-router-dom";
 import { CompleteElementData, NormCompleteData } from "../commons/types";
 import { urlToFile } from "../commons/functions";
-import { BiEdit, BiPlusCircle } from "react-icons/bi";
+import { BiEdit } from "react-icons/bi";
+import { IoMdAdd } from "react-icons/io";
 
 export interface ElementValue {
   name: string;
-  value: string | File | object | object[] | number;
+  value: string | File | object | object[] | number | unknown;
   type: string;
   key: string;
   sapReference: boolean;
@@ -198,41 +199,46 @@ const NormPage = () => {
 
   return (
     <NormProvider>
-      <h1 className="font-bold text-2xl my-10 text-center flex items-center justify-center gap-2">
-        {isEditing ? (
-          <BiEdit className="text-blue-500" />
-        ) : (
-          <BiPlusCircle className="text-green-500" />
-        )}
-        {isEditing ? "EDITAR NORMA" : "GENERAR NUEVA NORMA"}
-      </h1>
-      <div className="mx-10">
-        <div className="flex h-screen">
-          <div className="w-4/6 p-8 overflow-auto">
-            <NormForm
-              countries={countries}
-              types={types}
-              formData={formData}
-              setFormData={setFormData}
-              elementsByFilters={elementsByFilters}
-              specifications={specifications}
-              handleFileSelect={handleFileSelect}
-              fileUploadRef={fileUploadRef}
-            />
-          </div>
-          <div className="w-2/6 p-8 bg-white overflow-auto">
-            <NormInformation
-              formData={formData}
-              setFormData={setFormData}
-              handleReset={handleReset}
-              isEditing={isEditing}
-            />
+      <div className="bg-white rounded-lg shadow-lg overflow-hidden mt-4 mx-10">
+        <div className="bg-rymel-blue text-white p-6">
+          <h1 className="font-bold text-3xl text-center flex items-center justify-center gap-2">
+            {isEditing ? (
+              <BiEdit className="text-white h-8 w-8" />
+            ) : (
+              <IoMdAdd className="text-white h-8 w-8" />
+            )}
+            {isEditing ? "Editar Norma" : "Generar Nueva Norma"}
+          </h1>
+        </div>
+
+        <div className="mx-10">
+          <div className="flex h-screen">
+            <div className="w-4/6 p-8 overflow-auto">
+              <NormForm
+                countries={countries}
+                types={types}
+                formData={formData}
+                setFormData={setFormData}
+                elementsByFilters={elementsByFilters}
+                specifications={specifications}
+                handleFileSelect={handleFileSelect}
+                fileUploadRef={fileUploadRef}
+              />
+            </div>
+            <div className="w-2/6 p-8 bg-white overflow-auto">
+              <NormInformation
+                formData={formData}
+                setFormData={setFormData}
+                handleReset={handleReset}
+                isEditing={isEditing}
+              />
+            </div>
           </div>
         </div>
+        {showErrorAlert && (
+          <Alert message="Ha ocurrido un error al cargar los datos" error />
+        )}
       </div>
-      {showErrorAlert && (
-        <Alert message="Ha ocurrido un error al cargar los datos" error />
-      )}
     </NormProvider>
   );
 };

@@ -5,8 +5,9 @@ import { useSaveNormMutation } from "../../store";
 import Alert from "../core/Alert";
 import AccesoriesTable from "./AccesoriesTable";
 import { Accessory, SemiFinishedType } from "../../commons/types";
-import { FaPlus, FaSave } from "react-icons/fa";
+import { FaPlus } from "react-icons/fa";
 import { BiEdit, BiTrash } from "react-icons/bi";
+import { LuSave } from "react-icons/lu";
 import { useNorm } from "../../hooks/useNorm";
 import { Modal } from "../core/Modal";
 import CheckboxList from "../core/CheckboxList";
@@ -406,11 +407,12 @@ const NormInformation = ({
                 </div>
               ))}
               <Button
-                success
+                primary
                 loading={saveNormResult.isLoading}
                 onClick={handleSaveNorm}
-                icon={<FaSave />}
+                icon={<LuSave />}
                 disabled={disableEdit}
+                className="h-12"
               >
                 Guardar Norma
               </Button>
@@ -427,6 +429,7 @@ const NormInformation = ({
         onClose={toogleAccessoryModal}
         title="Agregar accesorio"
         size="xl"
+        closeOnOutsideClick={false}
       >
         <Stepper
           step={step}

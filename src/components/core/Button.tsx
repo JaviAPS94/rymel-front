@@ -16,6 +16,7 @@ export interface ButtonProps
   rounded?: boolean;
   loading?: boolean;
   disabled?: boolean;
+  outline?: boolean;
   icon?: React.ReactElement;
 }
 
@@ -33,6 +34,7 @@ const Button = ({
   rounded,
   loading,
   disabled,
+  outline,
   icon,
   ...rest
 }: ButtonProps) => {
@@ -41,18 +43,19 @@ const Button = ({
     rest.className,
     {
       "opacity-60 cursor-not-allowed": loading || disabled,
-      "bg-blue-500 border-blue-500 hover:bg-blue-600 hover:border-blue-600 text-white":
+      "bg-blue-600 border-blue-600 hover:bg-blue-700 hover:border-blue-700 text-white":
         primary,
       "border-green-600 bg-green-600 hover:bg-green-700 text-white": success,
       "border-yellow-400 bg-yellow-400 hover:bg-yellow-500 text-white": warning,
       "border-gray-400 bg-gray-400 hover:bg-gray-500 text-white": cancel,
-      "border-purple-500 bg-purple-500 hover:bg-purple-600 text-white":
+      "border-purple-600 bg-purple-600 hover:bg-purple-700 text-white":
         highlight,
       "border-indigo-500 bg-indigo-500 hover:bg-indigo-600 text-white": info,
       "border-red-500 bg-red-500 hover:bg-red-600 text-white": danger,
       "border-gray-400 bg-white hover:bg-gray-300 text-gray-700": base,
       "border-black bg-white hover:bg-gray-300 text-black": baseFill,
       "rounded-full": rounded,
+      "bg-transparent border-white": outline,
     }
   );
 

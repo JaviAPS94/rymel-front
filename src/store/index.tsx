@@ -37,7 +37,10 @@ export const store = configureStore({
 
 setupListeners(store.dispatch);
 
-export { useGetCountriesQuery } from "./apis/countryApi";
+export {
+  useGetCountriesQuery,
+  useLazyGetCountriesQuery,
+} from "./apis/countryApi";
 export { useGetTypesWithFieldsQuery } from "./apis/typeApi";
 export {
   useSaveNormMutation,
@@ -69,5 +72,7 @@ export {
   useGetDesignsByFiltersPaginatedMutation,
   useLazyGetDesignByIdQuery,
   useUpdateMutation,
+  useDeleteByIdMutation,
+  useGetDesignByIdQuery,
 } from "./apis/designApi";
 export type AppDispatch = typeof store.dispatch;

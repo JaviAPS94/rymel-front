@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { JSX, useCallback, useEffect, useState } from "react";
 import {
   toCamelCase,
   validateNumberField,
@@ -30,6 +30,8 @@ import { Modal } from "../core/Modal";
 import { AppDispatch, subTypeApi } from "../../store";
 import { useDispatch } from "react-redux";
 import { FileUpload } from "../core/FileUpload";
+import { useAlert } from "../../hooks/useAlert";
+import Alert from "../core/Alert";
 
 export interface FormData {
   customFields: ElementValue[];
@@ -117,6 +119,7 @@ const ElementForm = ({
     useState<string>("no");
   const [answerContinueAField, setAnswerContinueField] = useState<string>("no");
   const [matchedElements, setMatchedElements] = useState<MatchedElement[]>([]);
+  const { alert, showAlert, hideAlert } = useAlert();
   const dispatch = useDispatch<AppDispatch>();
 
   useEffect(() => {
@@ -486,7 +489,6 @@ const ElementForm = ({
 
   const handleFileChange =
     (name: string, index?: number) => (file: File | null) => {
-      console.log("file", file);
       if (index !== undefined) {
         setFormData((prevData) => {
           const updatedFields = [...prevData.customFields];
@@ -605,6 +607,7 @@ const ElementForm = ({
 
       const baseFields = result.field.base;
       const topLevelBaseKeys = Object.keys(baseFields);
+      topLevelBaseKeys.push("accesories");
 
       const foundKeys = element.values
         .map((value) => {
@@ -617,7 +620,6 @@ const ElementForm = ({
                 id: `${value.key}-${index}-${match.newValue}-${value.type}`,
                 description: value.name,
                 reference: `Nuevo valor: ${match.newValue}`,
-                // Maybe use some data from result here if needed
               }
             : null;
         })
@@ -652,9 +654,8 @@ const ElementForm = ({
   };
 
   const handleUpdateElement = async () => {
-    const matchedElementsLocal = editingElement
-      ? await getMatchedElementsWithFields()
-      : [];
+    const matchedElementsLocal =
+      editingElement !== null ? await getMatchedElementsWithFields() : [];
 
     setMatchedElements(matchedElementsLocal);
 
@@ -1034,6 +1035,7 @@ const ElementForm = ({
         isOpen={modalIsOpen}
         onClose={closeModal}
         title="Agregar un nuevo campo"
+        closeOnOutsideClick={false}
       >
         <>
           <div className="mt-4">
@@ -1095,6 +1097,7 @@ const ElementForm = ({
         isOpen={accessoryModalIsOpen}
         onClose={toogleAccessoryModal}
         title="Agregar accesorio"
+        closeOnOutsideClick={false}
       >
         <Stepper
           step={step}
@@ -1112,6 +1115,7 @@ const ElementForm = ({
         onClose={toogleFieldsUpdateModal}
         title="Actualizar campo en elementos"
         size="xl"
+        closeOnOutsideClick={false}
       >
         <Stepper
           step={fieldsUpdateStep}

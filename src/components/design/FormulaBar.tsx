@@ -11,7 +11,7 @@ interface FormulaBarProps {
   isAddingToFormula: boolean;
   rangeSelectionStart: string | null;
   formulaCursorPosition: number;
-  formulaInputRef: React.RefObject<HTMLInputElement>;
+  formulaInputRef: React.RefObject<HTMLInputElement | null>;
   onFormulaChange: (value: string) => void;
   onFormulaKeyPress: (e: React.KeyboardEvent) => void;
   onFormulaFocus: () => void;
@@ -59,7 +59,7 @@ const FormulaBar: React.FC<FormulaBarProps> = ({
         onFocus={onFormulaFocus}
         onBlur={onFormulaBlur}
         placeholder="Ingrese un valor o una fórmula (e.g., =A1+B1, =QUADRATIC(A1,1,2,3))"
-        className={`flex-1 px-3 py-1 border rounded text-sm focus:outline-none focus:ring-2 ${
+        className={`flex-1 px-3 py-1 h-10 border rounded text-sm focus:outline-none focus:ring-2 ${
           isFormulaBuildingMode
             ? "border-blue-500 focus:ring-blue-500 bg-blue-50"
             : "border-gray-300 focus:ring-blue-500"

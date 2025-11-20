@@ -276,6 +276,7 @@ export type SubDesignData = {
   name: string;
   code: string;
   data: Sheet;
+  createdAt?: string;
 };
 
 export type DesignWithSubDesigns = {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Select, { Option } from "../core/Select";
 import {
   useGetCountriesQuery,
@@ -16,9 +16,10 @@ import NoData from "../core/NoData";
 import Skeleton from "../core/skeletons/Skeleton";
 import FilterSkeleton from "../core/skeletons/FiltersSkeleton";
 import Pagination from "../core/Pagination";
-import CountryFlag from "../core/CountryFlag";
 import { useErrorAlert } from "../../hooks/useAlertError";
 import Alert from "../core/Alert";
+import DesignCard from "./DesignCard";
+import { CiBoxList } from "react-icons/ci";
 
 interface DesignListProps {
   onSelectDesign: (design: Design) => void;
@@ -33,12 +34,19 @@ export default function DesignList({ onSelectDesign }: DesignListProps) {
   const [selectedType, setSelectedType] = useState<number | null>(null);
   const [selectedSubType, setSelectedSubType] = useState<number | null>(null);
   const [designs, setDesigns] = useState<DesignsPaginated>();
+  const isInitialLoad = useRef(true);
 
   const {
     data: countries,
     isLoading: isLoadingCountries,
     error: errorCountries,
   } = useGetCountriesQuery(null);
+
+  useEffect(() => {
+    if (countries) {
+      setCountry(countries[0]?.id);
+    }
+  }, [countries]);
 
   // Fetch design types
   const {
@@ -73,39 +81,7 @@ export default function DesignList({ onSelectDesign }: DesignListProps) {
     if (getDesignsResult.isError) {
       setShowErrorAlert(true);
     }
-  }, [getDesignsResult]);
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("es-ES", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
-  // const parseElementValues = (valuesString: string) => {
-  //   try {
-  //     return JSON.parse(valuesString);
-  //   } catch {
-  //     return [];
-  //   }
-  // };
-
-  // const getDesignStats = (design: Design) => {
-  //   const totalPhases = design.designElements.reduce((acc, el) => {
-  //     const values = parseElementValues(el.element.values);
-  //     const phases = values.find((v: any) => v.key === "phases");
-  //     return acc + (phases ? Number.parseInt(phases.value) : 0);
-  //   }, 0);
-
-  //   const totalPower = design.designElements.reduce((acc, el) => {
-  //     const values = parseElementValues(el.element.values);
-  //     const power = values.find((v: any) => v.key === "power");
-  //     return acc + (power ? Number.parseInt(power.value) : 0);
-  //   }, 0);
-
-  //   return { totalPhases, totalPower };
-  // };
+  }, [getDesignsResult, setShowErrorAlert]);
 
   const handleCountryChange = (countryId: number | undefined) => {
     setCountry(countryId);
@@ -113,14 +89,14 @@ export default function DesignList({ onSelectDesign }: DesignListProps) {
 
   const handleSelectedType = (typeId: number | undefined) => {
     setSelectedType(typeId || null);
-    setSelectedSubType(null); // Reset subtype when type changes
+    setSelectedSubType(null);
   };
 
   const handleSubTypeChange = (subTypeId: number | undefined) => {
     setSelectedSubType(subTypeId || null);
   };
 
-  const handleSearchClick = () => {
+  const handleSearchClick = useCallback(() => {
     setPage(1);
     triggerGetDesignsByFilters({
       page: 1,
@@ -131,7 +107,23 @@ export default function DesignList({ onSelectDesign }: DesignListProps) {
       designSubtypeId: selectedSubType || undefined,
       designCode: designCode || undefined,
     });
-  };
+  }, [
+    limit,
+    name,
+    country,
+    selectedType,
+    selectedSubType,
+    designCode,
+    triggerGetDesignsByFilters,
+  ]);
+
+  // Trigger search when country is set for the first time
+  useEffect(() => {
+    if (country && isInitialLoad.current) {
+      isInitialLoad.current = false;
+      handleSearchClick();
+    }
+  }, [country, handleSearchClick]);
 
   const handleCleanFilters = () => {
     setName("");
@@ -173,7 +165,10 @@ export default function DesignList({ onSelectDesign }: DesignListProps) {
       <div className="bg-rymel-blue text-white p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Catálogo de Diseños</h1>
+            <div className="flex">
+              <CiBoxList className="text-white h-8 w-8" />
+              <h1 className="text-3xl font-bold ml-2">Catálogo De Diseños</h1>
+            </div>
             <p className="text-white mt-1">
               {designs?.total} diseños disponibles
             </p>
@@ -290,89 +285,14 @@ export default function DesignList({ onSelectDesign }: DesignListProps) {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {designs?.data.map((design, index) => {
-              // const stats = getDesignStats(design);
-              return (
-                <div
-                  key={design.id}
-                  onClick={() => onSelectDesign(design)}
-                  className="fade-in-up border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-all duration-200 cursor-pointer hover:border-blue-300 group"
-                  style={{
-                    animationDelay: `${index * 100}ms`,
-                    opacity: 0,
-                  }}
-                >
-                  {/* Header */}
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
-                        {design.name}
-                      </h3>
-                      <p className="text-sm text-gray-500 font-mono">
-                        {design.code}
-                      </p>
-                    </div>
-                    <div className="flex flex-col items-end">
-                      <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
-                        {design.designSubType?.designType.name}
-                      </span>
-                      <span className="text-xs text-gray-500 mt-1">
-                        {design.designSubType?.name}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Stats */}
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div className="bg-gray-50 rounded-lg p-3 text-center">
-                      <div className="text-xl font-bold text-blue-600">
-                        {design.designElements.length}
-                      </div>
-                      <div className="text-xs text-gray-600">Elementos</div>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-3 text-center">
-                      <div className="text-xl font-bold text-green-600">
-                        {design.subDesigns.length}
-                      </div>
-                      <div className="text-xs text-gray-600">Sub-diseños</div>
-                    </div>
-                  </div>
-
-                  {/* Technical Info */}
-                  <div className="space-y-2 mb-4">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Norma:</span>
-                      <span className="font-medium text-orange-600">
-                        {design.designElements[0]?.element.norm.name}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">País:</span>
-                      <CountryFlag
-                        isoCode={
-                          design.designElements[0]?.element.norm.country.isoCode
-                        }
-                        className="w-8 h-5 object-cover ml-2"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Footer */}
-                  <div className="pt-4 border-t border-gray-100">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-500">
-                        Actualizado: {formatDate(design.updatedAt)}
-                      </span>
-                      <div className="text-blue-600 group-hover:text-blue-700 transition-colors">
-                        <span className="text-sm font-medium">
-                          Ver detalles →
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            {designs?.data.map((design, index) => (
+              <DesignCard
+                key={design.id}
+                design={design}
+                index={index}
+                onClick={onSelectDesign}
+              />
+            ))}
           </div>
         )}
         {designs && designs.data.length > 0 && (

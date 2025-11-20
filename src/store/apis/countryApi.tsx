@@ -16,5 +16,5 @@ const countryApi = createApi({
   }),
 });
 
-export const { useGetCountriesQuery } = countryApi;
+export const { useGetCountriesQuery, useLazyGetCountriesQuery } = countryApi;
 export { countryApi };

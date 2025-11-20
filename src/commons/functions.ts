@@ -1,4 +1,3 @@
-import { NormElement } from "../pages/NormPage";
 import { NumberValidations, StringValidations } from "./types";
 
 const toCamelCase = (str: string): string => {

@@ -1,13 +1,17 @@
-"use client";
-
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Design, DesignElement } from "../../commons/types";
 import Button from "../core/Button";
-import { FaEye } from "react-icons/fa";
+import { FaCheck, FaEye, FaRegTrashAlt, FaTimes } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import { Modal } from "../core/Modal";
+import { useDeleteByIdMutation } from "../../store";
+import { useAlert } from "../../hooks/useAlert";
+import Alert from "../core/Alert";
+import { MdOutlineDesignServices } from "react-icons/md";
 
 interface DesignViewerProps {
   design: Design;
+  handleBackToList: () => void;
 }
 interface TechnicalValue {
   type: string;
@@ -17,11 +21,32 @@ interface TechnicalValue {
   description?: string;
 }
 
-export default function DesignViewer({ design }: DesignViewerProps) {
+export default function DesignViewer({
+  design,
+  handleBackToList,
+}: DesignViewerProps) {
   const [activeTab, setActiveTab] = useState<
     "overview" | "elements" | "subdesigns"
   >("overview");
+  const [showDeleteDesignModal, setShowDeleteDesignModal] =
+    useState<boolean>(false);
+  const { alert, showAlert, hideAlert } = useAlert();
   const navigate = useNavigate();
+  const [deleteById, deleteByIdResult] = useDeleteByIdMutation();
+
+  useEffect(() => {
+    if (deleteByIdResult.isSuccess) {
+      deleteByIdResult.reset();
+      showAlert("Diseño eliminado correctamente.", "success");
+      setTimeout(() => {
+        handleBackToList();
+      }, 3000);
+    }
+    if (deleteByIdResult.isError) {
+      deleteByIdResult.reset();
+      showAlert("Error al eliminar el diseño. Inténtelo de nuevo.", "error");
+    }
+  }, [deleteByIdResult, showAlert, handleBackToList]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("es-ES", {
@@ -97,21 +122,49 @@ export default function DesignViewer({ design }: DesignViewerProps) {
       .filter(Boolean);
   };
 
+  const handleDeleteDesign = () => {
+    setShowDeleteDesignModal(!showDeleteDesignModal);
+  };
+
+  const confirmDeleteDesign = async () => {
+    await deleteById(design.id);
+    handleDeleteDesign();
+  };
+
   return (
     <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
       {/* Header */}
       <div className="bg-rymel-blue text-white p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">{design?.name}</h1>
+            <div className="flex">
+              <MdOutlineDesignServices className="text-white h-8 w-8" />
+              <h1 className="text-3xl font-bold ml-2">{design?.name}</h1>
+            </div>
             <p className="text-blue-100 mt-1">Código: {design?.code}</p>
           </div>
-          <div className="text-right">
-            <div className="bg-rymel-yellow px-3 py-1 rounded-full text-sm">
-              {design?.designSubType.designType.name}
-            </div>
-            <div className="text-blue-100 text-sm mt-1">
-              Subtipo: {design?.designSubType.name}
+          <div className="flex items-center space-x-4">
+            <Button
+              primary
+              icon={<FaEye />}
+              onClick={() => handleViewDesignCalculations(design.id)}
+            >
+              Ver Cálculos De Diseño
+            </Button>
+            <Button
+              danger
+              icon={<FaRegTrashAlt />}
+              onClick={handleDeleteDesign}
+            >
+              Eliminar
+            </Button>
+            <div className="text-center">
+              <div className="bg-rymel-yellow px-3 py-1 rounded-full text-sm">
+                {design?.designSubType.designType.name}
+              </div>
+              <div className="text-blue-100 text-sm mt-1">
+                Subtipo: {design?.designSubType.name}
+              </div>
             </div>
           </div>
         </div>
@@ -321,13 +374,6 @@ export default function DesignViewer({ design }: DesignViewerProps) {
               <h3 className="text-xl font-semibold text-gray-900">
                 Sub-diseños
               </h3>
-              <Button
-                primary
-                icon={<FaEye />}
-                onClick={() => handleViewDesignCalculations(design.id)}
-              >
-                Ver Cálculos De Diseño
-              </Button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -355,7 +401,7 @@ export default function DesignViewer({ design }: DesignViewerProps) {
                     <div>
                       <span className="text-gray-600">Creado:</span>
                       <span className="ml-2">
-                        {formatDate(subDesign.createdAt)}
+                        {formatDate(subDesign.createdAt ?? "")}
                       </span>
                     </div>
                   </div>
@@ -365,6 +411,40 @@ export default function DesignViewer({ design }: DesignViewerProps) {
           </div>
         )}
       </div>
+      <Modal
+        isOpen={showDeleteDesignModal}
+        onClose={handleDeleteDesign}
+        title="Eliminar diseño"
+        size="lg"
+      >
+        <div className="p-4">
+          <p>
+            Esta acción no se puede deshacer. ¿Está seguro de que desea
+            continuar?
+          </p>
+        </div>
+        <div className="flex justify-end p-4">
+          <Button onClick={handleDeleteDesign} icon={<FaTimes />}>
+            Cancelar
+          </Button>
+          <Button
+            icon={<FaCheck />}
+            onClick={confirmDeleteDesign}
+            className="ml-2"
+            danger
+          >
+            Confirmar
+          </Button>
+        </div>
+      </Modal>
+      {alert.visible && (
+        <Alert
+          success={alert.type === "success"}
+          error={alert.type === "error"}
+          message={alert.message}
+          onClose={hideAlert}
+        />
+      )}
     </div>
   );
 }

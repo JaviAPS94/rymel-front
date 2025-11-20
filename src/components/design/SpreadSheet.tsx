@@ -1,9 +1,10 @@
 import type React from "react";
 
-import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo, JSX } from "react";
 import Button from "../core/Button";
-import { IoNewspaperOutline } from "react-icons/io5";
-import { FaClipboardList, FaPlus, FaSave } from "react-icons/fa";
+import { IoBookOutline } from "react-icons/io5";
+import { FaPlus } from "react-icons/fa";
+import { LuFileSpreadsheet, LuSave } from "react-icons/lu";
 import {
   Accessory,
   CellGrid,
@@ -131,7 +132,6 @@ const SpreadSheet = ({
       updateDesignResult.isSuccess ||
       saveDesignWithSubDesignsResult.isSuccess
     ) {
-      console.log("entra aca");
       updateDesignResult.reset();
       saveDesignWithSubDesignsResult.reset();
       resetToInitialState?.();
@@ -171,7 +171,7 @@ const SpreadSheet = ({
 
   // Get current sheet
   const currentSheet = sheets.find((sheet) => sheet.id === activeSheetId);
-  const cells = currentSheet?.cells || {};
+  const cells = useMemo(() => currentSheet?.cells || {}, [currentSheet?.cells]);
   const columnWidths = currentSheet?.columnWidths || {};
   const rowHeights = currentSheet?.rowHeights || {};
 
@@ -199,44 +199,50 @@ const SpreadSheet = ({
     return { row, col };
   };
 
-  // Navigate to adjacent cell
-  const navigateCell = (direction: "up" | "down" | "left" | "right") => {
-    const currentPos = parseCellRef(selectedCell);
-    if (!currentPos) return;
-
-    let newRow = currentPos.row;
-    let newCol = currentPos.col;
-
-    switch (direction) {
-      case "up":
-        newRow = Math.max(0, currentPos.row - 1);
-        break;
-      case "down":
-        newRow = Math.min(ROWS - 1, currentPos.row + 1);
-        break;
-      case "left":
-        newCol = Math.max(0, currentPos.col - 1);
-        break;
-      case "right":
-        newCol = Math.min(COLS - 1, currentPos.col + 1);
-        break;
-    }
-
-    const newCellRef = getCellRef(newRow, newCol);
-    selectCell(newCellRef);
-  };
-
   // Select a cell (used for navigation)
-  const selectCell = (cellRef: string) => {
-    setSelectedCell(cellRef);
-    const cell = cells[cellRef];
-    const cellFormula = cell?.formula || "";
-    setFormulaInput(cellFormula);
-    setFormulaCursorPosition(cellFormula.length);
-    setIsFormulaBuildingMode(cellFormula.startsWith("="));
-    setRangeSelectionStart(null);
-    setIsAddingToFormula(false);
-  };
+  const selectCell = useCallback(
+    (cellRef: string) => {
+      setSelectedCell(cellRef);
+      const cell = cells[cellRef];
+      const cellFormula = cell?.formula || "";
+      setFormulaInput(cellFormula);
+      setFormulaCursorPosition(cellFormula.length);
+      setIsFormulaBuildingMode(cellFormula.startsWith("="));
+      setRangeSelectionStart(null);
+      setIsAddingToFormula(false);
+    },
+    [cells]
+  );
+
+  // Navigate to adjacent cell
+  const navigateCell = useCallback(
+    (direction: "up" | "down" | "left" | "right") => {
+      const currentPos = parseCellRef(selectedCell);
+      if (!currentPos) return;
+
+      let newRow = currentPos.row;
+      let newCol = currentPos.col;
+
+      switch (direction) {
+        case "up":
+          newRow = Math.max(0, currentPos.row - 1);
+          break;
+        case "down":
+          newRow = Math.min(ROWS - 1, currentPos.row + 1);
+          break;
+        case "left":
+          newCol = Math.max(0, currentPos.col - 1);
+          break;
+        case "right":
+          newCol = Math.min(COLS - 1, currentPos.col + 1);
+          break;
+      }
+
+      const newCellRef = getCellRef(newRow, newCol);
+      selectCell(newCellRef);
+    },
+    [selectedCell, selectCell]
+  );
 
   // Handle resize start
   const handleResizeStart = (
@@ -312,13 +318,23 @@ const SpreadSheet = ({
   // Handle global keyboard events
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Only handle navigation when formula input is not focused
+      // Check if any input, textarea, or select element is focused
+      const activeElement = document.activeElement;
+      const isInputFocused =
+        activeElement &&
+        (activeElement.tagName === "INPUT" ||
+          activeElement.tagName === "TEXTAREA" ||
+          activeElement.tagName === "SELECT" ||
+          (activeElement as HTMLElement).contentEditable === "true");
+
+      // Only handle navigation when formula input is not focused and no other inputs are focused
       if (
         !isFormulaInputFocused &&
         !isAddingToFormula &&
         !editingSheetName &&
         !showFunctionLibrary &&
-        !showTemplateLibrary
+        !showTemplateLibrary &&
+        !isInputFocused
       ) {
         switch (e.key) {
           case "ArrowUp":
@@ -347,22 +363,36 @@ const SpreadSheet = ({
             break;
           case "F2":
             e.preventDefault();
-            startEditing();
+            // Start editing the selected cell inline
+            if (formulaInputRef.current) {
+              formulaInputRef.current.focus();
+              formulaInputRef.current.setSelectionRange(
+                formulaInput.length,
+                formulaInput.length
+              );
+            }
             break;
           case "Delete":
           case "Backspace":
             e.preventDefault();
             // Clear cell content
             setFormulaInput("");
-            updateCell(selectedCell, "");
+            // Note: we'll call the updateCell function when it's defined later
             break;
           default:
             // If user types a regular character, start editing
             if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
               e.preventDefault();
               setFormulaInput(e.key);
-              updateCell(selectedCell, e.key);
-              startEditing();
+              // Note: we'll call the updateCell function when it's defined later
+              // Start editing the selected cell inline
+              if (formulaInputRef.current) {
+                formulaInputRef.current.focus();
+                formulaInputRef.current.setSelectionRange(
+                  e.key.length,
+                  e.key.length
+                );
+              }
             }
             break;
         }
@@ -379,6 +409,7 @@ const SpreadSheet = ({
     editingSheetName,
     showFunctionLibrary,
     showTemplateLibrary,
+    navigateCell,
   ]);
 
   // Update cursor position from input
@@ -637,6 +668,66 @@ const SpreadSheet = ({
     [customFunctions, evaluateCustomFunction]
   );
 
+  // Update sheets when sheetsInitialData changes (e.g., when designBase is set)
+  useEffect(() => {
+    if (sheetsInitialData && sheetsInitialData.length > 0) {
+      console.log("SpreadSheet: sheetsInitialData changed:", sheetsInitialData);
+      // Set the initial sheets data
+      setSheets(sheetsInitialData);
+
+      // Set active sheet to the first sheet in the new data
+      if (sheetsInitialData[0]?.id) {
+        setActiveSheetId(sheetsInitialData[0].id);
+        setSelectedCell("A1");
+        setFormulaInput("");
+      }
+
+      // Recalculate all formulas for all sheets after a short delay
+      const recalculateAllSheetsFormulas = async () => {
+        const updatedSheets: Sheet[] = [];
+
+        for (const sheet of sheetsInitialData) {
+          const newCells = { ...sheet.cells };
+          const updatedComputedValues: Record<string, string | number> = {};
+
+          // Process all cells to recalculate formulas
+          for (const ref of Object.keys(newCells)) {
+            try {
+              const result = await evaluateFormula(
+                newCells[ref].formula,
+                newCells
+              );
+              updatedComputedValues[ref] = result !== undefined ? result : "";
+
+              // Update the cell grid with the new computed value for next cell calculations
+              newCells[ref] = {
+                ...newCells[ref],
+                computed: updatedComputedValues[ref],
+              };
+            } catch (error) {
+              console.error(`Error calculating cell ${ref}:`, error);
+              updatedComputedValues[ref] = "#ERROR";
+              newCells[ref] = {
+                ...newCells[ref],
+                computed: "#ERROR",
+              };
+            }
+          }
+
+          updatedSheets.push({ ...sheet, cells: newCells });
+        }
+
+        // Update all sheets with recalculated formulas
+        setSheets(updatedSheets);
+      };
+
+      // Run the recalculation after a short delay to ensure the component is properly mounted
+      setTimeout(() => {
+        recalculateAllSheetsFormulas();
+      }, 100);
+    }
+  }, [sheetsInitialData, evaluateFormula]);
+
   // Helper function to find all cells that reference a given cell
   const findDependentCells = useCallback(
     (targetCell: string, cells: CellGrid): string[] => {
@@ -840,17 +931,6 @@ const SpreadSheet = ({
     } else {
       // Normal cell selection - just select, don't focus formula input
       selectCell(cellRef);
-    }
-  };
-
-  // Start editing the selected cell
-  const startEditing = () => {
-    if (formulaInputRef.current) {
-      formulaInputRef.current.focus();
-      formulaInputRef.current.setSelectionRange(
-        formulaInput.length,
-        formulaInput.length
-      );
     }
   };
 
@@ -1159,7 +1239,7 @@ const SpreadSheet = ({
       loadTemplate(initialTemplate);
       setInitialTemplateLoaded(true);
     }
-  }, [templates, initialTemplateLoaded, loadTemplate]);
+  }, [templates, initialTemplateLoaded, loadTemplate, sheetsInitialData]);
 
   const stepComponents: Record<
     number,
@@ -1195,11 +1275,12 @@ const SpreadSheet = ({
 
   const handleSaveDesignWithSubDesigns = async () => {
     const subDesignData: SubDesignData[] = sheets.map((sheet) => {
-      return {
+      const data: SubDesignData = {
         name: sheet.name,
         code: sheet.id,
-        data: sheet as unknown as Record<string, unknown>,
+        data: sheet,
       };
+      return data;
     });
 
     if (!designSubtypeId) {
@@ -1219,23 +1300,19 @@ const SpreadSheet = ({
         ...designData,
         id: designId,
       };
-      console.log("Updating design:", updatedDesignData);
       await updateDesign(updatedDesignData);
     } else {
-      console.log("Saving new design:", designData);
       await saveDesignWithSubDesigns(designData);
     }
   };
 
   return (
-    <div className="w-full h-screen bg-white flex flex-col">
+    <div className="w-full h-screen bg-white flex flex-col rounded-lg shadow-md overflow-hidden">
       {/* Header */}
       <div className="bg-gray-100 border-b p-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-gray-800">
-            Calculos de diseño
-          </h1>
-          <div className="flex items-center gap-2">
+          <h1 className="text-xl font-semibold">Cálculos de diseño</h1>
+          <div className="flex items-center gap-4">
             <Button
               success
               onClick={toogleAccessoryModal}
@@ -1248,21 +1325,18 @@ const SpreadSheet = ({
               highlight
               onClick={() => setShowInstructions(true)}
               className="px-4 py-2 rounded font-medium"
-              icon={<IoNewspaperOutline />}
+              icon={<IoBookOutline />}
             >
               Instrucciones de uso
             </Button>
-            {(templates.length > 1 ||
-              Object.keys(sheetsInitialData[0].cells).length > 0) && (
-              <Button
-                info
-                onClick={() => setShowTemplateLibrary(true)}
-                className="px-4 py-2 rounded font-medium"
-                icon={<FaClipboardList />}
-              >
-                Plantillas
-              </Button>
-            )}
+            <Button
+              highlight
+              onClick={() => setShowTemplateLibrary(true)}
+              className="px-4 py-2 rounded font-medium"
+              icon={<LuFileSpreadsheet />}
+            >
+              Plantillas
+            </Button>
             <Button
               primary
               loading={
@@ -1274,8 +1348,8 @@ const SpreadSheet = ({
                 updateDesignResult.isLoading
               }
               onClick={() => handleSaveDesignWithSubDesigns()}
-              className="px-4 py-2 rounded font-medium"
-              icon={<FaSave />}
+              className="px-4 py-2 rounded font-medium h-[2.8rem]"
+              icon={<LuSave />}
             >
               Guardar
             </Button>
@@ -1355,9 +1429,10 @@ const SpreadSheet = ({
         isOpen={showInstructions}
         onClose={() => setShowInstructions(false)}
         title="Instrucciones de uso"
-        size="lg"
+        size="xl"
+        closeOnOutsideClick={false}
       >
-        <div className="text-sm text-gray-600 space-y-1">
+        <div className="text-gray-600 space-y-1">
           <div>
             <strong>Navegación:</strong> Teclas de flecha (↑↓←→), Tecla Enter
             (abajo), Tecla Tab (derecha)
@@ -1383,6 +1458,7 @@ const SpreadSheet = ({
         onClose={toogleAccessoryModal}
         title="Agregar accesorio"
         size="xl"
+        closeOnOutsideClick={false}
       >
         <Stepper
           step={step}

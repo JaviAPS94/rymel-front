@@ -1,5 +1,4 @@
 import type React from "react";
-import { FaTimes } from "react-icons/fa";
 import { MdOutlineClose } from "react-icons/md";
 
 interface CustomInputProps
@@ -18,6 +17,7 @@ const CustomInput: React.FC<CustomInputProps> = ({
   ...props
 }) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.stopPropagation();
     onChange(e.target.value);
   };
 
@@ -32,6 +32,7 @@ const CustomInput: React.FC<CustomInputProps> = ({
         {...props}
         value={value}
         onChange={handleChange}
+        onClick={(e) => e.stopPropagation()}
         placeholder={placeholder}
         className="w-full px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
       />

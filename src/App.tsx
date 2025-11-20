@@ -5,6 +5,7 @@ import NormPage from "./pages/NormPage";
 import DesignPage from "./pages/DesignPage";
 import ElementsDesignPage from "./pages/ElementsDesignPage";
 import DesignsListPage from "./pages/DesignsListPage";
+import DesignDetailsPage from "./pages/DesignDetailsPage";
 
 const App: React.FC = () => {
   return (
@@ -17,6 +18,10 @@ const App: React.FC = () => {
         <Route path="/design" element={<DesignPage />} />
         <Route path="/elements/design" element={<ElementsDesignPage />} />
         <Route path="/design/list" element={<DesignsListPage />} />
+        <Route
+          path="/design/:designId/details"
+          element={<DesignDetailsPage />}
+        />
       </Routes>
     </>
   );

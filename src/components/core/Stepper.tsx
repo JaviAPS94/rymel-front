@@ -1,5 +1,6 @@
 import { FaChevronRight, FaPlus, FaTimes } from "react-icons/fa";
 import Button from "./Button";
+import { JSX } from "react";
 
 interface StepperProps {
   step: number;

@@ -11,7 +11,7 @@ interface CheckboxListItemProps {
   isChecked: boolean;
   onToggle: (id: unknown) => void;
   isDisabled: boolean;
-  children?: React.ReactNode; // Add support for children
+  children?: React.ReactNode;
 }
 
 const CheckboxListItem: React.FC<CheckboxListItemProps> = ({

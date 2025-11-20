@@ -16,6 +16,7 @@ import { FaPlus, FaTimes } from "react-icons/fa";
 import Select, { Option } from "../core/Select";
 import { useNorm } from "../../hooks/useNorm";
 import { FileUpload, FileUploadHandle } from "../core/FileUpload";
+import { useAlert } from "../../hooks/useAlert";
 
 interface NormFormProps {
   countries: Country[] | undefined;
@@ -25,7 +26,7 @@ interface NormFormProps {
   elementsByFilters: ElementResponse[] | undefined;
   specifications: Specification[] | undefined;
   handleFileSelect: (file: File | null) => void;
-  fileUploadRef: React.RefObject<FileUploadHandle>;
+  fileUploadRef: React.RefObject<FileUploadHandle | null>;
 }
 
 const NormForm = ({
@@ -62,6 +63,8 @@ const NormForm = ({
     handleDisableEdit,
     handleEditingElement,
   } = useNorm();
+
+  const { alert, showAlert, hideAlert } = useAlert();
 
   const {
     data: subTypes,
@@ -169,6 +172,7 @@ const NormForm = ({
       ...prevData,
       elements: [...prevData.elements, elementWithType],
     }));
+    showAlert("Elemento agregado correctamente.", "success");
     toogleShowAddElementButton();
     toogleShowAddElement();
     setSelectedType(undefined);
@@ -400,6 +404,14 @@ const NormForm = ({
       />
       {showErrorAlert && (
         <Alert message="Ha ocurrido un error al cargar los datos" error />
+      )}
+      {alert.visible && (
+        <Alert
+          success={alert.type === "success"}
+          error={alert.type === "error"}
+          message={alert.message}
+          onClose={hideAlert}
+        />
       )}
     </>
   );

@@ -9,6 +9,7 @@ import CustomInput from "../components/core/CustomInput";
 import Pagination from "../components/core/Pagination";
 import Button from "../components/core/Button";
 import { FaPlus } from "react-icons/fa";
+import { CiBoxList } from "react-icons/ci";
 
 const NormListPage = () => {
   const navigate = useNavigate();
@@ -51,7 +52,10 @@ const NormListPage = () => {
         <div className="bg-rymel-blue text-white p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold">Listado de normas</h1>
+              <div className="flex">
+                <CiBoxList className="text-white h-8 w-8" />
+                <h1 className="text-3xl font-bold ml-2">Listado De Normas</h1>
+              </div>
               <p className="text-white mt-1">
                 {data?.total} normas disponibles
               </p>

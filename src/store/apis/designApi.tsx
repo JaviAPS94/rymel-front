@@ -79,6 +79,13 @@ const designApi = createApi({
       },
       invalidatesTags: ["Design"],
     }),
+    deleteById: builder.mutation<void, number>({
+      query: (designId) => ({
+        url: `/design/${designId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Design"],
+    }),
   }),
 });
 
@@ -91,6 +98,8 @@ export const {
   useSaveDesignWithSubDesignsMutation,
   useGetDesignsByFiltersPaginatedMutation,
   useLazyGetDesignByIdQuery,
+  useGetDesignByIdQuery,
   useUpdateMutation,
+  useDeleteByIdMutation,
 } = designApi;
 export { designApi };

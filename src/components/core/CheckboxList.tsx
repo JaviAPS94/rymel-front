@@ -1,7 +1,8 @@
 import type React from "react";
 import CheckboxListItem from "./CheckboxListItem";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { BiCheck, BiMinus } from "react-icons/bi";
+import Pagination from "./Pagination";
 
 interface CheckboxListProps<T> {
   items: T[];
@@ -13,6 +14,8 @@ interface CheckboxListProps<T> {
   childrenKey?: keyof T;
   selectAll?: (ids: unknown[]) => void;
   title?: string;
+  itemsPerPage?: number;
+  enablePagination?: boolean;
 }
 
 const CheckboxList = <T extends { id: unknown; [key: string]: unknown }>({
@@ -25,7 +28,11 @@ const CheckboxList = <T extends { id: unknown; [key: string]: unknown }>({
   childrenKey,
   selectAll,
   title,
+  itemsPerPage = 10,
+  enablePagination = false,
 }: CheckboxListProps<T>): React.ReactElement => {
+  const [currentPage, setCurrentPage] = useState(1);
+
   const getAllIds = (items: T[]): unknown[] => {
     let ids: unknown[] = [];
 
@@ -45,6 +52,19 @@ const CheckboxList = <T extends { id: unknown; [key: string]: unknown }>({
   };
 
   const allIds = useMemo(() => getAllIds(items), [items, childrenKey]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(items.length / itemsPerPage);
+  const paginatedItems = useMemo(() => {
+    if (!enablePagination) return items;
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return items.slice(startIndex, endIndex);
+  }, [items, currentPage, itemsPerPage, enablePagination]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
 
   const allSelected =
     allIds.length > 0 && allIds.every((id) => selectedItems.includes(id));
@@ -122,8 +142,15 @@ const CheckboxList = <T extends { id: unknown; [key: string]: unknown }>({
         </div>
       )}
       <ul className="divide-y divide-gray-300 space-y-3 min-h-10">
-        {items.map(renderItem)}
+        {paginatedItems.map(renderItem)}
       </ul>
+      {enablePagination && totalPages > 1 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+        />
+      )}
     </div>
   );
 };

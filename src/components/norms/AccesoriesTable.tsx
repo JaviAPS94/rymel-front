@@ -4,7 +4,7 @@ import Button from "../core/Button";
 import { FormData } from "./ElementForm";
 
 interface AccesoriesTableProps {
-  accessories: Accessory[];
+  accessories: Accessory[] | undefined;
   setFormData?: React.Dispatch<React.SetStateAction<FormData>>;
   showDelete?: boolean;
 }
@@ -58,7 +58,7 @@ const AccesoriesTable = ({
         </tr>
       </thead>
       <tbody>
-        {accessories.map((accessory) => (
+        {accessories?.map((accessory) => (
           <tr key={accessory.id} className="odd:bg-white even:bg-gray-50">
             <td className="border border-gray-300 px-4 py-2">{accessory.id}</td>
             <td className="border border-gray-300 px-4 py-2">

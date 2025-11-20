@@ -37,6 +37,7 @@ export const NormProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const handleEditingElement = (index: number | null) => {
+    console.log("Setting editing element to:", index);
     setEditingElement(index);
   };
 

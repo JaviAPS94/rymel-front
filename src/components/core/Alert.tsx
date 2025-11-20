@@ -5,7 +5,7 @@ import { MdClose } from "react-icons/md";
 
 interface AlertProps {
   message?: string;
-  messages?: string[]; // for multiple errors
+  messages?: string[];
   success?: boolean;
   error?: boolean;
   onClose?: () => void;
@@ -16,7 +16,7 @@ const Alert = ({ message, messages, success, error, onClose }: AlertProps) => {
 
   const handleClose = () => {
     setVisible(false);
-    onClose?.(); // Notify parent if needed
+    onClose?.();
   };
 
   const classes = className(

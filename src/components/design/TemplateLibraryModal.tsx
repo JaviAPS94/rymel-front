@@ -2,6 +2,10 @@ import React, { useState } from "react";
 import { Template } from "../../commons/types";
 import { Modal } from "../core/Modal";
 import Pagination from "../core/Pagination";
+import CustomInput from "../core/CustomInput";
+import TooltipGeneral from "../core/TooltipGeneral";
+import Button from "../core/Button";
+import { FiDownload } from "react-icons/fi";
 
 interface TemplateLibraryModalProps {
   isOpen: boolean;
@@ -24,7 +28,7 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({
   searchTerm,
   currentPage,
 }) => {
-  const [templatesPerPage] = useState<number>(10);
+  const [templatesPerPage] = useState<number>(3);
 
   if (!isOpen) return null;
 
@@ -57,39 +61,23 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({
         onPageChange(1);
       }}
       title="Biblioteca de plantillas"
-      size="full"
+      size="xl"
+      closeOnOutsideClick={false}
     >
-      <div className="bg-white rounded-lg p-6 max-w-6xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Search Bar */}
-        <div className="mb-4">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Buscar plantillas por nombre, descripción o categoría..."
-              value={searchTerm}
-              onChange={(e) => {
-                onSearchChange(e.target.value);
-                onPageChange(1);
-              }}
-              className="w-full px-4 py-2 pl-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <div className="absolute left-3 top-2.5 text-gray-400">🔍</div>
-            {searchTerm && (
-              <button
-                onClick={() => {
-                  onSearchChange("");
-                  onPageChange(1);
-                }}
-                className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-        </div>
+      <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <CustomInput
+          type="text"
+          placeholder="Buscar plantillas por nombre, descripción o categoría..."
+          value={searchTerm}
+          onChange={(e) => {
+            onSearchChange(e);
+            onPageChange(1);
+          }}
+          className="mt-4 mx-1"
+        />
 
         {/* Results info */}
-        <div className="mb-4 text-sm text-gray-600">
+        <div className="my-2 text-sm text-gray-600">
           {searchTerm ? (
             <span>
               Encontrados {filteredTemplates.length} plantilla
@@ -109,7 +97,7 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({
         {/* Templates Grid */}
         <div className="flex-1 overflow-y-auto mb-4">
           {currentTemplates.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
               {currentTemplates.map((template) => (
                 <div
                   key={template.id}
@@ -117,7 +105,7 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({
                 >
                   <div className="flex justify-between items-start mb-2">
                     <div>
-                      <h3 className="font-semibold text-lg text-indigo-600">
+                      <h3 className="font-semibold text-lg text-blue-600">
                         {template.name}
                       </h3>
                       <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">
@@ -128,12 +116,20 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({
                   <p className="text-sm text-gray-600 mb-3 flex-1">
                     {template.description}
                   </p>
-                  <button
-                    onClick={() => handleLoadTemplate(template)}
-                    className="w-full px-3 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 mt-auto"
-                  >
-                    Cargar Plantilla
-                  </button>
+                  <div className="flex items-center justify-center">
+                    <TooltipGeneral
+                      content="Cargar Plantilla"
+                      position="right"
+                      delay={100}
+                    >
+                      <Button
+                        outline
+                        onClick={() => handleLoadTemplate(template)}
+                      >
+                        <FiDownload className="text-blue-600 hover:text-blue-800 h-8 w-8" />
+                      </Button>
+                    </TooltipGeneral>
+                  </div>
                 </div>
               ))}
             </div>
@@ -161,7 +157,7 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({
           )}
         </div>
 
-        <div className="flex align-middle mx-auto mt-4 text-2xl space-x-2">
+        <div className="flex align-middle mx-auto text-2xl space-x-2">
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}

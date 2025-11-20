@@ -6,7 +6,6 @@ import {
   FaSearch,
   FaTimes,
   FaPlus,
-  FaSave,
   FaFileAlt,
   FaTrash,
   FaPencilAlt,

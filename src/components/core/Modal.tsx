@@ -8,6 +8,7 @@ type ModalProps = {
   title?: string;
   children: ReactNode;
   size?: "md" | "lg" | "xl" | "full";
+  closeOnOutsideClick?: boolean;
 };
 
 export function Modal({
@@ -16,6 +17,7 @@ export function Modal({
   title,
   children,
   size = "lg",
+  closeOnOutsideClick = true,
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -33,6 +35,8 @@ export function Modal({
 
   // Handle click outside
   useEffect(() => {
+    if (!closeOnOutsideClick) return;
+
     const handleClickOutside = (e: MouseEvent) => {
       if (
         modalRef.current &&
@@ -45,7 +49,7 @@ export function Modal({
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, closeOnOutsideClick]);
 
   // Prevent body scroll when modal is open
   useEffect(() => {

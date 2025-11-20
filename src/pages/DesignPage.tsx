@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   useGetCountriesQuery,
   useGetElementsByFiltersPaginatedMutation,
@@ -10,7 +10,7 @@ import NoData from "../components/core/NoData";
 import Pagination from "../components/core/Pagination";
 import Button from "../components/core/Button";
 import { BiEraser, BiSearch } from "react-icons/bi";
-import { MdRemoveCircleOutline } from "react-icons/md";
+import { MdOutlineDesignServices, MdRemoveCircleOutline } from "react-icons/md";
 import ElementCard from "../components/elements/ElementCard";
 import { ElementResponse, ElementsPaginated } from "../commons/types";
 import { IoIosAddCircleOutline } from "react-icons/io";
@@ -34,6 +34,7 @@ const DesignPage = () => {
   const [elements, setElements] = useState<ElementsPaginated>();
   const [normId, setNormId] = useState<number | null>(null);
   const [isFilteringByNorm, setIsFilteringByNorm] = useState<boolean>(false);
+  const isInitialLoad = useRef(true);
 
   const {
     data: countries,
@@ -85,7 +86,7 @@ const DesignPage = () => {
     }
   }, [normId]); //eslint-disable-line
 
-  const handleSearchClick = () => {
+  const handleSearchClick = useCallback(() => {
     setSelectedElements([]);
     setPage(1);
     trigger({
@@ -96,7 +97,7 @@ const DesignPage = () => {
       subType: subType || undefined,
       sapReference: sapReference || undefined,
     });
-  };
+  }, [limit, name, country, subType, sapReference, trigger]);
 
   const handleCountryChange = (countryId: number | undefined) => {
     setCountry(countryId);
@@ -180,6 +181,19 @@ const DesignPage = () => {
     navigate(`/elements/design?ids=${selectedIds}`);
   };
 
+  useEffect(() => {
+    if (countries) {
+      setCountry(countries[0]?.id);
+    }
+  }, [countries]);
+
+  useEffect(() => {
+    if (country && isInitialLoad.current) {
+      isInitialLoad.current = false;
+      handleSearchClick();
+    }
+  }, [country, handleSearchClick]);
+
   return (
     <>
       <div
@@ -190,7 +204,10 @@ const DesignPage = () => {
         <div className="bg-rymel-blue text-white p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold">Diseño de elementos</h1>
+              <div className="flex">
+                <MdOutlineDesignServices className="text-white h-8 w-8" />
+                <h1 className="text-3xl font-bold ml-2">Diseño De Elementos</h1>
+              </div>
               <p className="text-white mt-1">
                 {elements?.total} elementos disponibles
               </p>

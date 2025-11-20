@@ -6,6 +6,9 @@ import Button from "../core/Button";
 import SkeletonText from "../core/skeletons/Skeleton";
 import { INVENTARY_TYPE_DEFAULT } from "../../commons/constants";
 import CheckboxList from "../core/CheckboxList";
+import { useAlert } from "../../hooks/useAlert";
+import Alert from "../core/Alert";
+import NoData from "../core/NoData";
 
 export interface SubItem {
   id: number;
@@ -31,17 +34,19 @@ const Accesories = ({
   const [accessorySearch, setAccessorySearch] = useState("");
   const [accessorySearchInputError, setAccessorySearchInputError] =
     useState("");
+  const { alert, showAlert, hideAlert } = useAlert();
 
   useEffect(() => {
     if (getAccesoriesByNameResult.isSuccess) {
       setAccessoriesData(getAccesoriesByNameResult.data);
       setAccessorySearch("");
     }
-
-    // if (getAccesoriesByNameResult.isError) {
-    //   setShowErrorAlert(true);
-    //   setTimeout(() => setShowErrorAlert(false), 3000);
-    // }
+    if (getAccesoriesByNameResult.isError) {
+      showAlert(
+        "Ocurrió un error al buscar los accesorios. Por favor, intente nuevamente.",
+        "error"
+      );
+    }
   }, [getAccesoriesByNameResult]);
 
   const toggleSubItem = (id: unknown) => {
@@ -74,9 +79,45 @@ const Accesories = ({
     getAccesoriesByName(getAccesoriesByNameParams);
   };
 
+  const renderAccessoriesContent = () => {
+    const { isLoading, isError } = getAccesoriesByNameResult;
+
+    if (isLoading) {
+      return <SkeletonText count={6} className="mb-4" />;
+    }
+
+    if (isError) {
+      return (
+        <NoData
+          message="Ocurrió un error al buscar los accesorios."
+          className="-mt-10"
+          type="error"
+        />
+      );
+    }
+
+    if (accessoriesData.length === 0) {
+      return (
+        <NoData message="No se encontraron accesorios. Intente cambiar los criterios de búsqueda." />
+      );
+    }
+
+    return (
+      <CheckboxList
+        items={accessoriesData}
+        selectedItems={selectedSubItems}
+        toggleItem={toggleSubItem}
+        labelFieldKey="description"
+        additionalFieldKey="reference"
+        multipleItems={false}
+        enablePagination
+      />
+    );
+  };
+
   return (
     <div className="w-full">
-      <div className="p-4 space-y-4">
+      <div className="p-4">
         <form
           className="w-full flex items-center justify-between"
           onSubmit={handleAccesoriesSearch}
@@ -125,16 +166,13 @@ const Accesories = ({
           </div>
         </form>
       </div>
-      {getAccesoriesByNameResult.isLoading ? (
-        <SkeletonText count={6} className="mb-4" />
-      ) : (
-        <CheckboxList
-          items={accessoriesData}
-          selectedItems={selectedSubItems}
-          toggleItem={toggleSubItem}
-          labelFieldKey="description"
-          additionalFieldKey="reference"
-          multipleItems={false}
+      {renderAccessoriesContent()}
+      {alert.visible && (
+        <Alert
+          success={alert.type === "success"}
+          error={alert.type === "error"}
+          message={alert.message}
+          onClose={hideAlert}
         />
       )}
     </div>
