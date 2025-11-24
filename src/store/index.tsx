@@ -7,7 +7,6 @@ import { elementApi } from "./apis/elementApi";
 import { subTypeApi } from "./apis/subTypeApi";
 import { accesoryApi } from "./apis/accesoryApi";
 import { semiFinishedApi } from "./apis/semiFinishedApi";
-import { countriesFlagsApi } from "./apis/countryFlagsApi";
 import { designApi } from "./apis/designApi";
 
 export const store = configureStore({
@@ -19,7 +18,6 @@ export const store = configureStore({
     [subTypeApi.reducerPath]: subTypeApi.reducer,
     [accesoryApi.reducerPath]: accesoryApi.reducer,
     [semiFinishedApi.reducerPath]: semiFinishedApi.reducer,
-    [countriesFlagsApi.reducerPath]: countriesFlagsApi.reducer,
     [designApi.reducerPath]: designApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
@@ -31,7 +29,6 @@ export const store = configureStore({
       .concat(subTypeApi.middleware)
       .concat(accesoryApi.middleware)
       .concat(semiFinishedApi.middleware)
-      .concat(countriesFlagsApi.middleware)
       .concat(designApi.middleware),
 });
 
@@ -60,7 +57,6 @@ export {
 } from "./apis/subTypeApi";
 export { useGetAccesoriesByNameMutation } from "./apis/accesoryApi";
 export { useGetSemiFinishedQuery } from "./apis/semiFinishedApi";
-export { useGetCountryFlagByCodeQuery } from "./apis/countryFlagsApi";
 export { subTypeApi } from "./apis/subTypeApi";
 export {
   useGetDesignTypesQuery,
