@@ -6,21 +6,75 @@ import DesignPage from "./pages/DesignPage";
 import ElementsDesignPage from "./pages/ElementsDesignPage";
 import DesignsListPage from "./pages/DesignsListPage";
 import DesignDetailsPage from "./pages/DesignDetailsPage";
+import { ProtectedRoute } from "./components/core/ProtectedRoute";
+import { LoginPage } from "./pages/LoginPage";
+import { useAuth } from "./context/AuthContext";
+import { ForbiddenPage } from "./pages/ForbiddenPage";
 
 const App: React.FC = () => {
+  const { token } = useAuth();
+
   return (
     <>
-      <Navbar />
+      {token && <Navbar />}
       <Routes>
-        <Route path="/" element={<NormListPage />} />
-        <Route path="/norms/new" element={<NormPage />} />
-        <Route path="/norms/edit/:normId" element={<NormPage />} />
-        <Route path="/design" element={<DesignPage />} />
-        <Route path="/elements/design" element={<ElementsDesignPage />} />
-        <Route path="/design/list" element={<DesignsListPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/forbidden" element={<ForbiddenPage />} />
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute roles={["ADMIN", "NORM"]}>
+              <NormListPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/norms/new"
+          element={
+            <ProtectedRoute roles={["ADMIN", "NORM"]}>
+              <NormPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/norms/edit/:normId"
+          element={
+            <ProtectedRoute roles={["ADMIN", "NORM"]}>
+              <NormPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/design"
+          element={
+            <ProtectedRoute roles={["ADMIN", "DESIGN"]}>
+              <DesignPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/elements/design"
+          element={
+            <ProtectedRoute roles={["ADMIN", "DESIGN"]}>
+              <ElementsDesignPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/design/list"
+          element={
+            <ProtectedRoute roles={["ADMIN", "DESIGN"]}>
+              <DesignsListPage />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/design/:designId/details"
-          element={<DesignDetailsPage />}
+          element={
+            <ProtectedRoute roles={["ADMIN", "DESIGN"]}>
+              <DesignDetailsPage />
+            </ProtectedRoute>
+          }
         />
       </Routes>
     </>

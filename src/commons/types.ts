@@ -288,3 +288,11 @@ export type DesignWithSubDesigns = {
 };
 
 export type UpdateDesignParams = Partial<DesignWithSubDesigns> & { id: number };
+
+export type Role = "ADMIN" | "NORM" | "DESIGN" | "USER";
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  roles: Role[];
+}

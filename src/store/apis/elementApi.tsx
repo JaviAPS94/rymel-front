@@ -12,6 +12,13 @@ const elementApi = createApi({
   reducerPath: "elementApi",
   baseQuery: fetchBaseQuery({
     baseUrl: import.meta.env.VITE_REACT_APP_API_URL,
+    prepareHeaders: (headers) => {
+      const token = localStorage.getItem("access_token");
+      if (token) {
+        headers.set("Authorization", `Bearer ${token}`);
+      }
+      return headers;
+    },
   }),
   endpoints: (builder) => ({
     getElementsByFilters: builder.query<ElementResponse[], GetElementsParams>({

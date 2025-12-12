@@ -5,6 +5,13 @@ const semiFinishedApi = createApi({
   reducerPath: "semiFinishedApi",
   baseQuery: fetchBaseQuery({
     baseUrl: import.meta.env.VITE_REACT_APP_API_URL,
+    prepareHeaders: (headers) => {
+      const token = localStorage.getItem("access_token");
+      if (token) {
+        headers.set("Authorization", `Bearer ${token}`);
+      }
+      return headers;
+    },
   }),
   endpoints: (builder) => ({
     getSemiFinished: builder.query<SemiFinishedType[], null>({

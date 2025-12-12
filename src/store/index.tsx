@@ -1,5 +1,7 @@
 import { configureStore } from "@reduxjs/toolkit";
 import { setupListeners } from "@reduxjs/toolkit/query";
+import { isRejectedWithValue } from "@reduxjs/toolkit";
+import type { Middleware } from "@reduxjs/toolkit";
 import { countryApi } from "./apis/countryApi";
 import { typeApi } from "./apis/typeApi";
 import { normApi } from "./apis/normApi";
@@ -8,6 +10,33 @@ import { subTypeApi } from "./apis/subTypeApi";
 import { accesoryApi } from "./apis/accesoryApi";
 import { semiFinishedApi } from "./apis/semiFinishedApi";
 import { designApi } from "./apis/designApi";
+import { authApi } from "./apis/authApi";
+
+let isRedirecting = false;
+
+export const authErrorMiddleware: Middleware = () => (next) => (action) => {
+  if (isRejectedWithValue(action)) {
+    const status = (action.payload as any)?.status;
+    if (status === 401 && !isRedirecting) {
+      isRedirecting = true;
+
+      localStorage.removeItem("access_token");
+
+      const currentPath = window.location.pathname;
+      if (currentPath !== "/login") {
+        sessionStorage.setItem("redirectAfterLogin", currentPath);
+      }
+
+      window.location.href = "/login";
+
+      setTimeout(() => {
+        isRedirecting = false;
+      }, 1000);
+    }
+  }
+
+  return next(action);
+};
 
 export const store = configureStore({
   reducer: {
@@ -19,9 +48,11 @@ export const store = configureStore({
     [accesoryApi.reducerPath]: accesoryApi.reducer,
     [semiFinishedApi.reducerPath]: semiFinishedApi.reducer,
     [designApi.reducerPath]: designApi.reducer,
+    [authApi.reducerPath]: authApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()
+      .concat(authErrorMiddleware)
       .concat(countryApi.middleware)
       .concat(typeApi.middleware)
       .concat(normApi.middleware)
@@ -29,7 +60,8 @@ export const store = configureStore({
       .concat(subTypeApi.middleware)
       .concat(accesoryApi.middleware)
       .concat(semiFinishedApi.middleware)
-      .concat(designApi.middleware),
+      .concat(designApi.middleware)
+      .concat(authApi.middleware),
 });
 
 setupListeners(store.dispatch);
