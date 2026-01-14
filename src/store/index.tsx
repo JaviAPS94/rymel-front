@@ -17,7 +17,17 @@ let isRedirecting = false;
 export const authErrorMiddleware: Middleware = () => (next) => (action) => {
   if (isRejectedWithValue(action)) {
     const status = (action.payload as any)?.status;
-    if (status === 401 && !isRedirecting) {
+    // Check if this is NOT a login endpoint error by checking the meta.arg.endpointName
+    const endpointName = (action.meta as any)?.arg?.endpointName;
+    const isLoginEndpoint = endpointName === "login";
+
+    console.log("AUTH MIDDLEWARE");
+    console.log("status:", status);
+    console.log("action.type:", action.type);
+    console.log("endpointName:", endpointName);
+    console.log("isLoginEndpoint:", isLoginEndpoint);
+
+    if (status === 401 && !isRedirecting && !isLoginEndpoint) {
       isRedirecting = true;
 
       localStorage.removeItem("access_token");

@@ -2,7 +2,7 @@ import LoginForm from "../components/auth/LoginForm";
 
 export const LoginPage = () => {
   return (
-    <div className="min-h-screen flex">
+    <div className="fixed inset-0 flex overflow-hidden">
       <div className="hidden lg:flex lg:w-1/2 bg-rymel-blue relative overflow-hidden text-white">
         <div className="absolute inset-0 bg-gradient-to-br from-rymel-blue via-rymel-blue to-accent opacity-90" />
         <div className="absolute top-20 left-20 w-32 h-32 bg-rymel-yellow rounded-full opacity-20 blur-3xl" />
@@ -53,8 +53,8 @@ export const LoginPage = () => {
         </div>
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-8 bg-background">
-        <div className="w-full max-w-md">
+      <div className="flex-1 flex items-center justify-center p-8 bg-background overflow-y-auto">
+        <div className="w-full max-w-md my-auto">
           <div className="lg:hidden mb-8 flex justify-center">
             <img
               className="h-12 w-auto"

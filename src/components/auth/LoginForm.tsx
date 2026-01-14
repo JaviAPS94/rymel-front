@@ -16,9 +16,17 @@ export default function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [sessionExpired, setSessionExpired] = useState(false);
-  const [hasRedirected, setHasRedirected] = useState(false);
 
-  const [login, { isLoading }] = useLoginMutation();
+  const [login, { isLoading, error: loginError }] = useLoginMutation();
+
+  console.log(
+    "LoginForm render - error:",
+    error,
+    "token:",
+    token,
+    "loginError:",
+    loginError
+  );
 
   // Verificar si hay una redirección por sesión expirada (solo al montar)
   useEffect(() => {
@@ -30,39 +38,41 @@ export default function LoginForm() {
 
   // Redirigir cuando el usuario ya está autenticado
   useEffect(() => {
-    if (token && !hasRedirected) {
-      setHasRedirected(true);
+    console.log("Token effect running - token:", token);
+    if (token) {
       const redirectPath = sessionStorage.getItem("redirectAfterLogin");
       if (redirectPath) {
         sessionStorage.removeItem("redirectAfterLogin");
-        navigate(redirectPath);
+        navigate(redirectPath, { replace: true });
       } else {
-        navigate("/");
+        navigate("/", { replace: true });
       }
     }
-  }, [token, hasRedirected, navigate]);
+  }, [token, navigate]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    e.stopPropagation();
     setError("");
-    setSessionExpired(false);
 
     try {
       const res = await login({ email, password }).unwrap();
       setToken(res.access_token);
     } catch (err: any) {
+      console.error("Login error:", err);
       setError("Correo o contraseña inválidos");
+      setSessionExpired(false);
     }
   };
 
   const handleOnChangeEmail = (value: string) => {
     setEmail(value);
-    setError("");
+    if (error) setError("");
   };
 
   const handleOnChangePassword = (value: string) => {
     setPassword(value);
-    setError("");
+    if (error) setError("");
   };
 
   return (

@@ -83,7 +83,7 @@ const SheetTabs: React.FC<SheetTabsProps> = ({
         title="Agregar nueva hoja"
       >
         <FaPlus className="inline mr-1 text-blue-600" />
-        Agregar SubDiseño
+        Agregar Hoja
       </Button>
     </div>
   );

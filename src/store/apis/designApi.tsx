@@ -11,6 +11,7 @@ import {
   Template,
   UpdateDesignParams,
 } from "../../commons/types";
+import { TemplateType } from "../../commons/enums";
 
 const designApi = createApi({
   reducerPath: "designApi",
@@ -48,8 +49,12 @@ const designApi = createApi({
         body: evaluationData,
       }),
     }),
-    getTemplatesByDesignSubtypeId: builder.query<Template[], number>({
-      query: (designSubtypeId) => `/design/templates/${designSubtypeId}`,
+    getTemplatesByDesignSubtypeId: builder.query<
+      Template[],
+      { designSubtypeId: number; type?: TemplateType }
+    >({
+      query: ({ designSubtypeId, type = TemplateType.DESIGN }) =>
+        `/design/templates/${designSubtypeId}?type=${type}`,
     }),
     saveDesignWithSubDesigns: builder.mutation<
       { id: number },

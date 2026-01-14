@@ -7,6 +7,12 @@ body {
   @apply font-sans; /* This applies Montserrat globally */
 }
 
+#root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
 /* Animaciones para transiciones suaves */
 @keyframes fadeInUp {
   from {

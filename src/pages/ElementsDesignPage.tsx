@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Select from "../components/core/Select";
 import {
@@ -37,6 +37,8 @@ import CustomInput from "../components/core/CustomInput";
 import { BiEraser, BiSearch } from "react-icons/bi";
 import { BsSliders2 } from "react-icons/bs";
 import { MdOutlineDesignServices } from "react-icons/md";
+import Tabs, { TabItem } from "../components/core/Tabs";
+import { TemplateType } from "../commons/enums";
 
 const ElementsDesignPage = () => {
   const navigate = useNavigate();
@@ -113,6 +115,15 @@ const ElementsDesignPage = () => {
     },
   ] = useLazyGetTemplatesByDesignSubtypeIdQuery();
 
+  const [
+    triggerCostTemplates,
+    {
+      data: costTemplatesData,
+      error: errorCostTemplates,
+      isLoading: isLoadingCostTemplates,
+    },
+  ] = useLazyGetTemplatesByDesignSubtypeIdQuery();
+
   const {
     data: elements,
     isLoading: isLoadingElements,
@@ -158,7 +169,11 @@ const ElementsDesignPage = () => {
       if (designData.designSubType) {
         setSelectedSubType(designData.designSubType.id);
         trigger(designData.designSubType.id);
-        triggerTemplates(designData.designSubType.id);
+        triggerTemplates({ designSubtypeId: designData.designSubType.id });
+        triggerCostTemplates({
+          designSubtypeId: designData.designSubType.id,
+          type: TemplateType.COST,
+        });
       }
     }
   }, [designData, trigger, triggerTemplates]);
@@ -211,6 +226,7 @@ const ElementsDesignPage = () => {
     "Error obteniendo plantillas": errorTemplates,
     "Error obteniendo países": errorCountries,
     "Error obteniendo datos del diseño": errorDesignData,
+    "Error obteniendo plantillas de costos": errorCostTemplates,
   });
 
   useEffect(() => {
@@ -222,10 +238,20 @@ const ElementsDesignPage = () => {
       if (filteredSubType) {
         setSelectedSubType(filteredSubType.id);
         trigger(filteredSubType.id);
-        triggerTemplates(filteredSubType.id);
+        triggerTemplates({ designSubtypeId: filteredSubType.id });
+        triggerCostTemplates({
+          designSubtypeId: filteredSubType.id,
+          type: TemplateType.COST,
+        });
       }
     }
-  }, [subTypes, selectedElements, trigger, triggerTemplates]);
+  }, [
+    subTypes,
+    selectedElements,
+    trigger,
+    triggerTemplates,
+    triggerCostTemplates,
+  ]);
 
   useEffect(() => {
     if (designBase) {
@@ -440,6 +466,105 @@ const ElementsDesignPage = () => {
     );
   };
 
+  // Memoize sheets data to prevent unnecessary recalculations
+  const sheetsData = useMemo(() => {
+    return (
+      designBase?.subDesigns.map((sd) => sd.data) ||
+      designData?.subDesigns.map((sd) => sd.data) || [
+        {
+          id: "sheet1",
+          name: "Hoja1",
+          cells: {},
+          columnWidths: {},
+          rowHeights: {},
+        },
+      ]
+    );
+  }, [designBase, designData]);
+
+  // Memoize cost sheets data to prevent unnecessary recalculations
+  const costsSheetsData = useMemo(() => {
+    return (
+      designBase?.subDesigns.map((sd) => sd.data) ||
+      designData?.subDesigns.map((sd) => sd.data) || [
+        {
+          id: "costSheet1",
+          name: "Hoja1",
+          cells: {},
+          columnWidths: {},
+          rowHeights: {},
+        },
+      ]
+    );
+  }, [designBase, designData]);
+
+  const tabsElements: TabItem[] = [
+    {
+      id: "design",
+      label: "DISEÑO",
+      content: (
+        <>
+          {subTypeWithFunctions &&
+            templatesData &&
+            showSpreadSheet &&
+            !isLoadingSubTypeWithFunctions &&
+            !isLoadingTemplates && (
+              <SpreadSheet
+                subTypeWithFunctions={subTypeWithFunctions}
+                templates={templatesData}
+                elementIds={selectedElements.map((el) => el.id)}
+                designSubtypeId={selectedSubType}
+                setShowModalAfterSaveDesign={setShowModalAfterSaveDesign}
+                sheetsInitialData={sheetsData}
+                designId={Number(designIdParam)}
+                resetToInitialState={resetToInitialState}
+                setCreatedDesignId={setCreatedDesignId}
+              />
+            )}
+          {(isLoadingSubTypeWithFunctions ||
+            isLoadingTemplates ||
+            isLoadingDesignData) && (
+            <div className="flex flex-col justify-center items-center py-12">
+              <Skeleton count={10} className="w-3/4 h-96 mb-4" />
+            </div>
+          )}
+        </>
+      ),
+    },
+    {
+      id: "cost",
+      label: "COSTOS",
+      content: (
+        <>
+          {subTypeWithFunctions &&
+            costTemplatesData &&
+            showSpreadSheet &&
+            !isLoadingSubTypeWithFunctions &&
+            !isLoadingCostTemplates && (
+              <SpreadSheet
+                subTypeWithFunctions={subTypeWithFunctions}
+                templates={costTemplatesData}
+                elementIds={selectedElements.map((el) => el.id)}
+                designSubtypeId={selectedSubType}
+                setShowModalAfterSaveDesign={setShowModalAfterSaveDesign}
+                sheetsInitialData={costsSheetsData}
+                designId={Number(designIdParam)}
+                resetToInitialState={resetToInitialState}
+                setCreatedDesignId={setCreatedDesignId}
+              />
+            )}
+          {(isLoadingSubTypeWithFunctions ||
+            isLoadingCostTemplates ||
+            isLoadingDesignData) && (
+            <div className="flex flex-col justify-center items-center py-12">
+              <Skeleton count={10} className="w-3/4 h-96 mb-4" />
+            </div>
+          )}
+        </>
+      ),
+    },
+  ];
+
   return (
     <>
       <div className="flex flex-col items-center justify-center p-4">
@@ -545,48 +670,10 @@ const ElementsDesignPage = () => {
               />
             ))}
           </div>
-          <div className="p-4">
-            {subTypeWithFunctions &&
-              templatesData &&
-              showSpreadSheet &&
-              !isLoadingSubTypeWithFunctions &&
-              !isLoadingTemplates &&
-              (() => {
-                const sheetsData = designBase?.subDesigns.map(
-                  (sd) => sd.data
-                ) ||
-                  designData?.subDesigns.map((sd) => sd.data) || [
-                    {
-                      id: "sheet1",
-                      name: "SubDiseño1",
-                      cells: {},
-                      columnWidths: {},
-                      rowHeights: {},
-                    },
-                  ];
-
-                return (
-                  <SpreadSheet
-                    subTypeWithFunctions={subTypeWithFunctions}
-                    templates={templatesData}
-                    elementIds={selectedElements.map((el) => el.id)}
-                    designSubtypeId={selectedSubType}
-                    setShowModalAfterSaveDesign={setShowModalAfterSaveDesign}
-                    sheetsInitialData={sheetsData}
-                    designId={Number(designIdParam)}
-                    resetToInitialState={resetToInitialState}
-                    setCreatedDesignId={setCreatedDesignId}
-                  />
-                );
-              })()}
-            {isLoadingSubTypeWithFunctions ||
-            isLoadingTemplates ||
-            isLoadingDesignData ? (
-              <div className="flex flex-col justify-center items-center py-12">
-                <Skeleton count={10} className="w-3/4 h-96 mb-4" />
-              </div>
-            ) : null}
-          </div>
+          <h2 className="py-2 text-3xl font-bold text-center text-rymel-blue">
+            Cálculos De Elementos
+          </h2>
+          <Tabs items={tabsElements} defaultActiveTab="design" />
         </div>
       </div>
       {showErrorAlert && (

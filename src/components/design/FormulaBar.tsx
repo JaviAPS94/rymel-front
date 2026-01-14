@@ -58,7 +58,7 @@ const FormulaBar: React.FC<FormulaBarProps> = ({
         onKeyDown={onFormulaKeyPress}
         onFocus={onFormulaFocus}
         onBlur={onFormulaBlur}
-        placeholder="Ingrese un valor o una fórmula (e.g., =A1+B1, =QUADRATIC(A1,1,2,3))"
+        placeholder="Ingrese un valor o una fórmula (e.g., =A1+B1, =Sheet1!A1+Sheet2!B2, =QUADRATIC(A1,1,2,3))"
         className={`flex-1 px-3 py-1 h-10 border rounded text-sm focus:outline-none focus:ring-2 ${
           isFormulaBuildingMode
             ? "border-blue-500 focus:ring-blue-500 bg-blue-50"
@@ -87,7 +87,7 @@ const FormulaBar: React.FC<FormulaBarProps> = ({
             icon={isAddingToFormula ? <FaXmark /> : <FaPlus />}
           >
             {isAddingToFormula
-              ? "Haga clic en las celdas para agregar"
+              ? "Haga clic en celdas (puede cambiar de hoja)"
               : "Agregar celda"}
           </Button>
           <Button

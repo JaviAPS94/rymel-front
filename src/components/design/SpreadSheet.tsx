@@ -1000,7 +1000,7 @@ const SpreadSheet = ({
     const newSheetNumber = sheets.length + 1;
     const newSheet: Sheet = {
       id: `sheet${Date.now()}`,
-      name: `SubDiseño${newSheetNumber}`,
+      name: `Hoja${newSheetNumber}`,
       cells: {},
       columnWidths: {},
       rowHeights: {},
@@ -1311,7 +1311,7 @@ const SpreadSheet = ({
       {/* Header */}
       <div className="bg-gray-100 border-b p-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold">Cálculos de diseño</h1>
+          <h1 className="text-xl font-semibold">Cálculos</h1>
           <div className="flex items-center gap-4">
             <Button
               success
