@@ -29,7 +29,7 @@ const DesignPage = () => {
   const [subType, setSubType] = useState<string>();
   const [sapReference, setSapReference] = useState<string>("");
   const [selectedElements, setSelectedElements] = useState<ElementResponse[]>(
-    []
+    [],
   );
   const [elements, setElements] = useState<ElementsPaginated>();
   const [normId, setNormId] = useState<number | null>(null);
@@ -150,7 +150,7 @@ const DesignPage = () => {
     } else {
       //remueve el elemento del arreglo
       const newSelectedElements = selectedElements.filter(
-        (item) => item.id !== element.id
+        (item) => item.id !== element.id,
       );
       setSelectedElements(newSelectedElements);
       if (newSelectedElements.length === 0) {
@@ -226,14 +226,14 @@ const DesignPage = () => {
           </div>
         ) : (
           <div className="border-b border-gray-200 flex justify-center">
-            <div className="flex max-w-[65rem] min-w-[66rem] justify-between mb-5">
+            <div className="flex max-w-[65rem] min-w-[66rem] justify-between my-5">
               <Select
                 options={countries?.map(
                   (country) =>
                     ({
                       label: country.name,
                       value: country.id,
-                    } as Option<number>)
+                    }) as Option<number>,
                 )}
                 selectedValue={country}
                 onChange={handleCountryChange}
@@ -246,14 +246,12 @@ const DesignPage = () => {
                 value={name}
                 onChange={setName}
                 placeholder="Nombre norma"
-                className="mt-4"
               />
               <CustomInput
                 type="text"
                 value={sapReference}
                 onChange={setSapReference}
                 placeholder="Referencia SAP"
-                className="mt-4"
               />
               <Select
                 options={subTypes?.map(
@@ -261,7 +259,7 @@ const DesignPage = () => {
                     ({
                       label: subType.name,
                       value: subType.name,
-                    } as Option<string>)
+                    }) as Option<string>,
                 )}
                 selectedValue={subType}
                 onChange={handleSubTypeChange}
@@ -274,11 +272,10 @@ const DesignPage = () => {
                 primary
                 loading={getElementsResult.isLoading}
                 onClick={handleSearchClick}
-                className="mt-4"
               >
                 <BiSearch />
               </Button>
-              <Button cancel onClick={handleCleanFilters} className="mt-4">
+              <Button cancel onClick={handleCleanFilters}>
                 <BiEraser />
               </Button>
             </div>
@@ -331,7 +328,7 @@ const DesignPage = () => {
                   element={element}
                   onCheckChange={handleElementCheck}
                   isChecked={selectedElements.some(
-                    (item) => item.id === element.id
+                    (item) => item.id === element.id,
                   )}
                 />
               </div>

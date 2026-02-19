@@ -167,7 +167,17 @@ export type Design = {
   designSubType: DesignSubtypeResponse;
   designElements: DesignElement[];
   subDesigns: SubDesignData[];
+  cost: CostData | null;
 };
+
+export type CostData = {
+  id: number;
+  name: string;
+  code: string;
+  subCosts: SubCostData[];
+};
+
+export type SubCostData = SubDesignData;
 
 export type DesignsPaginated = BasePaginated & {
   data: Design[];
@@ -225,12 +235,15 @@ export type DesignSubtype = {
 export type CellStyle = {
   columnWidths: { [key: number]: number };
   rowHeights: { [key: number]: number };
+  hiddenRows?: number[];
+  hiddenColumns?: number[];
 };
 
 interface Cell {
   value: string;
   formula: string;
   computed: number | string;
+  elementKey?: string;
 }
 
 export type CellGrid = { [key: string]: Cell };
@@ -251,6 +264,7 @@ export type DesignFunction = {
   variables: string;
   expression: string;
   description: string;
+  type: string;
 };
 
 export type EvaluationData = {
@@ -279,12 +293,19 @@ export type SubDesignData = {
   createdAt?: string;
 };
 
+export type Cost = {
+  name: string;
+  code: string;
+  subCosts: SubDesignData[];
+};
+
 export type DesignWithSubDesigns = {
   name: string;
   code: string;
   elements: number[];
   subDesigns: SubDesignData[];
   designSubtypeId: number;
+  cost: Cost;
 };
 
 export type UpdateDesignParams = Partial<DesignWithSubDesigns> & { id: number };

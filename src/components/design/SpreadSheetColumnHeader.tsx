@@ -9,8 +9,9 @@ interface SpreadSheetColumnHeaderProps {
     e: React.MouseEvent,
     type: "column" | "row",
     index: number,
-    currentSize: number
+    currentSize: number,
   ) => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
 }
 
 const SpreadSheetColumnHeader: React.FC<SpreadSheetColumnHeaderProps> = ({
@@ -19,6 +20,7 @@ const SpreadSheetColumnHeader: React.FC<SpreadSheetColumnHeaderProps> = ({
   columnWidth,
   defaultRowHeight,
   onResizeStart,
+  onContextMenu,
 }) => {
   return (
     <div
@@ -27,6 +29,7 @@ const SpreadSheetColumnHeader: React.FC<SpreadSheetColumnHeaderProps> = ({
         width: columnWidth,
         height: defaultRowHeight,
       }}
+      onContextMenu={onContextMenu}
     >
       {columnLabel}
       {/* Column resize handle */}

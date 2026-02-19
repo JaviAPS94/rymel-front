@@ -4,6 +4,11 @@ export interface Cell {
   value: string;
   formula: string;
   computed: string | number;
+  // Style properties
+  bold?: boolean;
+  textColor?: string;
+  backgroundColor?: string;
+  border?: string; // e.g., '1px solid #000'
 }
 
 export interface CellGrid {
@@ -16,6 +21,10 @@ export interface Sheet {
   cells: CellGrid;
   columnWidths: { [key: number]: number };
   rowHeights: { [key: number]: number };
+  templateHiddenRows: Set<number>;
+  templateHiddenColumns: Set<number>;
+  userHiddenRows: Set<number>;
+  userHiddenColumns: Set<number>;
 }
 
 export interface CustomFunction {

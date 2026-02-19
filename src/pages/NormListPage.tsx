@@ -77,13 +77,12 @@ const NormListPage = () => {
           </div>
         </div>
         <div className="border-b border-gray-200">
-          <div className="flex justify-center min-w-[26rem] mb-5">
+          <div className="flex justify-center min-w-[26rem] my-5">
             <CustomInput
               type="text"
               value={name}
               onChange={setName}
               placeholder="Buscar por nombre"
-              className="mt-4"
             />
             <Select
               className="ml-4"
@@ -92,7 +91,7 @@ const NormListPage = () => {
                   ({
                     label: country.name,
                     value: country.id,
-                  } as Option<number>)
+                  }) as Option<number>,
               )}
               selectedValue={country}
               onChange={handleCountryChange}

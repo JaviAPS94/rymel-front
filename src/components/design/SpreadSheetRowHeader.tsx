@@ -7,19 +7,22 @@ interface SpreadSheetRowHeaderProps {
     e: React.MouseEvent,
     type: "column" | "row",
     index: number,
-    currentSize: number
+    currentSize: number,
   ) => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
 }
 
 const SpreadSheetRowHeader: React.FC<SpreadSheetRowHeaderProps> = ({
   rowIndex,
   rowHeight,
   onResizeStart,
+  onContextMenu,
 }) => {
   return (
     <div
       className="w-12 border-r border-gray-300 flex items-center justify-center text-sm font-medium text-gray-700 bg-gray-50 relative group"
       style={{ height: rowHeight }}
+      onContextMenu={onContextMenu}
     >
       {rowIndex + 1}
       {/* Row resize handle */}

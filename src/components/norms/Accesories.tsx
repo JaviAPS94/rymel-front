@@ -44,7 +44,7 @@ const Accesories = ({
     if (getAccesoriesByNameResult.isError) {
       showAlert(
         "Ocurrió un error al buscar los accesorios. Por favor, intente nuevamente.",
-        "error"
+        "error",
       );
     }
   }, [getAccesoriesByNameResult]);
@@ -54,7 +54,7 @@ const Accesories = ({
     setSelectedSubItems((prev) =>
       prev.includes(subItemId)
         ? prev.filter((subId) => subId !== subItemId)
-        : [...prev, subItemId]
+        : [...prev, subItemId],
     );
   };
 
@@ -66,7 +66,7 @@ const Accesories = ({
 
     if (!accessorySearch.trim()) {
       setAccessorySearchInputError(
-        "Por favor ingrese algún texto para poder buscar."
+        "Por favor ingrese algún texto para poder buscar.",
       );
       return;
     }
@@ -80,7 +80,7 @@ const Accesories = ({
   };
 
   const renderAccessoriesContent = () => {
-    const { isLoading, isError } = getAccesoriesByNameResult;
+    const { isLoading, isError, isUninitialized } = getAccesoriesByNameResult;
 
     if (isLoading) {
       return <SkeletonText count={6} className="mb-4" />;
@@ -97,6 +97,9 @@ const Accesories = ({
     }
 
     if (accessoriesData.length === 0) {
+      if (isUninitialized) {
+        return;
+      }
       return (
         <NoData message="No se encontraron accesorios. Intente cambiar los criterios de búsqueda." />
       );

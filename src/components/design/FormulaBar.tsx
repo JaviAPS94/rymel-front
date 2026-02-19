@@ -43,28 +43,33 @@ const FormulaBar: React.FC<FormulaBarProps> = ({
   onExitFormulaBuildingMode,
 }) => {
   return (
-    <div className="mt-2 flex items-center gap-4">
-      <span className="text-sm font-medium text-gray-600">
-        {currentSheetName} - Celda: {selectedCell}
-      </span>
-      <input
-        ref={formulaInputRef}
-        type="text"
-        value={formulaInput}
-        onChange={(e) => onFormulaChange(e.target.value)}
-        onClick={updateCursorPosition}
-        onKeyUp={updateCursorPosition}
-        onSelect={updateCursorPosition}
-        onKeyDown={onFormulaKeyPress}
-        onFocus={onFormulaFocus}
-        onBlur={onFormulaBlur}
-        placeholder="Ingrese un valor o una fórmula (e.g., =A1+B1, =Sheet1!A1+Sheet2!B2, =QUADRATIC(A1,1,2,3))"
-        className={`flex-1 px-3 py-1 h-10 border rounded text-sm focus:outline-none focus:ring-2 ${
-          isFormulaBuildingMode
-            ? "border-blue-500 focus:ring-blue-500 bg-blue-50"
-            : "border-gray-300 focus:ring-blue-500"
-        }`}
-      />
+    <div className="mt-2 flex flex-col gap-2">
+      <div className="flex items-center gap-4">
+        <span className="text-sm font-medium text-gray-600">
+          {currentSheetName} - Celda: {selectedCell}
+        </span>
+        <input
+          ref={formulaInputRef}
+          type="text"
+          value={formulaInput}
+          onChange={(e) => onFormulaChange(e.target.value)}
+          onClick={updateCursorPosition}
+          onKeyUp={updateCursorPosition}
+          onSelect={updateCursorPosition}
+          onKeyDown={onFormulaKeyPress}
+          onFocus={onFormulaFocus}
+          onBlur={onFormulaBlur}
+          placeholder="Ingrese un valor o una fórmula (e.g., =A1+B1, =Sheet1!A1, =design:Sheet1!A1, =cost:Hoja1!A1)"
+          className={`flex-1 px-3 py-1 h-10 border rounded text-sm focus:outline-none focus:ring-2 ${
+            isFormulaBuildingMode
+              ? "border-blue-500 focus:ring-blue-500 bg-blue-50"
+              : "border-gray-300 focus:ring-blue-500"
+          }`}
+        />
+      </div>
+      {/* Cell Style Toolbar */}
+      {typeof (window as any).onCellStyleToolbarRender === "function" &&
+        (window as any).onCellStyleToolbarRender()}
       {isFormulaBuildingMode && (
         <div className="flex items-center gap-2 text-sm">
           <span className="text-blue-600 font-medium">Modo Formula</span>

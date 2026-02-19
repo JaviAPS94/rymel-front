@@ -1,10 +1,5 @@
 import React from "react";
-
-interface Cell {
-  value: string;
-  formula: string;
-  computed: string | number;
-}
+import { Cell } from "./spreadsheet-types";
 
 interface SpreadSheetCellProps {
   cellRef: string;
@@ -27,21 +22,28 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
   rowHeight,
   onCellClick,
 }) => {
+  // Compute style from cell properties
+  const cellStyle: React.CSSProperties = {
+    width: columnWidth,
+    height: rowHeight,
+    fontWeight: cell?.bold ? "bold" : undefined,
+    color: cell?.textColor || undefined,
+    background: cell?.backgroundColor || undefined,
+    border: cell?.border || undefined,
+  };
+
   return (
     <div
       className={`border-r border-gray-200 relative cursor-pointer ${
         isSelected
           ? "ring-2 ring-blue-500 bg-blue-50"
           : isAddingToFormula
-          ? "hover:bg-green-100 hover:ring-2 hover:ring-green-400"
-          : rangeSelectionStart === cellRef
-          ? "bg-orange-200 ring-2 ring-orange-500"
-          : "hover:bg-gray-50"
+            ? "hover:bg-green-100 hover:ring-2 hover:ring-green-400"
+            : rangeSelectionStart === cellRef
+              ? "bg-orange-200 ring-2 ring-orange-500"
+              : "hover:bg-gray-50"
       }`}
-      style={{
-        width: columnWidth,
-        height: rowHeight,
-      }}
+      style={cellStyle}
       onClick={(e) => onCellClick(cellRef, e)}
       onContextMenu={(e) => e.preventDefault()}
     >

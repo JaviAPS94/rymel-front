@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { JSX, useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Select from "../components/core/Select";
 import {
@@ -11,14 +11,20 @@ import {
   useLazyGetDesignByIdQuery,
   useGetDesignsByFiltersPaginatedMutation,
   useLazyGetCountriesQuery,
+  useSaveDesignWithSubDesignsMutation,
+  useUpdateMutation,
 } from "../store";
 import { Option } from "../components/core/Select";
 import ElementCard from "../components/elements/ElementCard";
 import {
+  Accessory,
   Design,
   DesignsPaginated,
+  DesignWithSubDesigns,
   ElementResponse,
   ElementsPaginated,
+  SemiFinishedType,
+  SubDesignData,
 } from "../commons/types";
 import SpreadSheet from "../components/design/SpreadSheet";
 import { useErrorAlert } from "../hooks/useAlertError";
@@ -39,12 +45,21 @@ import { BsSliders2 } from "react-icons/bs";
 import { MdOutlineDesignServices } from "react-icons/md";
 import Tabs, { TabItem } from "../components/core/Tabs";
 import { TemplateType } from "../commons/enums";
+import { LuFileSpreadsheet, LuSave } from "react-icons/lu";
+import { IoBookOutline } from "react-icons/io5";
+import Stepper from "../components/core/Stepper";
+import Accesories from "../components/norms/Accesories";
+import SemiFinished from "../components/norms/SemiFinished";
+import { Sheet } from "../components/design/spreadsheet-types";
+import { BookOpen, FileText, Plus, Save } from "lucide-react";
+import InstructionsModal from "../components/design/InstructionsModal";
 
 const ElementsDesignPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const idsParam = searchParams.get("ids");
   const designIdParam = searchParams.get("designId");
+  const designId = designIdParam ? parseInt(designIdParam, 10) : null;
   const [createdDesignId, setCreatedDesignId] = useState<number | null>(null);
   const [selectedType, setSelectedType] = useState<number | null>(null);
   const [selectedTypeDesignFilter, setSelectedTypeDesignFilter] = useState<
@@ -58,7 +73,7 @@ const ElementsDesignPage = () => {
   const [selectedSubTypeDesignFilter, setSelectedSubTypeDesignFilter] =
     useState<number | null>(null);
   const [selectedElements, setSelectedElements] = useState<ElementResponse[]>(
-    []
+    [],
   );
   const [showSpreadSheet, setShowSpreadSheet] = useState(true);
   const { alert, showAlert, hideAlert } = useAlert();
@@ -74,6 +89,57 @@ const ElementsDesignPage = () => {
   const [triggerDesigns, getDesignsResult] =
     useGetDesignsByFiltersPaginatedMutation();
   const [designs, setDesigns] = useState<DesignsPaginated>();
+  const [showTemplateLibrary, setShowTemplateLibrary] =
+    useState<boolean>(false);
+  const [showInstructions, setShowInstructions] = useState<boolean>(false);
+  const [accessoryModalIsOpen, setAccessoryModalIsOpen] = useState(false);
+  const [step, setStep] = useState(0);
+  const [selectedSemiFinished, setSelectedSemiFinished] =
+    useState<SemiFinishedType>();
+  const [accessoriesData, setAccessoriesData] = useState<Accessory[]>([]);
+  const [selectedSubItems, setSelectedSubItems] = useState<number[]>([]);
+  const [saveDesignWithSubDesigns, saveDesignWithSubDesignsResult] =
+    useSaveDesignWithSubDesignsMutation();
+  const [updateDesign, updateDesignResult] = useUpdateMutation();
+
+  const handleScrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
+
+  useEffect(() => {
+    if (
+      updateDesignResult.isSuccess ||
+      saveDesignWithSubDesignsResult.isSuccess
+    ) {
+      updateDesignResult.reset();
+      saveDesignWithSubDesignsResult.reset();
+      resetToInitialState?.();
+      setShowModalAfterSaveDesign(true);
+      handleScrollToTop();
+    }
+    if (updateDesignResult.isError || saveDesignWithSubDesignsResult.isError) {
+      updateDesignResult.reset();
+      saveDesignWithSubDesignsResult.reset();
+      showAlert("Error guardando diseño. Inténtalo de nuevo.", "error");
+    }
+  }, [updateDesignResult, saveDesignWithSubDesignsResult, showAlert]);
+
+  useEffect(() => {
+    if (saveDesignWithSubDesignsResult.isSuccess) {
+      setCreatedDesignId?.(saveDesignWithSubDesignsResult.data.id);
+    }
+    if (updateDesignResult.isSuccess) {
+      setCreatedDesignId?.(designId!);
+    }
+  }, [
+    saveDesignWithSubDesignsResult,
+    updateDesignResult,
+    setCreatedDesignId,
+    designId,
+  ]);
 
   useEffect(() => {
     if (getDesignsResult.isSuccess) {
@@ -94,6 +160,26 @@ const ElementsDesignPage = () => {
   const [country, setCountry] = useState<number>();
   const [designBase, setDesignBase] = useState<Design | null>(null);
   const [isModalInitialLoad, setIsModalInitialLoad] = useState<boolean>(false);
+
+  // Shared state for all sheets across both SpreadSheet instances
+  const [allInstanceSheets, setAllInstanceSheets] = useState<
+    { instanceId: string; sheets: any[] }[]
+  >([
+    { instanceId: "design", sheets: [] },
+    { instanceId: "cost", sheets: [] },
+  ]);
+
+  // Handle sheets change from any SpreadSheet instance
+  const handleSheetsChange = useCallback(
+    (instanceId: string, sheets: any[]) => {
+      setAllInstanceSheets((prev) =>
+        prev.map((inst) =>
+          inst.instanceId === instanceId ? { ...inst, sheets } : inst,
+        ),
+      );
+    },
+    [],
+  );
 
   const ids = idsParam ? idsParam.split(",").map(Number) : [];
 
@@ -134,7 +220,7 @@ const ElementsDesignPage = () => {
     },
     {
       skip: ids.length === 0,
-    }
+    },
   );
 
   const [
@@ -184,7 +270,7 @@ const ElementsDesignPage = () => {
       setSelectedType(
         elements && elements.length > 0
           ? elements[0].subType.designType.id
-          : null
+          : null,
       );
     }
   }, [elements, isLoadingElements]);
@@ -233,7 +319,7 @@ const ElementsDesignPage = () => {
     if (subTypes && subTypes.length > 0 && selectedElements.length > 0) {
       const phase = selectedElements[0].sapReference?.split("-")[0];
       const filteredSubType = subTypes.find((st) =>
-        phase ? st.code.startsWith(phase) : false
+        phase ? st.code.startsWith(phase) : false,
       );
       if (filteredSubType) {
         setSelectedSubType(filteredSubType.id);
@@ -255,14 +341,16 @@ const ElementsDesignPage = () => {
 
   useEffect(() => {
     if (designBase) {
-      setShowSpreadSheet(true);
+      // Force remount by toggling showSpreadSheet
+      setShowSpreadSheet(false);
+      setTimeout(() => setShowSpreadSheet(true), 0);
     }
   }, [designBase]);
 
   const handleElementCheck = (element: ElementResponse) => {
     if (selectedElements.length > 1) {
       setSelectedElements((prev) =>
-        prev.filter((item) => item.id !== element.id)
+        prev.filter((item) => item.id !== element.id),
       );
     }
   };
@@ -366,13 +454,13 @@ const ElementsDesignPage = () => {
 
   const handleNewElementCheck = (
     element: ElementResponse,
-    isChecked: boolean
+    isChecked: boolean,
   ) => {
     if (isChecked) {
       setNewSelectedElements((prev) => [...prev, element]);
     } else {
       setNewSelectedElements((prev) =>
-        prev.filter((item) => item.id !== element.id)
+        prev.filter((item) => item.id !== element.id),
       );
     }
   };
@@ -454,7 +542,7 @@ const ElementsDesignPage = () => {
     const transformedDesign = { ...design };
     transformedDesign.subDesigns = design.subDesigns.map((sd) => ({
       ...sd,
-      data: JSON.parse(sd.data),
+      data: typeof sd.data === "string" ? JSON.parse(sd.data) : sd.data,
     }));
     console.log("Copy calculations from design:", transformedDesign.subDesigns);
     console.log("Setting designBase to:", transformedDesign);
@@ -462,41 +550,246 @@ const ElementsDesignPage = () => {
     setIsOpenDesignModal(false); // Close the modal after copying
     showAlert(
       "Cálculos copiados exitosamente del diseño seleccionado!",
-      "success"
+      "success",
     );
+  };
+
+  const toogleAccessoryModal = () =>
+    setAccessoryModalIsOpen(!accessoryModalIsOpen);
+
+  const handleNextStep = () => {
+    setStep((prevStep) => prevStep + 1);
+  };
+
+  const handleAddAccesory = () => {
+    toogleAccessoryModal();
+    setStep(0);
+    setSelectedSemiFinished(undefined);
+  };
+
+  const handleCancel = () => {
+    setSelectedSemiFinished(undefined);
+    toogleAccessoryModal();
+    setStep(0);
+  };
+
+  const stepComponents: Record<
+    number,
+    { title?: string; content: JSX.Element; isFinalStep?: boolean }
+  > = {
+    0: {
+      title: "Selecciona los accesorios",
+      content: (
+        <Accesories
+          accessoriesData={accessoriesData}
+          setAccessoriesData={setAccessoriesData}
+          selectedSubItems={selectedSubItems}
+          setSelectedSubItems={setSelectedSubItems}
+        />
+      ),
+      isFinalStep: false,
+    },
+    1: {
+      title: "Selecciona el semi elaborado",
+      content: (
+        <SemiFinished setSelectedSemiFinished={setSelectedSemiFinished} />
+      ),
+      isFinalStep: true,
+    },
   };
 
   // Memoize sheets data to prevent unnecessary recalculations
   const sheetsData = useMemo(() => {
-    return (
-      designBase?.subDesigns.map((sd) => sd.data) ||
-      designData?.subDesigns.map((sd) => sd.data) || [
-        {
-          id: "sheet1",
-          name: "Hoja1",
-          cells: {},
-          columnWidths: {},
-          rowHeights: {},
-        },
-      ]
-    );
+    // Helper function to normalize sheet data (convert arrays to Sets)
+    const normalizeSheet = (sheet: any) => ({
+      ...sheet,
+      templateHiddenRows: new Set(
+        Array.isArray(sheet.templateHiddenRows) ? sheet.templateHiddenRows : [],
+      ),
+      templateHiddenColumns: new Set(
+        Array.isArray(sheet.templateHiddenColumns)
+          ? sheet.templateHiddenColumns
+          : [],
+      ),
+      userHiddenRows: new Set(
+        Array.isArray(sheet.userHiddenRows) ? sheet.userHiddenRows : [],
+      ),
+      userHiddenColumns: new Set(
+        Array.isArray(sheet.userHiddenColumns) ? sheet.userHiddenColumns : [],
+      ),
+    });
+
+    if (designBase?.subDesigns) {
+      return designBase.subDesigns.map((sd) => normalizeSheet(sd.data));
+    }
+    if (designData?.subDesigns) {
+      const parsed = designData.subDesigns.map((sd) =>
+        typeof sd.data === "string" ? JSON.parse(sd.data) : sd.data,
+      );
+      return parsed.map(normalizeSheet);
+    }
+
+    return [
+      {
+        id: "sheet1",
+        name: "Hoja1",
+        cells: {},
+        columnWidths: {},
+        rowHeights: {},
+        templateHiddenRows: new Set(),
+        templateHiddenColumns: new Set(),
+        userHiddenRows: new Set(),
+        userHiddenColumns: new Set(),
+      },
+    ];
   }, [designBase, designData]);
 
   // Memoize cost sheets data to prevent unnecessary recalculations
   const costsSheetsData = useMemo(() => {
-    return (
-      designBase?.subDesigns.map((sd) => sd.data) ||
-      designData?.subDesigns.map((sd) => sd.data) || [
-        {
-          id: "costSheet1",
-          name: "Hoja1",
-          cells: {},
-          columnWidths: {},
-          rowHeights: {},
-        },
-      ]
-    );
+    // Helper function to normalize sheet data (convert arrays to Sets)
+    const normalizeSheet = (sheet: any) => ({
+      ...sheet,
+      templateHiddenRows: new Set(
+        Array.isArray(sheet.templateHiddenRows) ? sheet.templateHiddenRows : [],
+      ),
+      templateHiddenColumns: new Set(
+        Array.isArray(sheet.templateHiddenColumns)
+          ? sheet.templateHiddenColumns
+          : [],
+      ),
+      userHiddenRows: new Set(
+        Array.isArray(sheet.userHiddenRows) ? sheet.userHiddenRows : [],
+      ),
+      userHiddenColumns: new Set(
+        Array.isArray(sheet.userHiddenColumns) ? sheet.userHiddenColumns : [],
+      ),
+    });
+
+    if (designBase?.cost?.subCosts) {
+      return designBase.cost.subCosts.map((sd) => normalizeSheet(sd.data));
+    }
+    if (designData?.cost?.subCosts) {
+      return designData.cost.subCosts.map((sd) =>
+        typeof sd.data === "string"
+          ? normalizeSheet(JSON.parse(sd.data))
+          : normalizeSheet(sd.data),
+      );
+    }
+    return [
+      {
+        id: "costSheet1",
+        name: "Hoja1",
+        cells: {},
+        columnWidths: {},
+        rowHeights: {},
+        templateHiddenRows: new Set(),
+        templateHiddenColumns: new Set(),
+        userHiddenRows: new Set(),
+        userHiddenColumns: new Set(),
+      },
+    ];
   }, [designBase, designData]);
+
+  const [designSheets, setDesignSheets] = useState<Sheet[]>(
+    sheetsData && sheetsData.length > 0
+      ? sheetsData
+      : [
+          {
+            id: `design-sheet1`,
+            name: "SubDiseño1",
+            cells: {},
+            columnWidths: {},
+            rowHeights: {},
+            templateHiddenRows: new Set(),
+            templateHiddenColumns: new Set(),
+            userHiddenRows: new Set(),
+            userHiddenColumns: new Set(),
+          },
+        ],
+  );
+
+  const [costsSheets, setCostsSheets] = useState<Sheet[]>(
+    costsSheetsData && costsSheetsData.length > 0
+      ? costsSheetsData
+      : [
+          {
+            id: `cost-sheet1`,
+            name: "SubDiseño1",
+            cells: {},
+            columnWidths: {},
+            rowHeights: {},
+            templateHiddenRows: new Set(),
+            templateHiddenColumns: new Set(),
+            userHiddenRows: new Set(),
+            userHiddenColumns: new Set(),
+          },
+        ],
+  );
+
+  const handleSaveDesignWithSubDesigns = async () => {
+    const subDesignData: SubDesignData[] = designSheets.map((sheet) => {
+      // Convert Sets to arrays for JSON serialization
+      const serializableSheet = {
+        ...sheet,
+        templateHiddenRows: Array.from(sheet.templateHiddenRows || []),
+        templateHiddenColumns: Array.from(sheet.templateHiddenColumns || []),
+        userHiddenRows: Array.from(sheet.userHiddenRows || []),
+        userHiddenColumns: Array.from(sheet.userHiddenColumns || []),
+      };
+
+      const data: SubDesignData = {
+        name: sheet.name,
+        code: sheet.id,
+        data: serializableSheet as any, // Serialized version for database
+      };
+      return data;
+    });
+
+    if (!selectedSubType) {
+      return;
+    }
+
+    const designData: DesignWithSubDesigns = {
+      name: "Nuevo diseño",
+      code: "DESIGN_" + Date.now(),
+      elements: selectedElements.map((el) => el.id),
+      designSubtypeId: selectedSubType,
+      subDesigns: subDesignData,
+      cost: {
+        name: "Costo " + (designBase ? designBase.name : "Nuevo diseño"),
+        code: "COST_" + Date.now(),
+        subCosts: costsSheets.map((sheet) => {
+          // Convert Sets to arrays for JSON serialization
+          const serializableSheet = {
+            ...sheet,
+            templateHiddenRows: Array.from(sheet.templateHiddenRows || []),
+            templateHiddenColumns: Array.from(
+              sheet.templateHiddenColumns || [],
+            ),
+            userHiddenRows: Array.from(sheet.userHiddenRows || []),
+            userHiddenColumns: Array.from(sheet.userHiddenColumns || []),
+          };
+
+          const data: SubDesignData = {
+            name: sheet.name,
+            code: sheet.id,
+            data: serializableSheet as any, // Serialized version for database
+          };
+          return data;
+        }),
+      },
+    };
+
+    if (designId) {
+      const updatedDesignData: DesignWithSubDesigns & { id: number } = {
+        ...designData,
+        id: designId,
+      };
+      await updateDesign(updatedDesignData);
+    } else {
+      await saveDesignWithSubDesigns(designData);
+    }
+  };
 
   const tabsElements: TabItem[] = [
     {
@@ -510,15 +803,23 @@ const ElementsDesignPage = () => {
             !isLoadingSubTypeWithFunctions &&
             !isLoadingTemplates && (
               <SpreadSheet
+                key={`design-${designBase?.id || designData?.id || "new"}`}
+                instanceId="design"
                 subTypeWithFunctions={subTypeWithFunctions}
                 templates={templatesData}
-                elementIds={selectedElements.map((el) => el.id)}
+                element={selectedElements[0]}
                 designSubtypeId={selectedSubType}
                 setShowModalAfterSaveDesign={setShowModalAfterSaveDesign}
                 sheetsInitialData={sheetsData}
                 designId={Number(designIdParam)}
                 resetToInitialState={resetToInitialState}
                 setCreatedDesignId={setCreatedDesignId}
+                allSheets={allInstanceSheets}
+                onSheetsChange={handleSheetsChange}
+                showTemplateLibrary={showTemplateLibrary}
+                setShowTemplateLibrary={setShowTemplateLibrary}
+                sheets={designSheets}
+                setSheets={setDesignSheets}
               />
             )}
           {(isLoadingSubTypeWithFunctions ||
@@ -542,15 +843,23 @@ const ElementsDesignPage = () => {
             !isLoadingSubTypeWithFunctions &&
             !isLoadingCostTemplates && (
               <SpreadSheet
+                key={`cost-${designBase?.id || designData?.id || "new"}`}
+                instanceId="cost"
                 subTypeWithFunctions={subTypeWithFunctions}
                 templates={costTemplatesData}
-                elementIds={selectedElements.map((el) => el.id)}
+                element={selectedElements[0]}
                 designSubtypeId={selectedSubType}
                 setShowModalAfterSaveDesign={setShowModalAfterSaveDesign}
                 sheetsInitialData={costsSheetsData}
                 designId={Number(designIdParam)}
                 resetToInitialState={resetToInitialState}
                 setCreatedDesignId={setCreatedDesignId}
+                allSheets={allInstanceSheets}
+                onSheetsChange={handleSheetsChange}
+                showTemplateLibrary={showTemplateLibrary}
+                setShowTemplateLibrary={setShowTemplateLibrary}
+                sheets={costsSheets}
+                setSheets={setCostsSheets}
               />
             )}
           {(isLoadingSubTypeWithFunctions ||
@@ -590,7 +899,7 @@ const ElementsDesignPage = () => {
                   <Button
                     onClick={() =>
                       handleContinueEditing(
-                        createdDesignId ?? Number(designIdParam)
+                        createdDesignId ?? Number(designIdParam),
                       )
                     }
                     className="border-green-300 text-green-700 hover:bg-green-100  bg-transparent"
@@ -670,9 +979,57 @@ const ElementsDesignPage = () => {
               />
             ))}
           </div>
-          <h2 className="py-2 text-3xl font-bold text-center text-rymel-blue">
-            Cálculos De Elementos
-          </h2>
+          <div className="space-y-4 w-full">
+            <h2 className="text-3xl font-bold text-center text-rymel-blue">
+              Cálculos De Elementos
+            </h2>
+            <div className="inline-flex items-center justify-center w-full">
+              <div className="flex items-center gap-1 p-2 bg-white rounded-2xl shadow-xl border border-slate-200">
+                <Button
+                  primary
+                  className="rounded-xl h-[2.8rem]"
+                  onClick={toogleAccessoryModal}
+                >
+                  <Plus className="h-4 w-4" />
+                  Agregar accesorio
+                </Button>
+                <div className="w-px h-8 bg-slate-200 mx-1" />
+                <Button
+                  outline
+                  className="text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl"
+                  onClick={() => setShowInstructions(true)}
+                >
+                  <BookOpen className="h-4 w-4" />
+                  Instrucciones
+                </Button>
+                <Button
+                  outline
+                  className="text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl"
+                  onClick={() => setShowTemplateLibrary(true)}
+                >
+                  <FileText className="h-4 w-4" />
+                  Plantillas
+                </Button>
+                <div className="w-px h-8 bg-slate-200 mx-1" />
+                <Button
+                  success
+                  className="text-white rounded-xl h-[2.8rem]"
+                  loading={
+                    saveDesignWithSubDesignsResult.isLoading ||
+                    updateDesignResult.isLoading
+                  }
+                  disabled={
+                    saveDesignWithSubDesignsResult.isLoading ||
+                    updateDesignResult.isLoading
+                  }
+                  onClick={() => handleSaveDesignWithSubDesigns()}
+                >
+                  <Save className="h-4 w-4" />
+                  Guardar
+                </Button>
+              </div>
+            </div>
+          </div>
           <Tabs items={tabsElements} defaultActiveTab="design" />
         </div>
       </div>
@@ -716,7 +1073,7 @@ const ElementsDesignPage = () => {
                   element={element}
                   onCheckChange={handleNewElementCheck}
                   isChecked={newSelectedElements.some(
-                    (item) => item.id === element.id
+                    (item) => item.id === element.id,
                   )}
                 />
               ))}
@@ -756,14 +1113,14 @@ const ElementsDesignPage = () => {
               </div>
               <div className="space-y-4 py-6 px-4">
                 <div className="max-w-[50rem]">
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-3 gap-4 mt-4">
                     <Select
                       options={countries?.map(
                         (country) =>
                           ({
                             label: country.name,
                             value: country.id,
-                          } as Option<number>)
+                          }) as Option<number>,
                       )}
                       selectedValue={country}
                       onChange={handleCountryChange}
@@ -776,24 +1133,22 @@ const ElementsDesignPage = () => {
                       value={designCode}
                       onChange={setDesignCode}
                       placeholder="Código diseño"
-                      className="mt-4"
                     />
                     <CustomInput
                       type="text"
                       value={normName}
                       onChange={setNormName}
                       placeholder="Nombre norma"
-                      className="mt-4"
                     />
                   </div>
-                  <div className="flex justify-between gap-2">
+                  <div className="flex justify-between gap-2 mt-4">
                     <Select
                       options={types?.map(
                         (type) =>
                           ({
                             label: type.name,
                             value: type.id,
-                          } as Option<number>)
+                          }) as Option<number>,
                       )}
                       selectedValue={selectedTypeDesignFilter}
                       onChange={handleSelectedTypeDesignFilter}
@@ -807,7 +1162,7 @@ const ElementsDesignPage = () => {
                           ({
                             label: subType.name,
                             value: subType.id,
-                          } as Option<number>)
+                          }) as Option<number>,
                       )}
                       selectedValue={selectedSubTypeDesignFilter}
                       onChange={handleSubTypeChange}
@@ -821,7 +1176,6 @@ const ElementsDesignPage = () => {
                       loading={getDesignsResult.isLoading}
                       disabled={!country}
                       onClick={handleSearchDesignsClick}
-                      className="mt-4"
                     >
                       <BiSearch />
                     </Button>
@@ -829,7 +1183,6 @@ const ElementsDesignPage = () => {
                       cancel
                       disabled={!country && !selectedType && !selectedSubType}
                       onClick={handleCleanFilters}
-                      className="mt-4"
                     >
                       <BiEraser />
                     </Button>
@@ -875,6 +1228,25 @@ const ElementsDesignPage = () => {
             )}
           </div>
         </>
+      </Modal>
+      <InstructionsModal
+        isOpen={showInstructions}
+        onClose={() => setShowInstructions(false)}
+      />
+      <Modal
+        isOpen={accessoryModalIsOpen}
+        onClose={toogleAccessoryModal}
+        title="Agregar accesorio"
+        size="xl"
+        closeOnOutsideClick={false}
+      >
+        <Stepper
+          step={step}
+          stepComponents={stepComponents}
+          onNextStep={handleNextStep}
+          onFinalAction={handleAddAccesory}
+          onCancel={handleCancel}
+        />
       </Modal>
       {alert.visible && (
         <Alert

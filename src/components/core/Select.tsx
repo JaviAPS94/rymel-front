@@ -18,7 +18,7 @@ interface Props<T> {
   searchPlaceholder?: string;
   filterOptions?: (
     options: Option<T>[] | undefined,
-    searchTerm: string
+    searchTerm: string,
   ) => Option<T>[] | undefined;
   disabled?: boolean;
   className?: string;
@@ -103,7 +103,7 @@ const Select = <T,>({
   } ${className}`;
 
   return (
-    <div className="mt-4 relative">
+    <div className="relative">
       <div className={selectClassName}>
         <input
           ref={inputRef}
@@ -177,11 +177,11 @@ const Select = <T,>({
 // Default filter function
 const defaultFilterOptions = <T,>(
   options: Option<T>[] | undefined,
-  searchTerm: string
+  searchTerm: string,
 ): Option<T>[] | undefined => {
   if (!searchTerm) return options;
   return options?.filter((option) =>
-    option.label.toLowerCase().includes(searchTerm.toLowerCase())
+    option.label.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 };
 

@@ -184,7 +184,7 @@ export default function DesignList({ onSelectDesign }: DesignListProps) {
 
       {/* Filters */}
       <div className="border-b border-gray-200 p-6">
-        <div className="flex justify-between justify-items-center align-middle min-w-[70rem] mb-5">
+        <div className="flex justify-between justify-items-center align-middle min-w-[70rem]">
           {isLoadingCountries || isLoadingSubTypes ? (
             <FilterSkeleton />
           ) : (
@@ -195,7 +195,7 @@ export default function DesignList({ onSelectDesign }: DesignListProps) {
                     ({
                       label: country.name,
                       value: country.id,
-                    } as Option<number>)
+                    }) as Option<number>,
                 )}
                 selectedValue={country}
                 onChange={handleCountryChange}
@@ -208,14 +208,12 @@ export default function DesignList({ onSelectDesign }: DesignListProps) {
                 value={designCode}
                 onChange={setDesignCode}
                 placeholder="Código diseño"
-                className="mt-4"
               />
               <CustomInput
                 type="text"
                 value={name}
                 onChange={setName}
                 placeholder="Nombre norma"
-                className="mt-4"
               />
               <Select
                 options={types?.map(
@@ -223,7 +221,7 @@ export default function DesignList({ onSelectDesign }: DesignListProps) {
                     ({
                       label: type.name,
                       value: type.id,
-                    } as Option<number>)
+                    }) as Option<number>,
                 )}
                 selectedValue={selectedType}
                 onChange={handleSelectedType}
@@ -237,7 +235,7 @@ export default function DesignList({ onSelectDesign }: DesignListProps) {
                     ({
                       label: subType.name,
                       value: subType.id,
-                    } as Option<number>)
+                    }) as Option<number>,
                 )}
                 selectedValue={selectedSubType}
                 onChange={handleSubTypeChange}
@@ -251,7 +249,6 @@ export default function DesignList({ onSelectDesign }: DesignListProps) {
                 loading={getDesignsResult.isLoading}
                 disabled={!country}
                 onClick={handleSearchClick}
-                className="mt-4"
               >
                 <BiSearch />
               </Button>
@@ -261,7 +258,6 @@ export default function DesignList({ onSelectDesign }: DesignListProps) {
                   !country && !name && !selectedType && !selectedSubType
                 }
                 onClick={handleCleanFilters}
-                className="mt-4"
               >
                 <BiEraser />
               </Button>
