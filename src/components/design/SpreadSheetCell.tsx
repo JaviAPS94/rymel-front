@@ -14,6 +14,12 @@ interface SpreadSheetCellProps {
   onCellClick: (cellRef: string, event?: React.MouseEvent) => void;
   onCellContextMenu: (e: React.MouseEvent, cellRef: string) => void;
   onCellValueChange?: (cellRef: string, value: string) => void;
+  isEditing: boolean;
+  editingValue: string;
+  onStartEditing?: (cellRef: string) => void;
+  onEditingValueChange?: (value: string) => void;
+  onStopEditing?: () => void;
+  onNavigateAfterEdit?: (direction: "down" | "right") => void;
 }
 
 const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
@@ -29,7 +35,26 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
   onCellClick,
   onCellContextMenu,
   onCellValueChange,
+  isEditing,
+  editingValue,
+  onStartEditing,
+  onEditingValueChange,
+  onStopEditing,
+  onNavigateAfterEdit,
 }) => {
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
+  // Focus input when entering edit mode
+  React.useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      // Move cursor to end
+      inputRef.current.setSelectionRange(
+        editingValue.length,
+        editingValue.length,
+      );
+    }
+  }, [isEditing, editingValue]);
   // Check if this cell has dropdown options
   const hasOptions = cell?.options && cell.options.length > 0;
   // Compute style from cell properties
@@ -140,12 +165,73 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
             />
           </svg>
         </div>
+      ) : isEditing ? (
+        // Inline editing mode - show input directly in cell
+        <input
+          ref={inputRef}
+          type="text"
+          value={editingValue}
+          onChange={(e) => {
+            if (onEditingValueChange) {
+              onEditingValueChange(e.target.value);
+            }
+          }}
+          onBlur={() => {
+            if (onStopEditing) {
+              onStopEditing();
+            }
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              if (onStopEditing) {
+                onStopEditing();
+              }
+              // Navigate down after stopping edit
+              setTimeout(() => {
+                if (onNavigateAfterEdit) {
+                  onNavigateAfterEdit("down");
+                }
+              }, 0);
+            } else if (e.key === "Tab") {
+              e.preventDefault();
+              if (onStopEditing) {
+                onStopEditing();
+              }
+              // Navigate right after stopping edit
+              setTimeout(() => {
+                if (onNavigateAfterEdit) {
+                  onNavigateAfterEdit("right");
+                }
+              }, 0);
+            } else if (e.key === "Escape") {
+              e.preventDefault();
+              if (onStopEditing) {
+                onStopEditing();
+              }
+            }
+          }}
+          onClick={(e) => e.stopPropagation()}
+          className={`w-full h-full px-1 text-sm flex items-center ${
+            typeof cell?.computed === "number" ? "text-right" : "text-left"
+          } border-none outline-none bg-transparent`}
+          style={{
+            fontWeight: cell?.bold ? "bold" : undefined,
+            color: cell?.textColor || undefined,
+          }}
+        />
       ) : (
         <div
           className={`w-full h-full px-1 text-sm flex items-center ${
             typeof cell?.computed === "number" ? "justify-end" : "justify-start"
           } select-none overflow-hidden`}
           title={cell?.computed?.toString() || ""}
+          onDoubleClick={(e) => {
+            e.stopPropagation();
+            if (onStartEditing) {
+              onStartEditing(cellRef);
+            }
+          }}
         >
           <span className="truncate">{cell?.computed?.toString() || ""}</span>
         </div>

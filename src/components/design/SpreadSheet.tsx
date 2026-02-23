@@ -162,6 +162,9 @@ const SpreadSheet = ({
   const [selectedCells, setSelectedCells] = useState<Set<string>>(
     new Set(["A1"]),
   );
+  // Track inline editing state
+  const [editingCell, setEditingCell] = useState<string | null>(null);
+  const [inlineCellValue, setInlineCellValue] = useState<string>("");
 
   // Helper: select a single cell (clears others)
   const selectSingleCell = (cellRef: string) => {
@@ -425,6 +428,8 @@ const SpreadSheet = ({
       setIsFormulaBuildingMode(cellFormula.startsWith("="));
       setRangeSelectionStart(null);
       setIsAddingToFormula(false);
+      // Exit inline editing when selecting a new cell
+      setEditingCell(null);
     },
     [cells],
   );
@@ -848,36 +853,24 @@ const SpreadSheet = ({
             break;
           case "F2":
             e.preventDefault();
-            // Start editing the selected cell inline
-            if (formulaInputRef.current) {
-              formulaInputRef.current.focus();
-              formulaInputRef.current.setSelectionRange(
-                formulaInput.length,
-                formulaInput.length,
-              );
-            }
+            // Start inline editing mode
+            handleStartInlineEditing(selectedCell);
             break;
           case "Delete":
           case "Backspace":
             e.preventDefault();
             // Clear cell content
             setFormulaInput("");
-            // Note: we'll call the updateCell function when it's defined later
+            updateCell(selectedCell, "");
             break;
           default:
-            // If user types a regular character, start editing
+            // If user types a regular character, start inline editing
             if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
               e.preventDefault();
+              // Start inline editing mode
+              setEditingCell(selectedCell);
+              setInlineCellValue(e.key);
               setFormulaInput(e.key);
-              // Note: we'll call the updateCell function when it's defined later
-              // Start editing the selected cell inline
-              if (formulaInputRef.current) {
-                formulaInputRef.current.focus();
-                formulaInputRef.current.setSelectionRange(
-                  e.key.length,
-                  e.key.length,
-                );
-              }
             }
             break;
         }
@@ -2037,8 +2030,53 @@ const SpreadSheet = ({
     }
   };
 
+  // Handle starting inline editing
+  const handleStartInlineEditing = useCallback(
+    (cellRef: string) => {
+      const cell = cells[cellRef];
+      const cellFormula = cell?.formula || "";
+      setEditingCell(cellRef);
+      setInlineCellValue(cellFormula);
+      setFormulaInput(cellFormula);
+    },
+    [cells],
+  );
+
+  // Handle inline editing value change
+  const handleInlineValueChange = useCallback((value: string) => {
+    setInlineCellValue(value);
+    setFormulaInput(value);
+  }, []);
+
+  // Handle stopping inline editing
+  const handleStopInlineEditing = useCallback(() => {
+    if (editingCell) {
+      updateCell(editingCell, inlineCellValue);
+      setEditingCell(null);
+    }
+  }, [editingCell, inlineCellValue, updateCell]);
+
+  // Handle navigation after editing
+  const handleNavigateAfterEdit = useCallback(
+    (direction: "down" | "right") => {
+      navigateCell(direction);
+    },
+    [navigateCell],
+  );
+
+  // Sync formula input with inline editing
+  useEffect(() => {
+    if (editingCell && editingCell === selectedCell) {
+      setFormulaInput(inlineCellValue);
+    }
+  }, [inlineCellValue, editingCell, selectedCell]);
+
   // Handle formula input change
   const handleFormulaChange = (value: string) => {
+    // Also update inline editing if active
+    if (editingCell === selectedCell) {
+      setInlineCellValue(value);
+    }
     setFormulaInput(value);
     updateCursorPosition();
 
@@ -2617,6 +2655,12 @@ const SpreadSheet = ({
         onColumnHeaderContextMenu={handleColumnHeaderContextMenu}
         onCellContextMenu={handleCellContextMenu}
         onCellValueChange={handleDropdownCellChange}
+        editingCell={editingCell}
+        inlineCellValue={inlineCellValue}
+        onStartInlineEditing={handleStartInlineEditing}
+        onInlineValueChange={handleInlineValueChange}
+        onStopInlineEditing={handleStopInlineEditing}
+        onNavigateAfterEdit={handleNavigateAfterEdit}
       />
 
       {/* Context Menu */}

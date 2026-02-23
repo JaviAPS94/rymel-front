@@ -33,6 +33,12 @@ interface SpreadSheetGridProps {
   onColumnHeaderContextMenu: (e: React.MouseEvent, columnIndex: number) => void;
   onCellContextMenu: (e: React.MouseEvent, cellRef: string) => void;
   onCellValueChange?: (cellRef: string, value: string) => void;
+  editingCell: string | null;
+  inlineCellValue: string;
+  onStartInlineEditing?: (cellRef: string) => void;
+  onInlineValueChange?: (value: string) => void;
+  onStopInlineEditing?: () => void;
+  onNavigateAfterEdit?: (direction: "down" | "right") => void;
 }
 
 const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
@@ -54,6 +60,12 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
   onColumnHeaderContextMenu,
   onCellContextMenu,
   onCellValueChange,
+  editingCell,
+  inlineCellValue,
+  onStartInlineEditing,
+  onInlineValueChange,
+  onStopInlineEditing,
+  onNavigateAfterEdit,
 }) => {
   // Get cell reference (e.g., A1, B2)
   const getCellRef = (row: number, col: number): string => {
@@ -189,6 +201,14 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                       onCellClick={handleCellClick}
                       onCellContextMenu={onCellContextMenu}
                       onCellValueChange={onCellValueChange}
+                      isEditing={editingCell === cellRef}
+                      editingValue={
+                        editingCell === cellRef ? inlineCellValue : ""
+                      }
+                      onStartEditing={onStartInlineEditing}
+                      onEditingValueChange={onInlineValueChange}
+                      onStopEditing={onStopInlineEditing}
+                      onNavigateAfterEdit={onNavigateAfterEdit}
                     />
                   </div>
                 );
