@@ -237,6 +237,8 @@ export type CellStyle = {
   rowHeights: { [key: number]: number };
   hiddenRows?: number[];
   hiddenColumns?: number[];
+  freezeRow?: number;
+  freezeColumn?: number;
 };
 
 interface Cell {
@@ -244,17 +246,27 @@ interface Cell {
   formula: string;
   computed: number | string;
   elementKey?: string;
+  options?: string[]; // Dropdown options for select functionality
 }
 
 export type CellGrid = { [key: string]: Cell };
+
+export type TemplateSheet = {
+  name: string;
+  cells: CellGrid;
+  cellsStyles: CellStyle;
+};
 
 export type Template = {
   id: number;
   name: string;
   code: string;
   description: string;
-  cellsStyles: CellStyle;
-  cells: CellGrid;
+  // Legacy single-sheet format (for backward compatibility)
+  cellsStyles?: CellStyle;
+  cells?: CellGrid;
+  // New multi-sheet format
+  sheets?: TemplateSheet[];
 };
 
 export type DesignFunction = {

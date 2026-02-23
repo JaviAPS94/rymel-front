@@ -9,6 +9,7 @@ export interface Cell {
   textColor?: string;
   backgroundColor?: string;
   border?: string; // e.g., '1px solid #000'
+  options?: string[]; // Dropdown options for select functionality
 }
 
 export interface CellGrid {
@@ -25,6 +26,9 @@ export interface Sheet {
   templateHiddenColumns: Set<number>;
   userHiddenRows: Set<number>;
   userHiddenColumns: Set<number>;
+  hiddenCells: Set<string>; // Track individually hidden cells by cellRef
+  freezeRow: number; // Freeze rows up to (not including) this index, 0 means no freeze
+  freezeColumn: number; // Freeze columns up to (not including) this index, 0 means no freeze
 }
 
 export interface CustomFunction {

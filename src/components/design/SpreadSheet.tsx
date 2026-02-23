@@ -76,15 +76,16 @@ const SpreadSheet = ({
     setSheets((prevSheets) =>
       prevSheets.map((sheet) => {
         if (sheet.id !== activeSheetId) return sheet;
+        const updatedCells = { ...sheet.cells };
+        selectedCells.forEach((cellRef) => {
+          updatedCells[cellRef] = {
+            ...updatedCells[cellRef],
+            ...style,
+          };
+        });
         return {
           ...sheet,
-          cells: {
-            ...sheet.cells,
-            [selectedCell]: {
-              ...sheet.cells[selectedCell],
-              ...style,
-            },
-          },
+          cells: updatedCells,
         };
       }),
     );
@@ -92,7 +93,7 @@ const SpreadSheet = ({
 
   // Expose toolbar render function for FormulaBar
   (window as any).onCellStyleToolbarRender = () => (
-    <div className="flex items-center gap-2 mt-1">
+    <div className="flex items-center gap-4 mt-1 p-2 bg-gray-50 rounded border border-gray-200">
       <button
         className={`px-2 py-1 border rounded ${cellBold ? "font-bold bg-gray-200" : ""}`}
         title="Negrita"
@@ -101,32 +102,54 @@ const SpreadSheet = ({
       >
         B
       </button>
-      <input
-        type="color"
-        value={cellTextColor || "#000000"}
-        title="Color de texto"
-        onChange={(e) => updateCellStyle({ textColor: e.target.value })}
-        className="w-8 h-8 p-0 border rounded"
-      />
-      <input
-        type="color"
-        value={cellBackgroundColor || "#ffffff"}
-        title="Color de fondo"
-        onChange={(e) => updateCellStyle({ backgroundColor: e.target.value })}
-        className="w-8 h-8 p-0 border rounded"
-      />
-      <select
-        value={cellBorder || ""}
-        title="Borde"
-        onChange={(e) => updateCellStyle({ border: e.target.value })}
-        className="px-2 py-1 border rounded"
-      >
-        <option value="">Sin borde</option>
-        <option value="1px solid #000">Negro</option>
-        <option value="1px solid #888">Gris</option>
-        <option value="2px solid #007bff">Azul</option>
-        <option value="2px solid #e11d48">Rojo</option>
-      </select>
+
+      <div className="flex items-center gap-1">
+        <span className="text-xs text-gray-600 font-medium">Texto:</span>
+        <input
+          type="color"
+          value={cellTextColor || "#000000"}
+          title="Color de texto"
+          onChange={(e) => updateCellStyle({ textColor: e.target.value })}
+          className="w-8 h-8 p-0 border rounded cursor-pointer"
+        />
+        <span
+          className="text-sm font-bold ml-1"
+          style={{ color: cellTextColor || "#000000" }}
+        >
+          A
+        </span>
+      </div>
+
+      <div className="flex items-center gap-1">
+        <span className="text-xs text-gray-600 font-medium">Fondo:</span>
+        <input
+          type="color"
+          value={cellBackgroundColor || "#ffffff"}
+          title="Color de fondo"
+          onChange={(e) => updateCellStyle({ backgroundColor: e.target.value })}
+          className="w-8 h-8 p-0 border rounded cursor-pointer"
+        />
+        <div
+          className="w-5 h-5 border border-gray-400 rounded ml-1"
+          style={{ backgroundColor: cellBackgroundColor || "#ffffff" }}
+        />
+      </div>
+
+      <div className="flex items-center gap-1">
+        <span className="text-xs text-gray-600 font-medium">Borde:</span>
+        <select
+          value={cellBorder || ""}
+          title="Borde"
+          onChange={(e) => updateCellStyle({ border: e.target.value })}
+          className="px-2 py-1 border rounded text-sm cursor-pointer"
+        >
+          <option value="">Sin borde</option>
+          <option value="1px solid #000">Negro</option>
+          <option value="1px solid #888">Gris</option>
+          <option value="2px solid #007bff">Azul</option>
+          <option value="2px solid #e11d48">Rojo</option>
+        </select>
+      </div>
     </div>
   );
   const [activeSheetId, setActiveSheetId] = useState<string>(
@@ -135,6 +158,40 @@ const SpreadSheet = ({
       : `${instanceId}-sheet1`,
   );
   const [selectedCell, setSelectedCell] = useState<string>("A1");
+  // Multi-cell selection: store as Set for fast lookup
+  const [selectedCells, setSelectedCells] = useState<Set<string>>(
+    new Set(["A1"]),
+  );
+
+  // Helper: select a single cell (clears others)
+  const selectSingleCell = (cellRef: string) => {
+    setSelectedCell(cellRef);
+    setSelectedCells(new Set([cellRef]));
+  };
+
+  // Helper: select a range of cells (for shift+click)
+  const selectCellRange = (from: string, to: string) => {
+    // Only works for same sheet, assumes A1-like refs
+    const getCoords = (ref: string) => {
+      const match = ref.match(/^([A-Z]+)(\d+)$/);
+      if (!match) return null;
+      return { col: match[1].charCodeAt(0), row: parseInt(match[2], 10) };
+    };
+    const start = getCoords(from);
+    const end = getCoords(to);
+    if (!start || !end) return;
+    const minCol = Math.min(start.col, end.col);
+    const maxCol = Math.max(start.col, end.col);
+    const minRow = Math.min(start.row, end.row);
+    const maxRow = Math.max(start.row, end.row);
+    const cells = new Set<string>();
+    for (let c = minCol; c <= maxCol; c++) {
+      for (let r = minRow; r <= maxRow; r++) {
+        cells.add(String.fromCharCode(c) + r);
+      }
+    }
+    setSelectedCells(cells);
+  };
   const [formulaInput, setFormulaInput] = useState<string>("");
   const [isFormulaBuildingMode, setIsFormulaBuildingMode] =
     useState<boolean>(false);
@@ -162,8 +219,9 @@ const SpreadSheet = ({
     visible: boolean;
     x: number;
     y: number;
-    type: "row" | "column" | null;
+    type: "row" | "column" | "cell" | null;
     index: number;
+    cellRef?: string;
   }>({ visible: false, x: 0, y: 0, type: null, index: -1 });
 
   // Pagination and search state
@@ -359,6 +417,7 @@ const SpreadSheet = ({
   const selectCell = useCallback(
     (cellRef: string) => {
       setSelectedCell(cellRef);
+      setSelectedCells(new Set([cellRef])); // Update multi-selection state
       const cell = cells[cellRef];
       const cellFormula = cell?.formula || "";
       setFormulaInput(cellFormula);
@@ -381,23 +440,43 @@ const SpreadSheet = ({
 
       switch (direction) {
         case "up":
-          newRow = Math.max(0, currentPos.row - 1);
+          // Move up, skipping hidden rows
+          newRow = currentPos.row - 1;
+          while (newRow >= 0 && hiddenRows.has(newRow)) {
+            newRow--;
+          }
+          newRow = Math.max(0, newRow);
           break;
         case "down":
-          newRow = Math.min(ROWS - 1, currentPos.row + 1);
+          // Move down, skipping hidden rows
+          newRow = currentPos.row + 1;
+          while (newRow < ROWS && hiddenRows.has(newRow)) {
+            newRow++;
+          }
+          newRow = Math.min(ROWS - 1, newRow);
           break;
         case "left":
-          newCol = Math.max(0, currentPos.col - 1);
+          // Move left, skipping hidden columns
+          newCol = currentPos.col - 1;
+          while (newCol >= 0 && hiddenColumns.has(newCol)) {
+            newCol--;
+          }
+          newCol = Math.max(0, newCol);
           break;
         case "right":
-          newCol = Math.min(COLS - 1, currentPos.col + 1);
+          // Move right, skipping hidden columns
+          newCol = currentPos.col + 1;
+          while (newCol < COLS && hiddenColumns.has(newCol)) {
+            newCol++;
+          }
+          newCol = Math.min(COLS - 1, newCol);
           break;
       }
 
       const newCellRef = getCellRef(newRow, newCol);
       selectCell(newCellRef);
     },
-    [selectedCell, selectCell],
+    [selectedCell, selectCell, hiddenRows, hiddenColumns],
   );
 
   // Handle resize start
@@ -564,6 +643,85 @@ const SpreadSheet = ({
     );
   }, [activeSheetId]);
 
+  const hideCell = useCallback(
+    (cellRef: string) => {
+      setSheets((prevSheets) =>
+        prevSheets.map((sheet) => {
+          if (sheet.id === activeSheetId) {
+            const newHiddenCells = new Set(
+              sheet.hiddenCells || new Set<string>(),
+            );
+            newHiddenCells.add(cellRef);
+            return {
+              ...sheet,
+              hiddenCells: newHiddenCells,
+            };
+          }
+          return sheet;
+        }),
+      );
+      setContextMenu({ visible: false, x: 0, y: 0, type: null, index: -1 });
+    },
+    [activeSheetId],
+  );
+
+  const unhideCell = useCallback(
+    (cellRef: string) => {
+      setSheets((prevSheets) =>
+        prevSheets.map((sheet) => {
+          if (sheet.id === activeSheetId) {
+            const newHiddenCells = new Set(
+              sheet.hiddenCells || new Set<string>(),
+            );
+            newHiddenCells.delete(cellRef);
+            return {
+              ...sheet,
+              hiddenCells: newHiddenCells,
+            };
+          }
+          return sheet;
+        }),
+      );
+      setContextMenu({ visible: false, x: 0, y: 0, type: null, index: -1 });
+    },
+    [activeSheetId],
+  );
+
+  const freezePanes = useCallback(
+    (row: number, column: number) => {
+      setSheets((prevSheets) =>
+        prevSheets.map((sheet) => {
+          if (sheet.id === activeSheetId) {
+            return {
+              ...sheet,
+              freezeRow: row,
+              freezeColumn: column,
+            };
+          }
+          return sheet;
+        }),
+      );
+      setContextMenu({ visible: false, x: 0, y: 0, type: null, index: -1 });
+    },
+    [activeSheetId],
+  );
+
+  const unfreezePanes = useCallback(() => {
+    setSheets((prevSheets) =>
+      prevSheets.map((sheet) => {
+        if (sheet.id === activeSheetId) {
+          return {
+            ...sheet,
+            freezeRow: 0,
+            freezeColumn: 0,
+          };
+        }
+        return sheet;
+      }),
+    );
+    setContextMenu({ visible: false, x: 0, y: 0, type: null, index: -1 });
+  }, [activeSheetId]);
+
   const unhideAllColumns = useCallback(() => {
     setSheets((prevSheets) =>
       prevSheets.map((sheet) => {
@@ -602,6 +760,24 @@ const SpreadSheet = ({
         y: e.clientY,
         type: "column",
         index: columnIndex,
+      });
+    },
+    [],
+  );
+
+  const handleCellContextMenu = useCallback(
+    (e: React.MouseEvent, cellRef: string) => {
+      e.preventDefault();
+      const pos = parseCellRef(cellRef);
+      if (!pos) return;
+
+      setContextMenu({
+        visible: true,
+        x: e.clientX,
+        y: e.clientY,
+        type: "cell",
+        index: -1,
+        cellRef: cellRef,
       });
     },
     [],
@@ -1456,6 +1632,15 @@ const SpreadSheet = ({
               ? sheet.userHiddenColumns
               : [],
         ),
+        hiddenCells: new Set(
+          Array.isArray(sheet.hiddenCells)
+            ? sheet.hiddenCells
+            : sheet.hiddenCells instanceof Set
+              ? sheet.hiddenCells
+              : [],
+        ),
+        freezeRow: sheet.freezeRow || 0,
+        freezeColumn: sheet.freezeColumn || 0,
       }));
 
       // Set the initial sheets data
@@ -1466,6 +1651,7 @@ const SpreadSheet = ({
       if (normalizedSheets[0]?.id) {
         setActiveSheetId(normalizedSheets[0].id);
         setSelectedCell("A1");
+        setSelectedCells(new Set(["A1"]));
         setFormulaInput("");
       }
 
@@ -1663,6 +1849,90 @@ const SpreadSheet = ({
     [evaluateFormula, activeSheetId, getDependencyChain],
   );
 
+  // Handler for updating dropdown cell values
+  const handleDropdownCellChange = useCallback(
+    (cellRef: string, value: string) => {
+      // Update the cell value while preserving options and other properties
+      setSheets((prevSheets) => {
+        const updatedSheets = prevSheets.map((sheet) => {
+          if (sheet.id === activeSheetId) {
+            const newCells = { ...sheet.cells };
+            const existingCell = newCells[cellRef];
+
+            // Preserve existing cell properties including options
+            newCells[cellRef] = {
+              ...existingCell,
+              value: value,
+              formula: value,
+              computed: value,
+            };
+
+            return { ...sheet, cells: newCells };
+          }
+          return sheet;
+        });
+
+        // Recalculate dependent cells
+        const recalculateDependentCells = async () => {
+          const currentSheet = updatedSheets.find(
+            (sheet) => sheet.id === activeSheetId,
+          );
+          if (!currentSheet) return;
+
+          const newCells = { ...currentSheet.cells };
+          const cellsToRecalculate = getDependencyChain(cellRef, newCells);
+          const updatedComputedValues: Record<string, string | number> = {};
+
+          for (const ref of cellsToRecalculate) {
+            if (!newCells[ref]) continue;
+
+            try {
+              const result = await evaluateFormula(
+                newCells[ref].formula,
+                newCells,
+              );
+              updatedComputedValues[ref] = result !== undefined ? result : "";
+              newCells[ref] = {
+                ...newCells[ref],
+                computed: updatedComputedValues[ref],
+              };
+            } catch (error) {
+              console.error(`Error calculating cell ${ref}:`, error);
+              updatedComputedValues[ref] = "#ERROR";
+              newCells[ref] = {
+                ...newCells[ref],
+                computed: "#ERROR",
+              };
+            }
+          }
+
+          setSheets((latestSheets) =>
+            latestSheets.map((sheet) => {
+              if (sheet.id === activeSheetId) {
+                const updatedCellsWithComputed = { ...sheet.cells };
+                Object.keys(updatedComputedValues).forEach((ref) => {
+                  if (updatedCellsWithComputed[ref]) {
+                    updatedCellsWithComputed[ref] = {
+                      ...updatedCellsWithComputed[ref],
+                      computed: updatedComputedValues[ref],
+                    };
+                  }
+                });
+                return { ...sheet, cells: updatedCellsWithComputed };
+              }
+              return sheet;
+            }),
+          );
+        };
+
+        recalculateDependentCells();
+
+        return updatedSheets;
+      });
+    },
+    [evaluateFormula, activeSheetId, getDependencyChain],
+  );
+
   // Insert text at cursor position
   const insertAtCursor = (textToInsert: string) => {
     const currentPosition = formulaCursorPosition;
@@ -1693,6 +1963,29 @@ const SpreadSheet = ({
     if (event) {
       event.preventDefault();
       event.stopPropagation();
+    }
+
+    // Check for multi-select modifiers (only in normal mode, not formula building)
+    if (!isFormulaBuildingMode && event) {
+      if (event.shiftKey) {
+        // Range selection
+        selectCellRange(selectedCell, cellRef);
+        setSelectedCell(cellRef);
+        return;
+      } else if (event.ctrlKey || event.metaKey) {
+        // Toggle selection
+        setSelectedCell(cellRef);
+        setSelectedCells((prev) => {
+          const next = new Set(prev);
+          if (next.has(cellRef)) {
+            next.delete(cellRef);
+          } else {
+            next.add(cellRef);
+          }
+          return next.size > 0 ? next : new Set([cellRef]);
+        });
+        return;
+      }
     }
 
     if (isFormulaBuildingMode && isAddingToFormula) {
@@ -1739,8 +2032,8 @@ const SpreadSheet = ({
         }
       }, 0);
     } else {
-      // Normal cell selection - just select, don't focus formula input
-      selectCell(cellRef);
+      // Normal cell selection - use single select
+      selectSingleCell(cellRef);
     }
   };
 
@@ -1842,19 +2135,23 @@ const SpreadSheet = ({
       templateHiddenColumns: new Set<number>(),
       userHiddenRows: new Set<number>(),
       userHiddenColumns: new Set<number>(),
+      hiddenCells: new Set<string>(),
+      freezeRow: 0,
+      freezeColumn: 0,
     };
 
     // If there's exactly one template, load it into the new sheet
     if (templates.length === 1) {
       const template = templates[0];
-      newSheet.cells = { ...template.cells };
-      newSheet.columnWidths = { ...template.cellsStyles.columnWidths };
-      newSheet.rowHeights = { ...template.cellsStyles.rowHeights };
+      newSheet.cells = { ...(template.cells || {}) };
+      newSheet.columnWidths = { ...(template.cellsStyles?.columnWidths || {}) };
+      newSheet.rowHeights = { ...(template.cellsStyles?.rowHeights || {}) };
     }
 
     setSheets((prev) => [...prev, newSheet]);
     setActiveSheetId(newSheet.id);
     setSelectedCell("A1");
+    setSelectedCells(new Set(["A1"]));
     setFormulaInput("");
 
     // If template was loaded, recalculate formulas for the new sheet
@@ -1924,6 +2221,7 @@ const SpreadSheet = ({
     // If not in formula building mode, reset selection
     if (!isFormulaBuildingMode) {
       setSelectedCell("A1");
+      setSelectedCells(new Set(["A1"]));
       setFormulaInput("");
       setIsAddingToFormula(false);
       setRangeSelectionStart(null);
@@ -1967,14 +2265,131 @@ const SpreadSheet = ({
     }
   };
 
-  // Load template into current sheet
+  // Load template into current sheet(s)
   const loadTemplate = useCallback(
     (template: Template) => {
+      // Check if template has multiple sheets or single sheet format
+      if (template.sheets && template.sheets.length > 0) {
+        // Multi-sheet template: Replace all sheets
+        const newSheets = template.sheets.map((templateSheet, index) => {
+          const sheetId = `${instanceId}-sheet${index + 1}`;
+
+          // Process template cells to populate with element values if elementKey exists
+          const processedCells = { ...templateSheet.cells };
+
+          Object.keys(processedCells).forEach((cellRef) => {
+            const cell = processedCells[cellRef];
+
+            // Check if cell has elementKey property
+            if (cell.elementKey) {
+              // Search for matching key in element.values
+              const elementValue = element.values.find(
+                (val: any) => val.key === cell.elementKey,
+              );
+
+              // If found, override cell value with element value
+              if (elementValue && elementValue.value !== undefined) {
+                // Convert to number if the type is number, otherwise keep as string
+                let computedValue: string | number = String(elementValue.value);
+
+                if (elementValue.type === "number") {
+                  const numValue = Number(elementValue.value);
+                  if (!isNaN(numValue)) {
+                    computedValue = numValue;
+                  }
+                }
+
+                processedCells[cellRef] = {
+                  ...cell,
+                  value: String(elementValue.value),
+                  formula: String(elementValue.value),
+                  computed: computedValue,
+                };
+              }
+            }
+          });
+
+          return {
+            id: sheetId,
+            name: templateSheet.name,
+            cells: processedCells,
+            columnWidths: { ...templateSheet.cellsStyles.columnWidths },
+            rowHeights: { ...templateSheet.cellsStyles.rowHeights },
+            templateHiddenRows: new Set<number>(
+              templateSheet.cellsStyles.hiddenRows || [],
+            ),
+            templateHiddenColumns: new Set<number>(
+              templateSheet.cellsStyles.hiddenColumns || [],
+            ),
+            userHiddenRows: new Set<number>(),
+            userHiddenColumns: new Set<number>(),
+            hiddenCells: new Set<string>(),
+            freezeRow: templateSheet.cellsStyles.freezeRow || 0,
+            freezeColumn: templateSheet.cellsStyles.freezeColumn || 0,
+          };
+        });
+
+        // Recalculate all formulas for all sheets
+        const recalculateAllSheetsFormulas = async () => {
+          const updatedSheets: Sheet[] = [];
+
+          for (const sheet of newSheets) {
+            const newCells = { ...sheet.cells };
+            const updatedComputedValues: Record<string, string | number> = {};
+
+            // Process all cells to recalculate formulas
+            for (const ref of Object.keys(newCells)) {
+              try {
+                const result = await evaluateFormula(
+                  newCells[ref].formula,
+                  newCells,
+                );
+                updatedComputedValues[ref] = result !== undefined ? result : "";
+
+                // Update the cell grid with the new computed value for next cell calculations
+                newCells[ref] = {
+                  ...newCells[ref],
+                  computed: updatedComputedValues[ref],
+                };
+              } catch (error) {
+                console.error(`Error calculating cell ${ref}:`, error);
+                updatedComputedValues[ref] = "#ERROR";
+                newCells[ref] = {
+                  ...newCells[ref],
+                  computed: "#ERROR",
+                };
+              }
+            }
+
+            updatedSheets.push({ ...sheet, cells: newCells });
+          }
+
+          // Update all sheets with recalculated formulas
+          setSheets(updatedSheets);
+
+          // Set active sheet to the first sheet
+          if (updatedSheets[0]?.id) {
+            setActiveSheetId(updatedSheets[0].id);
+          }
+        };
+
+        // Run the recalculation immediately after loading template
+        recalculateAllSheetsFormulas();
+
+        setSheets(newSheets);
+        setShowTemplateLibrary(false);
+        setSelectedCell("A1");
+        setSelectedCells(new Set(["A1"]));
+        setFormulaInput("");
+        return;
+      }
+
+      // Legacy single-sheet template: Update only the current sheet
       setSheets((prevSheets) => {
         const updatedSheets = prevSheets.map((sheet) => {
           if (sheet.id === activeSheetId) {
             // Process template cells to populate with element values if elementKey exists
-            const processedCells = { ...template.cells };
+            const processedCells = { ...(template.cells || {}) };
 
             Object.keys(processedCells).forEach((cellRef) => {
               const cell = processedCells[cellRef];
@@ -2013,16 +2428,19 @@ const SpreadSheet = ({
             return {
               ...sheet,
               cells: processedCells,
-              columnWidths: { ...template.cellsStyles.columnWidths },
-              rowHeights: { ...template.cellsStyles.rowHeights },
+              columnWidths: { ...(template.cellsStyles?.columnWidths || {}) },
+              rowHeights: { ...(template.cellsStyles?.rowHeights || {}) },
               templateHiddenRows: new Set<number>(
-                template.cellsStyles.hiddenRows || [],
+                template.cellsStyles?.hiddenRows || [],
               ),
               templateHiddenColumns: new Set<number>(
-                template.cellsStyles.hiddenColumns || [],
+                template.cellsStyles?.hiddenColumns || [],
               ),
               userHiddenRows: new Set<number>(),
               userHiddenColumns: new Set<number>(),
+              hiddenCells: new Set<string>(),
+              freezeRow: template.cellsStyles?.freezeRow || 0,
+              freezeColumn: template.cellsStyles?.freezeColumn || 0,
             };
           }
           return sheet;
@@ -2093,9 +2511,10 @@ const SpreadSheet = ({
 
       setShowTemplateLibrary(false);
       setSelectedCell("A1");
+      setSelectedCells(new Set(["A1"]));
       setFormulaInput("");
     },
-    [activeSheetId, evaluateFormula],
+    [activeSheetId, evaluateFormula, element.values, instanceId],
   );
 
   useEffect(() => {
@@ -2182,6 +2601,7 @@ const SpreadSheet = ({
       <SpreadSheetGrid
         cells={cells}
         selectedCell={selectedCell}
+        selectedCells={selectedCells}
         isAddingToFormula={isAddingToFormula}
         rangeSelectionStart={rangeSelectionStart}
         getColumnWidth={getColumnWidth}
@@ -2190,8 +2610,13 @@ const SpreadSheet = ({
         handleResizeStart={handleResizeStart}
         hiddenRows={hiddenRows}
         hiddenColumns={hiddenColumns}
+        hiddenCells={currentSheet?.hiddenCells || new Set<string>()}
+        freezeRow={currentSheet?.freezeRow || 0}
+        freezeColumn={currentSheet?.freezeColumn || 0}
         onRowHeaderContextMenu={handleRowHeaderContextMenu}
         onColumnHeaderContextMenu={handleColumnHeaderContextMenu}
+        onCellContextMenu={handleCellContextMenu}
+        onCellValueChange={handleDropdownCellChange}
       />
 
       {/* Context Menu */}
@@ -2237,6 +2662,56 @@ const SpreadSheet = ({
               )}
             </>
           )}
+          {contextMenu.type === "cell" &&
+            contextMenu.cellRef &&
+            (() => {
+              const isCellHidden = currentSheet?.hiddenCells?.has(
+                contextMenu.cellRef,
+              );
+              const pos = parseCellRef(contextMenu.cellRef);
+              const hasFrozenPanes =
+                (currentSheet?.freezeRow || 0) > 0 ||
+                (currentSheet?.freezeColumn || 0) > 0;
+
+              return (
+                <>
+                  {isCellHidden ? (
+                    <button
+                      className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
+                      onClick={() => unhideCell(contextMenu.cellRef!)}
+                    >
+                      Mostrar celda {contextMenu.cellRef}
+                    </button>
+                  ) : (
+                    <button
+                      className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
+                      onClick={() => hideCell(contextMenu.cellRef!)}
+                    >
+                      Ocultar celda {contextMenu.cellRef}
+                    </button>
+                  )}
+                  {pos && (
+                    <>
+                      <div className="border-t my-1"></div>
+                      <button
+                        className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
+                        onClick={() => freezePanes(pos.row, pos.col)}
+                      >
+                        🔒 Inmovilizar paneles aquí
+                      </button>
+                      {hasFrozenPanes && (
+                        <button
+                          className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
+                          onClick={unfreezePanes}
+                        >
+                          🔓 Movilizar paneles
+                        </button>
+                      )}
+                    </>
+                  )}
+                </>
+              );
+            })()}
         </div>
       )}
 
