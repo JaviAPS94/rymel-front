@@ -57,42 +57,55 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
   }, [isEditing, editingValue]);
   // Check if this cell has dropdown options
   const hasOptions = cell?.options && cell.options.length > 0;
+
   // Compute style from cell properties
   const cellStyle: React.CSSProperties = {
     width: columnWidth,
     height: rowHeight,
     minWidth: columnWidth,
     minHeight: rowHeight,
+    maxWidth: columnWidth,
+    maxHeight: rowHeight,
     fontWeight: cell?.bold ? "bold" : undefined,
     color: cell?.textColor || undefined,
-    background: cell?.backgroundColor || (isFrozen ? "#ffffff" : undefined),
+    backgroundColor:
+      cell?.backgroundColor || (isFrozen ? "#ffffff" : undefined),
     boxSizing: "border-box",
-    // Use negative margins to make borders collapse properly
-    marginRight: "-1px",
-    marginBottom: "-1px",
+    borderTop: "none", // Remove top border to avoid doubling with row above
+    borderLeft: "none", // Remove left border to avoid doubling with column to left
+    borderRight: "1px solid #e5e7eb", // Default grid border
+    borderBottom: "1px solid #e5e7eb", // Default grid border
   };
 
-  // Handle border styling separately to avoid overlap
+  // Apply custom border if specified (use individual properties to avoid React warnings)
   if (cell?.border) {
-    // Custom border applies to all sides
-    cellStyle.border = cell.border;
-  } else {
-    // Default Excel-like grid lines (only right and bottom to avoid doubling)
-    cellStyle.borderRight = "1px solid #e5e7eb";
-    cellStyle.borderBottom = "1px solid #e5e7eb";
+    cellStyle.borderTop = cell.border;
+    cellStyle.borderLeft = cell.border;
+    cellStyle.borderRight = cell.border;
+    cellStyle.borderBottom = cell.border;
+  }
+
+  // Selection styling - use box-shadow instead of ring to avoid layout shift
+  if (isSelected) {
+    cellStyle.boxShadow = "inset 0 0 0 2px #3b82f6";
+    cellStyle.backgroundColor = cell?.backgroundColor || "#eff6ff";
+  } else if (rangeSelectionStart === cellRef) {
+    cellStyle.boxShadow = "inset 0 0 0 2px #f97316";
+    cellStyle.backgroundColor = cell?.backgroundColor || "#fed7aa";
+  } else if (isAddingToFormula) {
+    // Light green tint for hoverable cells in formula mode
+    cellStyle.backgroundColor = cell?.backgroundColor;
   }
 
   return (
     <div
       className={`relative cursor-pointer ${
-        isSelected
-          ? "ring-2 ring-blue-500 bg-blue-50"
-          : isAddingToFormula
-            ? "hover:bg-green-100 hover:ring-2 hover:ring-green-400"
-            : rangeSelectionStart === cellRef
-              ? "bg-orange-200 ring-2 ring-orange-500"
-              : "hover:bg-gray-50"
-      } ${isSelected ? "outline outline-2 outline-blue-400" : ""}`}
+        isAddingToFormula && !isSelected
+          ? "hover:bg-green-50 hover:shadow-[inset_0_0_0_2px_#10b981]"
+          : !isSelected && rangeSelectionStart !== cellRef
+            ? "hover:bg-gray-50"
+            : ""
+      }`}
       style={cellStyle}
       onClick={(e) => onCellClick(cellRef, e)}
       onContextMenu={(e) => onCellContextMenu(e, cellRef)}
@@ -244,4 +257,23 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
   );
 };
 
-export default SpreadSheetCell;
+export default React.memo(SpreadSheetCell, (prevProps, nextProps) => {
+  // Only re-render if these props change
+  return (
+    prevProps.cellRef === nextProps.cellRef &&
+    prevProps.cell?.value === nextProps.cell?.value &&
+    prevProps.cell?.computed === nextProps.cell?.computed &&
+    prevProps.cell?.bold === nextProps.cell?.bold &&
+    prevProps.cell?.textColor === nextProps.cell?.textColor &&
+    prevProps.cell?.backgroundColor === nextProps.cell?.backgroundColor &&
+    prevProps.cell?.border === nextProps.cell?.border &&
+    prevProps.isSelected === nextProps.isSelected &&
+    prevProps.isHidden === nextProps.isHidden &&
+    prevProps.isAddingToFormula === nextProps.isAddingToFormula &&
+    prevProps.rangeSelectionStart === nextProps.rangeSelectionStart &&
+    prevProps.columnWidth === nextProps.columnWidth &&
+    prevProps.rowHeight === nextProps.rowHeight &&
+    prevProps.isEditing === nextProps.isEditing &&
+    prevProps.editingValue === nextProps.editingValue
+  );
+});

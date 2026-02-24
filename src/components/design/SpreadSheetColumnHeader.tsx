@@ -24,7 +24,7 @@ const SpreadSheetColumnHeader: React.FC<SpreadSheetColumnHeaderProps> = ({
 }) => {
   return (
     <div
-      className="border-r border-gray-300 flex items-center justify-center text-sm font-medium text-gray-700 bg-gray-50 relative group"
+      className="border-r border-b border-gray-300 flex items-center justify-center text-sm font-medium text-gray-700 bg-gray-50 relative group box-border"
       style={{
         width: columnWidth,
         height: defaultRowHeight,

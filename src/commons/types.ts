@@ -1,4 +1,4 @@
-import { Sheet } from "../components/design/spreadsheet-types";
+import { MergedCell, Sheet } from "../components/design/spreadsheet-types";
 
 export type Country = {
   id: number;
@@ -239,6 +239,7 @@ export type CellStyle = {
   hiddenColumns?: number[];
   freezeRow?: number;
   freezeColumn?: number;
+  mergedCells?: MergedCell[];
 };
 
 interface Cell {

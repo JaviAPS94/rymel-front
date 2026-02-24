@@ -3,11 +3,32 @@ import SpreadSheetColumnHeader from "./SpreadSheetColumnHeader";
 import SpreadSheetRowHeader from "./SpreadSheetRowHeader";
 import SpreadSheetCell from "./SpreadSheetCell";
 import { CellGrid } from "../../commons/types";
+import { MergedCell } from "./spreadsheet-types";
 
-const COLUMN_LABELS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-const ROWS = 100;
-const COLS = 26;
+const ROWS = 200;
+const COLS = 50; // Rendered columns (supports Excel-style naming A-ZZ in formulas)
 const DEFAULT_ROW_HEIGHT = 32;
+
+// Helper function to convert column index (0-based) to Excel-style column name
+const getColumnLabel = (col: number): string => {
+  let label = "";
+  let num = col + 1; // Convert to 1-based for Excel naming
+  while (num > 0) {
+    const remainder = (num - 1) % 26;
+    label = String.fromCharCode(65 + remainder) + label;
+    num = Math.floor((num - 1) / 26);
+  }
+  return label;
+};
+
+// Helper function to convert Excel-style column name to column index (0-based)
+const getColumnIndex = (label: string): number => {
+  let index = 0;
+  for (let i = 0; i < label.length; i++) {
+    index = index * 26 + (label.charCodeAt(i) - 64);
+  }
+  return index - 1;
+};
 
 interface SpreadSheetGridProps {
   cells: CellGrid;
@@ -29,6 +50,7 @@ interface SpreadSheetGridProps {
   hiddenCells: Set<string>;
   freezeRow: number;
   freezeColumn: number;
+  mergedCells: MergedCell[];
   onRowHeaderContextMenu: (e: React.MouseEvent, rowIndex: number) => void;
   onColumnHeaderContextMenu: (e: React.MouseEvent, columnIndex: number) => void;
   onCellContextMenu: (e: React.MouseEvent, cellRef: string) => void;
@@ -56,6 +78,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
   hiddenCells,
   freezeRow,
   freezeColumn,
+  mergedCells,
   onRowHeaderContextMenu,
   onColumnHeaderContextMenu,
   onCellContextMenu,
@@ -69,7 +92,43 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
 }) => {
   // Get cell reference (e.g., A1, B2)
   const getCellRef = (row: number, col: number): string => {
-    return `${COLUMN_LABELS[col]}${row + 1}`;
+    return `${getColumnLabel(col)}${row + 1}`;
+  };
+
+  // Parse cell reference to get row/col
+  const parseCellRef = (ref: string): { row: number; col: number } | null => {
+    const match = ref.match(/^([A-Z]+)(\d+)$/);
+    if (!match) return null;
+    const col = getColumnIndex(match[1]);
+    const row = Number.parseInt(match[2]) - 1;
+    return { row, col };
+  };
+
+  // Check if a cell is part of a merged region and get merge info
+  const getMergeInfo = (row: number, col: number): MergedCell | null => {
+    return (
+      mergedCells.find((merge) => {
+        const mergeStart = parseCellRef(merge.startCell);
+        const mergeEnd = parseCellRef(merge.endCell);
+        if (!mergeStart || !mergeEnd) return false;
+        return (
+          row >= mergeStart.row &&
+          row <= mergeEnd.row &&
+          col >= mergeStart.col &&
+          col <= mergeEnd.col
+        );
+      }) || null
+    );
+  };
+
+  // Check if a cell should be hidden because it's part of a merge but not the master cell
+  const shouldHideMergedCell = (row: number, col: number): boolean => {
+    const mergeInfo = getMergeInfo(row, col);
+    if (!mergeInfo) return false;
+    const mergeStart = parseCellRef(mergeInfo.startCell);
+    if (!mergeStart) return false;
+    // Hide if it's not the top-left cell of the merge
+    return row !== mergeStart.row || col !== mergeStart.col;
   };
 
   // Calculate cumulative width for frozen columns
@@ -95,7 +154,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
   };
 
   return (
-    <div className="flex-1 overflow-auto relative">
+    <div className="flex-1 overflow-auto relative border-l border-t border-gray-300">
       <div className="inline-block min-w-full">
         {/* Column Headers */}
         <div className="flex sticky top-0 bg-gray-50 border-b z-30">
@@ -119,7 +178,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
               <div key={col} style={headerStyle}>
                 <SpreadSheetColumnHeader
                   columnIndex={col}
-                  columnLabel={COLUMN_LABELS[col]}
+                  columnLabel={getColumnLabel(col)}
                   columnWidth={getColumnWidth(col)}
                   defaultRowHeight={DEFAULT_ROW_HEIGHT}
                   onResizeStart={handleResizeStart}
@@ -171,12 +230,49 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                   return null;
                 }
 
+                // Skip cells that are part of a merge but not the master cell
+                if (shouldHideMergedCell(row, col)) {
+                  return null;
+                }
+
                 const cellRef = getCellRef(row, col);
                 const cell = cells[cellRef];
                 const isSelected = selectedCells.has(cellRef);
                 const isHidden = hiddenCells.has(cellRef);
                 const isColFrozen = col < freezeColumn;
                 const isFrozen = isRowFrozen || isColFrozen;
+
+                // Get merge info if this cell is the master of a merged region
+                const mergeInfo = getMergeInfo(row, col);
+                const isMasterCell =
+                  mergeInfo &&
+                  parseCellRef(mergeInfo.startCell)?.row === row &&
+                  parseCellRef(mergeInfo.startCell)?.col === col;
+
+                // Calculate dimensions for merged cells
+                let cellWidth = getColumnWidth(col);
+                let cellHeight = getRowHeight(row);
+
+                if (isMasterCell && mergeInfo) {
+                  // Sum up widths for all columns in the merge
+                  const mergeStart = parseCellRef(mergeInfo.startCell);
+                  const mergeEnd = parseCellRef(mergeInfo.endCell);
+                  if (mergeStart && mergeEnd) {
+                    cellWidth = 0;
+                    for (let c = mergeStart.col; c <= mergeEnd.col; c++) {
+                      if (!hiddenColumns.has(c)) {
+                        cellWidth += getColumnWidth(c);
+                      }
+                    }
+
+                    cellHeight = 0;
+                    for (let r = mergeStart.row; r <= mergeEnd.row; r++) {
+                      if (!hiddenRows.has(r)) {
+                        cellHeight += getRowHeight(r);
+                      }
+                    }
+                  }
+                }
 
                 const cellStyle = isColFrozen
                   ? {
@@ -196,8 +292,8 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                       isFrozen={isFrozen}
                       isAddingToFormula={isAddingToFormula}
                       rangeSelectionStart={rangeSelectionStart}
-                      columnWidth={getColumnWidth(col)}
-                      rowHeight={getRowHeight(row)}
+                      columnWidth={cellWidth}
+                      rowHeight={cellHeight}
                       onCellClick={handleCellClick}
                       onCellContextMenu={onCellContextMenu}
                       onCellValueChange={onCellValueChange}
@@ -221,4 +317,4 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
   );
 };
 
-export default SpreadSheetGrid;
+export default React.memo(SpreadSheetGrid);

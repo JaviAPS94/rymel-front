@@ -12,6 +12,13 @@ export interface Cell {
   options?: string[]; // Dropdown options for select functionality
 }
 
+export interface MergedCell {
+  startCell: string; // e.g., "A1"
+  endCell: string; // e.g., "B3"
+  rowSpan: number;
+  colSpan: number;
+}
+
 export interface CellGrid {
   [key: string]: Cell;
 }
@@ -29,6 +36,7 @@ export interface Sheet {
   hiddenCells: Set<string>; // Track individually hidden cells by cellRef
   freezeRow: number; // Freeze rows up to (not including) this index, 0 means no freeze
   freezeColumn: number; // Freeze columns up to (not including) this index, 0 means no freeze
+  mergedCells: MergedCell[]; // Track merged cell ranges
 }
 
 export interface CustomFunction {

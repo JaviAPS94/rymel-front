@@ -18,13 +18,33 @@ import FunctionLibraryModal from "./FunctionLibraryModal";
 import TemplateLibraryModal from "./TemplateLibraryModal";
 import { CustomFunction, Sheet } from "./spreadsheet-types";
 
-const ROWS = 100;
-const COLS = 26;
-const COLUMN_LABELS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const ROWS = 200;
+const COLS = 50; // Rendered columns (supports Excel-style naming A-ZZ in formulas)
 const DEFAULT_COLUMN_WIDTH = 96;
 const DEFAULT_ROW_HEIGHT = 32;
 const MIN_COLUMN_WIDTH = 60;
 const MIN_ROW_HEIGHT = 24;
+
+// Helper function to convert column index (0-based) to Excel-style column name
+const getColumnLabel = (col: number): string => {
+  let label = "";
+  let num = col + 1; // Convert to 1-based
+  while (num > 0) {
+    const remainder = (num - 1) % 26;
+    label = String.fromCharCode(65 + remainder) + label;
+    num = Math.floor((num - 1) / 26);
+  }
+  return label;
+};
+
+// Helper function to convert Excel-style column name to column index (0-based)
+const getColumnIndex = (label: string): number => {
+  let index = 0;
+  for (let i = 0; i < label.length; i++) {
+    index = index * 26 + (label.charCodeAt(i) - 64);
+  }
+  return index - 1;
+};
 
 interface SpreadSheetProps {
   subTypeWithFunctions: DesignSubtype;
@@ -64,32 +84,198 @@ const SpreadSheet = ({
   const [cellBorder, setCellBorder] = useState<string>("");
   const [cellBold, setCellBold] = useState<boolean>(false);
 
-  // Handler to update cell style
-  const updateCellStyle = (
-    style: Partial<{
-      bold: boolean;
-      textColor: string;
-      backgroundColor: string;
-      border: string;
-    }>,
-  ) => {
-    setSheets((prevSheets) =>
-      prevSheets.map((sheet) => {
-        if (sheet.id !== activeSheetId) return sheet;
-        const updatedCells = { ...sheet.cells };
-        selectedCells.forEach((cellRef) => {
-          updatedCells[cellRef] = {
-            ...updatedCells[cellRef],
-            ...style,
-          };
-        });
-        return {
-          ...sheet,
-          cells: updatedCells,
-        };
-      }),
-    );
+  const [activeSheetId, setActiveSheetId] = useState<string>(
+    sheetsInitialData && sheetsInitialData.length > 0
+      ? sheetsInitialData[0].id
+      : `${instanceId}-sheet1`,
+  );
+  const [selectedCell, setSelectedCell] = useState<string>("A1");
+  // Multi-cell selection: store as Set for fast lookup
+  const [selectedCells, setSelectedCells] = useState<Set<string>>(
+    new Set(["A1"]),
+  );
+  // Track inline editing state
+  const [editingCell, setEditingCell] = useState<string | null>(null);
+  const [inlineCellValue, setInlineCellValue] = useState<string>("");
+  // Copy/paste state
+  const [copiedCells, setCopiedCells] = useState<
+    Map<
+      string,
+      {
+        value: string;
+        formula: string;
+        computed: string | number | undefined;
+        bold?: boolean;
+        textColor?: string;
+        backgroundColor?: string;
+        border?: string;
+      }
+    >
+  >(new Map());
+  const [copiedRange, setCopiedRange] = useState<{
+    minRow: number;
+    maxRow: number;
+    minCol: number;
+    maxCol: number;
+  } | null>(null);
+
+  // Undo/Redo stacks
+  const [undoStack, setUndoStack] = useState<Sheet[][]>([]);
+  const [redoStack, setRedoStack] = useState<Sheet[][]>([]);
+  const maxHistorySize = 50; // Limit history to prevent memory issues
+
+  // Helper: select a single cell (clears others)
+  const selectSingleCell = (cellRef: string) => {
+    setSelectedCell(cellRef);
+    setSelectedCells(new Set([cellRef]));
   };
+
+  // Helper: select a range of cells (for shift+click)
+  const selectCellRange = (from: string, to: string) => {
+    // Only works for same sheet, assumes A1-like refs
+    const getCoords = (ref: string) => {
+      const match = ref.match(/^([A-Z]+)(\d+)$/);
+      if (!match) return null;
+      return { col: getColumnIndex(match[1]), row: parseInt(match[2], 10) };
+    };
+    const start = getCoords(from);
+    const end = getCoords(to);
+    if (!start || !end) return;
+    const minCol = Math.min(start.col, end.col);
+    const maxCol = Math.max(start.col, end.col);
+    const minRow = Math.min(start.row, end.row);
+    const maxRow = Math.max(start.row, end.row);
+    const cells = new Set<string>();
+    for (let c = minCol; c <= maxCol; c++) {
+      for (let r = minRow; r <= maxRow; r++) {
+        cells.add(getColumnLabel(c) + r);
+      }
+    }
+    setSelectedCells(cells);
+  };
+
+  // Helper functions to serialize/deserialize sheets for history
+  const serializeSheetsForHistory = useCallback((sheets: Sheet[]) => {
+    return sheets.map((sheet) => ({
+      ...sheet,
+      templateHiddenRows: Array.from(sheet.templateHiddenRows || []),
+      templateHiddenColumns: Array.from(sheet.templateHiddenColumns || []),
+      userHiddenRows: Array.from(sheet.userHiddenRows || []),
+      userHiddenColumns: Array.from(sheet.userHiddenColumns || []),
+      hiddenCells: Array.from(sheet.hiddenCells || []),
+    }));
+  }, []);
+
+  const deserializeSheetsFromHistory = useCallback((serialized: any[]) => {
+    return serialized.map((sheet) => ({
+      ...sheet,
+      templateHiddenRows: new Set(sheet.templateHiddenRows || []),
+      templateHiddenColumns: new Set(sheet.templateHiddenColumns || []),
+      userHiddenRows: new Set(sheet.userHiddenRows || []),
+      userHiddenColumns: new Set(sheet.userHiddenColumns || []),
+      hiddenCells: new Set(sheet.hiddenCells || []),
+    }));
+  }, []);
+
+  // Save current state to undo stack
+  const saveToHistory = useCallback(() => {
+    setUndoStack((prev) => {
+      const serialized = serializeSheetsForHistory(sheets);
+      const newStack = [...prev, JSON.parse(JSON.stringify(serialized))];
+      // Limit stack size
+      if (newStack.length > maxHistorySize) {
+        return newStack.slice(1);
+      }
+      return newStack;
+    });
+    // Clear redo stack when a new action is performed
+    setRedoStack([]);
+  }, [sheets, maxHistorySize, serializeSheetsForHistory]);
+
+  // Undo last action
+  const handleUndo = useCallback(() => {
+    if (undoStack.length === 0) return;
+
+    const previousStateSerialized = undoStack[undoStack.length - 1];
+    const newUndoStack = undoStack.slice(0, -1);
+
+    // Save current state to redo stack
+    const currentSerialized = serializeSheetsForHistory(sheets);
+    setRedoStack((prev) => [
+      ...prev,
+      JSON.parse(JSON.stringify(currentSerialized)),
+    ]);
+    setUndoStack(newUndoStack);
+
+    // Restore previous state
+    const previousState = deserializeSheetsFromHistory(previousStateSerialized);
+    setSheets(previousState);
+  }, [
+    undoStack,
+    sheets,
+    setSheets,
+    serializeSheetsForHistory,
+    deserializeSheetsFromHistory,
+  ]);
+
+  // Redo last undone action
+  const handleRedo = useCallback(() => {
+    if (redoStack.length === 0) return;
+
+    const nextStateSerialized = redoStack[redoStack.length - 1];
+    const newRedoStack = redoStack.slice(0, -1);
+
+    // Save current state to undo stack
+    const currentSerialized = serializeSheetsForHistory(sheets);
+    setUndoStack((prev) => [
+      ...prev,
+      JSON.parse(JSON.stringify(currentSerialized)),
+    ]);
+    setRedoStack(newRedoStack);
+
+    // Restore next state
+    const nextState = deserializeSheetsFromHistory(nextStateSerialized);
+    setSheets(nextState);
+  }, [
+    redoStack,
+    sheets,
+    setSheets,
+    serializeSheetsForHistory,
+    deserializeSheetsFromHistory,
+  ]);
+
+  // Handler to update cell style
+  const updateCellStyle = useCallback(
+    (
+      style: Partial<{
+        bold: boolean;
+        textColor: string;
+        backgroundColor: string;
+        border: string;
+      }>,
+    ) => {
+      // Save current state to history before making changes
+      saveToHistory();
+
+      setSheets((prevSheets) =>
+        prevSheets.map((sheet) => {
+          if (sheet.id !== activeSheetId) return sheet;
+          const updatedCells = { ...sheet.cells };
+          selectedCells.forEach((cellRef) => {
+            updatedCells[cellRef] = {
+              ...updatedCells[cellRef],
+              ...style,
+            };
+          });
+          return {
+            ...sheet,
+            cells: updatedCells,
+          };
+        }),
+      );
+    },
+    [activeSheetId, selectedCells, setSheets, saveToHistory],
+  );
 
   // Expose toolbar render function for FormulaBar
   (window as any).onCellStyleToolbarRender = () => (
@@ -152,49 +338,7 @@ const SpreadSheet = ({
       </div>
     </div>
   );
-  const [activeSheetId, setActiveSheetId] = useState<string>(
-    sheetsInitialData && sheetsInitialData.length > 0
-      ? sheetsInitialData[0].id
-      : `${instanceId}-sheet1`,
-  );
-  const [selectedCell, setSelectedCell] = useState<string>("A1");
-  // Multi-cell selection: store as Set for fast lookup
-  const [selectedCells, setSelectedCells] = useState<Set<string>>(
-    new Set(["A1"]),
-  );
-  // Track inline editing state
-  const [editingCell, setEditingCell] = useState<string | null>(null);
-  const [inlineCellValue, setInlineCellValue] = useState<string>("");
 
-  // Helper: select a single cell (clears others)
-  const selectSingleCell = (cellRef: string) => {
-    setSelectedCell(cellRef);
-    setSelectedCells(new Set([cellRef]));
-  };
-
-  // Helper: select a range of cells (for shift+click)
-  const selectCellRange = (from: string, to: string) => {
-    // Only works for same sheet, assumes A1-like refs
-    const getCoords = (ref: string) => {
-      const match = ref.match(/^([A-Z]+)(\d+)$/);
-      if (!match) return null;
-      return { col: match[1].charCodeAt(0), row: parseInt(match[2], 10) };
-    };
-    const start = getCoords(from);
-    const end = getCoords(to);
-    if (!start || !end) return;
-    const minCol = Math.min(start.col, end.col);
-    const maxCol = Math.max(start.col, end.col);
-    const minRow = Math.min(start.row, end.row);
-    const maxRow = Math.max(start.row, end.row);
-    const cells = new Set<string>();
-    for (let c = minCol; c <= maxCol; c++) {
-      for (let r = minRow; r <= maxRow; r++) {
-        cells.add(String.fromCharCode(c) + r);
-      }
-    }
-    setSelectedCells(cells);
-  };
   const [formulaInput, setFormulaInput] = useState<string>("");
   const [isFormulaBuildingMode, setIsFormulaBuildingMode] =
     useState<boolean>(false);
@@ -304,14 +448,14 @@ const SpreadSheet = ({
 
   // Get cell reference (e.g., A1, B2)
   const getCellRef = (row: number, col: number): string => {
-    return `${COLUMN_LABELS[col]}${row + 1}`;
+    return `${getColumnLabel(col)}${row + 1}`;
   };
 
   // Parse cell reference to row/col
   const parseCellRef = (ref: string): { row: number; col: number } | null => {
-    const match = ref.match(/^([A-Z])(\d+)$/);
+    const match = ref.match(/^([A-Z]+)(\d+)$/);
     if (!match) return null;
-    const col = COLUMN_LABELS.indexOf(match[1]);
+    const col = getColumnIndex(match[1]);
     const row = Number.parseInt(match[2]) - 1;
     return { row, col };
   };
@@ -325,7 +469,7 @@ const SpreadSheet = ({
     currentAllSheets: typeof allSheets,
   ): { instanceId: string; sheetId: string; cellRef: string } | null => {
     // Check for cross-instance reference: "design:Sheet1!A1" or "cost:Sheet1!A1"
-    const crossInstanceMatch = ref.match(/^([^:]+):(.+?)!([A-Z]\d+)$/);
+    const crossInstanceMatch = ref.match(/^([^:]+):(.+?)!([A-Z]+\d+)$/);
 
     if (crossInstanceMatch) {
       const targetInstanceId = crossInstanceMatch[1];
@@ -352,7 +496,7 @@ const SpreadSheet = ({
     }
 
     // Check for same-instance cross-sheet reference: "Sheet1!A1"
-    const crossSheetMatch = ref.match(/^(.+?)!([A-Z]\d+)$/);
+    const crossSheetMatch = ref.match(/^(.+?)!([A-Z]+\d+)$/);
     if (crossSheetMatch) {
       const sheetName = crossSheetMatch[1];
       const cellRef = crossSheetMatch[2];
@@ -365,7 +509,7 @@ const SpreadSheet = ({
     }
 
     // Local reference: use current sheet
-    if (/^[A-Z]\d+$/.test(ref)) {
+    if (/^[A-Z]+\d+$/.test(ref)) {
       return {
         instanceId: currentInstanceId,
         sheetId: currentActiveSheetId,
@@ -378,10 +522,10 @@ const SpreadSheet = ({
 
   // Get cell value from any sheet (supports cross-sheet and cross-instance references)
   const getCellValueFromAnySheet = useCallback(
-    (ref: string): number | string => {
+    (ref: string, currentSheets: typeof sheets): number | string => {
       const parsed = parseCrossSheetRef(
         ref,
-        sheets,
+        currentSheets,
         activeSheetId,
         instanceId,
         allSheets,
@@ -391,7 +535,7 @@ const SpreadSheet = ({
       }
 
       // Find the correct instance's sheets
-      let targetSheets = sheets;
+      let targetSheets = currentSheets;
       if (parsed.instanceId !== instanceId) {
         const targetInstance = allSheets.find(
           (inst) => inst.instanceId === parsed.instanceId,
@@ -413,7 +557,7 @@ const SpreadSheet = ({
       }
       return 0;
     },
-    [sheets, activeSheetId, allSheets, instanceId],
+    [activeSheetId, allSheets, instanceId],
   );
 
   // Select a cell (used for navigation)
@@ -741,6 +885,118 @@ const SpreadSheet = ({
     );
   }, [activeSheetId]);
 
+  // Merge cells function
+  const mergeCells = useCallback(() => {
+    if (selectedCells.size < 2) return; // Need at least 2 cells to merge
+
+    // Get cell coordinates for all selected cells
+    const cellCoords = Array.from(selectedCells)
+      .map((cellRef) => {
+        const pos = parseCellRef(cellRef);
+        return pos ? { cellRef, ...pos } : null;
+      })
+      .filter(
+        (coord): coord is { cellRef: string; row: number; col: number } =>
+          coord !== null,
+      );
+
+    if (cellCoords.length < 2) return;
+
+    // Find the bounding box
+    const minRow = Math.min(...cellCoords.map((c) => c.row));
+    const maxRow = Math.max(...cellCoords.map((c) => c.row));
+    const minCol = Math.min(...cellCoords.map((c) => c.col));
+    const maxCol = Math.max(...cellCoords.map((c) => c.col));
+
+    const startCell = getCellRef(minRow, minCol);
+    const endCell = getCellRef(maxRow, maxCol);
+    const rowSpan = maxRow - minRow + 1;
+    const colSpan = maxCol - minCol + 1;
+
+    setSheets((prevSheets) =>
+      prevSheets.map((sheet) => {
+        if (sheet.id === activeSheetId) {
+          // Check if any cell in the range is already part of a merge
+          const existingMerge = sheet.mergedCells.find((merge) => {
+            const mergeStart = parseCellRef(merge.startCell);
+            const mergeEnd = parseCellRef(merge.endCell);
+            if (!mergeStart || !mergeEnd) return false;
+
+            // Check for overlap
+            for (let r = minRow; r <= maxRow; r++) {
+              for (let c = minCol; c <= maxCol; c++) {
+                if (
+                  r >= mergeStart.row &&
+                  r <= mergeEnd.row &&
+                  c >= mergeStart.col &&
+                  c <= mergeEnd.col
+                ) {
+                  return true;
+                }
+              }
+            }
+            return false;
+          });
+
+          if (existingMerge) {
+            // Don't merge if there's overlap
+            return sheet;
+          }
+
+          return {
+            ...sheet,
+            mergedCells: [
+              ...sheet.mergedCells,
+              { startCell, endCell, rowSpan, colSpan },
+            ],
+          };
+        }
+        return sheet;
+      }),
+    );
+    setContextMenu({ visible: false, x: 0, y: 0, type: null, index: -1 });
+  }, [activeSheetId, selectedCells]);
+
+  // Unmerge cells function
+  const unmergeCells = useCallback(() => {
+    if (selectedCells.size === 0) return;
+
+    const selectedCellRef = Array.from(selectedCells)[0];
+    const pos = parseCellRef(selectedCellRef);
+    if (!pos) return;
+
+    setSheets((prevSheets) =>
+      prevSheets.map((sheet) => {
+        if (sheet.id === activeSheetId) {
+          // Find the merge that contains the selected cell
+          const mergeToRemove = sheet.mergedCells.find((merge) => {
+            const mergeStart = parseCellRef(merge.startCell);
+            const mergeEnd = parseCellRef(merge.endCell);
+            if (!mergeStart || !mergeEnd) return false;
+
+            return (
+              pos.row >= mergeStart.row &&
+              pos.row <= mergeEnd.row &&
+              pos.col >= mergeStart.col &&
+              pos.col <= mergeEnd.col
+            );
+          });
+
+          if (!mergeToRemove) return sheet;
+
+          return {
+            ...sheet,
+            mergedCells: sheet.mergedCells.filter(
+              (merge) => merge !== mergeToRemove,
+            ),
+          };
+        }
+        return sheet;
+      }),
+    );
+    setContextMenu({ visible: false, x: 0, y: 0, type: null, index: -1 });
+  }, [activeSheetId, selectedCells]);
+
   // Context menu handlers
   const handleRowHeaderContextMenu = useCallback(
     (e: React.MouseEvent, rowIndex: number) => {
@@ -805,91 +1061,6 @@ const SpreadSheet = ({
     };
   }, [contextMenu.visible]);
 
-  // Handle global keyboard events
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Check if any input, textarea, or select element is focused
-      const activeElement = document.activeElement;
-      const isInputFocused =
-        activeElement &&
-        (activeElement.tagName === "INPUT" ||
-          activeElement.tagName === "TEXTAREA" ||
-          activeElement.tagName === "SELECT" ||
-          (activeElement as HTMLElement).contentEditable === "true");
-
-      // Only handle navigation when formula input is not focused and no other inputs are focused
-      if (
-        !isFormulaInputFocused &&
-        !isAddingToFormula &&
-        !editingSheetName &&
-        !showFunctionLibrary &&
-        !showTemplateLibrary &&
-        !isInputFocused
-      ) {
-        switch (e.key) {
-          case "ArrowUp":
-            e.preventDefault();
-            navigateCell("up");
-            break;
-          case "ArrowDown":
-            e.preventDefault();
-            navigateCell("down");
-            break;
-          case "ArrowLeft":
-            e.preventDefault();
-            navigateCell("left");
-            break;
-          case "ArrowRight":
-            e.preventDefault();
-            navigateCell("right");
-            break;
-          case "Enter":
-            e.preventDefault();
-            navigateCell("down");
-            break;
-          case "Tab":
-            e.preventDefault();
-            navigateCell("right");
-            break;
-          case "F2":
-            e.preventDefault();
-            // Start inline editing mode
-            handleStartInlineEditing(selectedCell);
-            break;
-          case "Delete":
-          case "Backspace":
-            e.preventDefault();
-            // Clear cell content
-            setFormulaInput("");
-            updateCell(selectedCell, "");
-            break;
-          default:
-            // If user types a regular character, start inline editing
-            if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
-              e.preventDefault();
-              // Start inline editing mode
-              setEditingCell(selectedCell);
-              setInlineCellValue(e.key);
-              setFormulaInput(e.key);
-            }
-            break;
-        }
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [
-    selectedCell,
-    isFormulaInputFocused,
-    isAddingToFormula,
-    formulaInput,
-    editingSheetName,
-    showFunctionLibrary,
-    showTemplateLibrary,
-    navigateCell,
-  ]);
-
   // Update cursor position from input
   const updateCursorPosition = () => {
     if (formulaInputRef.current) {
@@ -930,6 +1101,7 @@ const SpreadSheet = ({
       funcName: string,
       args: string[],
       _cellGrid: CellGrid,
+      currentSheets: typeof sheets,
     ): Promise<number | string> => {
       const func = customFunctions.find((f) => f.code === funcName);
       if (!func) return "#FUNCTION_NOT_FOUND";
@@ -951,8 +1123,8 @@ const SpreadSheet = ({
           let value: number;
 
           // Check if argument is a cell reference (including cross-sheet)
-          if (/^([A-Z]\d+|.+![A-Z]\d+)$/.test(arg)) {
-            const cellValue = getCellValueFromAnySheet(arg);
+          if (/^([A-Z]+\d+|.+![A-Z]+\d+)$/.test(arg)) {
+            const cellValue = getCellValueFromAnySheet(arg, currentSheets);
             value = typeof cellValue === "number" ? cellValue : 0;
           } else {
             value = Number.parseFloat(arg);
@@ -990,6 +1162,7 @@ const SpreadSheet = ({
     async (
       formula: string,
       cellGrid: CellGrid,
+      currentSheets: typeof sheets,
     ): Promise<number | string | undefined> => {
       if (!formula || formula.trim() === "") {
         return "";
@@ -1037,6 +1210,7 @@ const SpreadSheet = ({
                 func.code,
                 args,
                 cellGrid,
+                currentSheets,
               );
               return result;
             }
@@ -1071,7 +1245,7 @@ const SpreadSheet = ({
               }
             } else {
               // Single cell reference (may be cross-sheet)
-              const cellValue = getCellValueFromAnySheet(ref);
+              const cellValue = getCellValueFromAnySheet(ref, currentSheets);
               if (typeof cellValue === "number") {
                 sum += cellValue;
               }
@@ -1110,7 +1284,7 @@ const SpreadSheet = ({
               }
             } else {
               // Single cell reference (may be cross-sheet)
-              const cellValue = getCellValueFromAnySheet(ref);
+              const cellValue = getCellValueFromAnySheet(ref, currentSheets);
               if (typeof cellValue === "number") {
                 sum += cellValue;
                 count++;
@@ -1161,8 +1335,8 @@ const SpreadSheet = ({
 
           // Get the lookup value
           let searchValue: string | number;
-          if (/^[A-Z]\d+$/.test(lookupValue)) {
-            searchValue = getCellValueFromAnySheet(lookupValue);
+          if (/^[A-Z]+\d+$/.test(lookupValue)) {
+            searchValue = getCellValueFromAnySheet(lookupValue, currentSheets);
           } else if (!isNaN(Number.parseFloat(lookupValue))) {
             searchValue = Number.parseFloat(lookupValue);
           } else {
@@ -1294,9 +1468,9 @@ const SpreadSheet = ({
           // Get the lookup value
           let searchValue: string | number;
           // Check if it's a cell reference (with or without $ symbols): C21, $C$21, $C21, C$21
-          if (/^\$?[A-Z]\$?\d+$/.test(lookupValueParam)) {
+          if (/^\$?[A-Z]+\$?\d+$/.test(lookupValueParam)) {
             const cleanRef = lookupValueParam.replace(/\$/g, "");
-            searchValue = getCellValueFromAnySheet(cleanRef);
+            searchValue = getCellValueFromAnySheet(cleanRef, currentSheets);
           } else if (!isNaN(Number.parseFloat(lookupValueParam))) {
             searchValue = Number.parseFloat(lookupValueParam);
           } else {
@@ -1498,10 +1672,13 @@ const SpreadSheet = ({
                   !/[A-Z]/.test(indexParam)
                 ) {
                   index = Math.floor(Number.parseFloat(indexParam));
-                } else if (/^\$?[A-Z]\$?\d+$/.test(indexParam)) {
+                } else if (/^\$?[A-Z]+\$?\d+$/.test(indexParam)) {
                   // It's a cell reference (with or without $ symbols): C21, $C$21, etc.
                   const cleanRef = indexParam.replace(/\$/g, "");
-                  const cellValue = getCellValueFromAnySheet(cleanRef);
+                  const cellValue = getCellValueFromAnySheet(
+                    cleanRef,
+                    currentSheets,
+                  );
                   index =
                     typeof cellValue === "number" ? Math.floor(cellValue) : 0;
                 } else {
@@ -1515,9 +1692,12 @@ const SpreadSheet = ({
                   const selectedParam = params[index];
 
                   // Check if it's a cell reference (with or without $ symbols): K25, $K25, etc.
-                  if (/^\$?[A-Z]\$?\d+$/.test(selectedParam)) {
+                  if (/^\$?[A-Z]+\$?\d+$/.test(selectedParam)) {
                     const cleanRef = selectedParam.replace(/\$/g, "");
-                    const cellValue = getCellValueFromAnySheet(cleanRef);
+                    const cellValue = getCellValueFromAnySheet(
+                      cleanRef,
+                      currentSheets,
+                    );
                     result =
                       typeof cellValue === "number"
                         ? cellValue.toString()
@@ -1552,10 +1732,13 @@ const SpreadSheet = ({
         // Replace cell references with their values (including cross-sheet and cross-instance refs)
         // Handle both simple (A1, C21) and absolute references ($A$1, $C$21)
         expression = expression.replace(
-          /\$?([A-Za-z0-9]+:[A-Za-z0-9]+!|[A-Za-z0-9]+!)?\$?[A-Z]\$?\d+/g,
+          /\$?([A-Za-z0-9]+:[A-Za-z0-9]+!|[A-Za-z0-9]+!)?\$?[A-Z]+\$?\d+/g,
           (match) => {
             const cleanMatch = match.replace(/\$/g, "");
-            const cellValue = getCellValueFromAnySheet(cleanMatch);
+            const cellValue = getCellValueFromAnySheet(
+              cleanMatch,
+              currentSheets,
+            );
             if (typeof cellValue === "number") {
               return cellValue.toString();
             }
@@ -1634,6 +1817,7 @@ const SpreadSheet = ({
         ),
         freezeRow: sheet.freezeRow || 0,
         freezeColumn: sheet.freezeColumn || 0,
+        mergedCells: sheet.mergedCells || [],
       }));
 
       // Set the initial sheets data
@@ -1662,6 +1846,7 @@ const SpreadSheet = ({
               const result = await evaluateFormula(
                 newCells[ref].formula,
                 newCells,
+                normalizedSheets,
               );
               updatedComputedValues[ref] = result !== undefined ? result : "";
 
@@ -1745,57 +1930,54 @@ const SpreadSheet = ({
 
   // Update cell value in current sheet
   const updateCell = useCallback(
-    (cellRef: string, value: string) => {
-      // First update the cell with its new value
+    async (cellRef: string, value: string) => {
+      // Save current state to history before making changes
+      saveToHistory();
+
+      // Get current state
       setSheets((prevSheets) => {
-        const updatedSheets = prevSheets.map((sheet) => {
-          if (sheet.id === activeSheetId) {
-            const newCells = { ...sheet.cells };
+        const currentSheet = prevSheets.find(
+          (sheet) => sheet.id === activeSheetId,
+        );
+        if (!currentSheet) return prevSheets;
 
-            // Create a new cell object or update existing one properly
-            newCells[cellRef] = {
-              value: value,
-              formula: value,
-              computed: value, // Set initial computed value
-            };
+        const newCells = { ...currentSheet.cells };
 
-            return { ...sheet, cells: newCells };
-          }
-          return sheet;
-        });
+        // Create or update the cell with new value
+        newCells[cellRef] = {
+          ...newCells[cellRef],
+          value: value,
+          formula: value,
+          computed: value, // Initial computed value will be recalculated below
+        };
 
-        // After the update, calculate only dependent cells
-        const recalculateDependentCells = async () => {
-          const currentSheet = updatedSheets.find(
-            (sheet) => sheet.id === activeSheetId,
-          );
-          if (!currentSheet) return;
+        // Get all cells that need to be recalculated
+        const cellsToRecalculate = getDependencyChain(cellRef, newCells);
 
-          const newCells = { ...currentSheet.cells };
+        // Sort cells: process the changed cell first, then dependents
+        const sortedCells = [
+          cellRef,
+          ...cellsToRecalculate.filter((ref) => ref !== cellRef),
+        ];
 
-          // Get all cells that need to be recalculated
-          const cellsToRecalculate = getDependencyChain(cellRef, newCells);
+        // Schedule async recalculation without blocking the initial update
+        Promise.resolve().then(async () => {
           const updatedComputedValues: Record<string, string | number> = {};
-
-          // Sort cells to handle dependencies in correct order
-          // Simple approach: process the changed cell first, then others
-          const sortedCells = [
-            cellRef,
-            ...cellsToRecalculate.filter((ref) => ref !== cellRef),
-          ];
 
           // Process each cell that needs recalculation
           for (const ref of sortedCells) {
-            if (!newCells[ref]) continue;
+            const cellToCalc = newCells[ref];
+            if (!cellToCalc) continue;
 
             try {
               const result = await evaluateFormula(
-                newCells[ref].formula,
+                cellToCalc.formula,
                 newCells,
+                prevSheets,
               );
               updatedComputedValues[ref] = result !== undefined ? result : "";
 
-              // Update the cell grid with the new computed value for next cell calculations
+              // Update the temp cell grid with the new computed value for next cell calculations
               newCells[ref] = {
                 ...newCells[ref],
                 computed: updatedComputedValues[ref],
@@ -1810,7 +1992,7 @@ const SpreadSheet = ({
             }
           }
 
-          // Apply all the computed values at once
+          // Apply all the computed values at once in a single state update
           setSheets((latestSheets) =>
             latestSheets.map((sheet) => {
               if (sheet.id === activeSheetId) {
@@ -1831,58 +2013,60 @@ const SpreadSheet = ({
               return sheet;
             }),
           );
-        };
+        });
 
-        // Run the recalculation immediately
-        recalculateDependentCells();
-
-        return updatedSheets;
-      });
-    },
-    [evaluateFormula, activeSheetId, getDependencyChain],
-  );
-
-  // Handler for updating dropdown cell values
-  const handleDropdownCellChange = useCallback(
-    (cellRef: string, value: string) => {
-      // Update the cell value while preserving options and other properties
-      setSheets((prevSheets) => {
-        const updatedSheets = prevSheets.map((sheet) => {
+        // Return updated sheets with new cell values (computed values will be updated asynchronously)
+        return prevSheets.map((sheet) => {
           if (sheet.id === activeSheetId) {
-            const newCells = { ...sheet.cells };
-            const existingCell = newCells[cellRef];
-
-            // Preserve existing cell properties including options
-            newCells[cellRef] = {
-              ...existingCell,
-              value: value,
-              formula: value,
-              computed: value,
-            };
-
             return { ...sheet, cells: newCells };
           }
           return sheet;
         });
+      });
+    },
+    [evaluateFormula, activeSheetId, getDependencyChain, saveToHistory],
+  );
 
-        // Recalculate dependent cells
-        const recalculateDependentCells = async () => {
-          const currentSheet = updatedSheets.find(
-            (sheet) => sheet.id === activeSheetId,
-          );
-          if (!currentSheet) return;
+  // Handler for updating dropdown cell values
+  const handleDropdownCellChange = useCallback(
+    async (cellRef: string, value: string) => {
+      // Save current state to history before making changes
+      saveToHistory();
 
-          const newCells = { ...currentSheet.cells };
-          const cellsToRecalculate = getDependencyChain(cellRef, newCells);
+      // Update the cell value while preserving options and other properties
+      setSheets((prevSheets) => {
+        const currentSheet = prevSheets.find(
+          (sheet) => sheet.id === activeSheetId,
+        );
+        if (!currentSheet) return prevSheets;
+
+        const newCells = { ...currentSheet.cells };
+        const existingCell = newCells[cellRef];
+
+        // Preserve existing cell properties including options
+        newCells[cellRef] = {
+          ...existingCell,
+          value: value,
+          formula: value,
+          computed: value,
+        };
+
+        // Get cells to recalculate
+        const cellsToRecalculate = getDependencyChain(cellRef, newCells);
+
+        // Schedule async recalculation without blocking
+        Promise.resolve().then(async () => {
           const updatedComputedValues: Record<string, string | number> = {};
 
           for (const ref of cellsToRecalculate) {
-            if (!newCells[ref]) continue;
+            const cellToCalc = newCells[ref];
+            if (!cellToCalc) continue;
 
             try {
               const result = await evaluateFormula(
-                newCells[ref].formula,
+                cellToCalc.formula,
                 newCells,
+                prevSheets,
               );
               updatedComputedValues[ref] = result !== undefined ? result : "";
               newCells[ref] = {
@@ -1899,6 +2083,7 @@ const SpreadSheet = ({
             }
           }
 
+          // Apply all the computed values at once in a single state update
           setSheets((latestSheets) =>
             latestSheets.map((sheet) => {
               if (sheet.id === activeSheetId) {
@@ -1916,14 +2101,17 @@ const SpreadSheet = ({
               return sheet;
             }),
           );
-        };
+        });
 
-        recalculateDependentCells();
-
-        return updatedSheets;
+        return prevSheets.map((sheet) => {
+          if (sheet.id === activeSheetId) {
+            return { ...sheet, cells: newCells };
+          }
+          return sheet;
+        });
       });
     },
-    [evaluateFormula, activeSheetId, getDependencyChain],
+    [evaluateFormula, activeSheetId, getDependencyChain, saveToHistory],
   );
 
   // Insert text at cursor position
@@ -1935,6 +2123,10 @@ const SpreadSheet = ({
       formulaInput.slice(currentPosition);
 
     setFormulaInput(newFormula);
+    // Also update inline cell value if in inline editing mode
+    if (editingCell === selectedCell) {
+      setInlineCellValue(newFormula);
+    }
     updateCell(selectedCell, newFormula);
 
     // Set cursor position after the inserted text
@@ -1950,6 +2142,493 @@ const SpreadSheet = ({
     insertAtCursor(functionCall);
     setShowFunctionLibrary(false);
   };
+
+  // Handle copy
+  const handleCopy = useCallback(async () => {
+    if (selectedCells.size === 0) return;
+
+    const cellData = new Map<
+      string,
+      {
+        value: string;
+        formula: string;
+        computed: string | number | undefined;
+        bold?: boolean;
+        textColor?: string;
+        backgroundColor?: string;
+        border?: string;
+      }
+    >();
+
+    let minRow = Infinity;
+    let maxRow = -Infinity;
+    let minCol = Infinity;
+    let maxCol = -Infinity;
+
+    // Collect all selected cell data and find the bounding box
+    selectedCells.forEach((cellRef) => {
+      const pos = parseCellRef(cellRef);
+      if (pos) {
+        minRow = Math.min(minRow, pos.row);
+        maxRow = Math.max(maxRow, pos.row);
+        minCol = Math.min(minCol, pos.col);
+        maxCol = Math.max(maxCol, pos.col);
+
+        const cell = cells[cellRef];
+        cellData.set(cellRef, {
+          value: cell?.value || "",
+          formula: cell?.formula || "",
+          computed: cell?.computed,
+          bold: cell?.bold,
+          textColor: cell?.textColor,
+          backgroundColor: cell?.backgroundColor,
+          border: cell?.border,
+        });
+      }
+    });
+
+    setCopiedCells(cellData);
+    setCopiedRange({ minRow, maxRow, minCol, maxCol });
+
+    // Copy to system clipboard in TSV format (Tab-Separated Values)
+    // This allows pasting to external applications like Excel, Google Sheets, Notes, etc.
+    try {
+      const rows: string[][] = [];
+      for (let r = minRow; r <= maxRow; r++) {
+        const row: string[] = [];
+        for (let c = minCol; c <= maxCol; c++) {
+          const cellRef = getCellRef(r, c);
+          const cell = cells[cellRef];
+          // Use computed value for display, or value if no computation
+          const cellValue =
+            cell?.computed !== undefined
+              ? String(cell.computed)
+              : cell?.value || "";
+          row.push(cellValue);
+        }
+        rows.push(row);
+      }
+
+      // Convert to TSV format (tabs separate columns, newlines separate rows)
+      const tsvData = rows.map((row) => row.join("\t")).join("\n");
+
+      // Write to clipboard
+      await navigator.clipboard.writeText(tsvData);
+      console.log(`Copied ${cellData.size} cell(s) to clipboard`);
+    } catch (error) {
+      console.error("Failed to copy to clipboard:", error);
+      // Fallback: still works for internal copy/paste even if clipboard API fails
+    }
+  }, [selectedCells, cells]);
+
+  // Handle paste
+  const handlePaste = useCallback(async () => {
+    // Save current state to history before pasting
+    saveToHistory();
+
+    const targetPos = parseCellRef(selectedCell);
+    if (!targetPos) return;
+
+    // Try to read from system clipboard first (for external paste)
+    let clipboardData: string | null = null;
+    try {
+      clipboardData = await navigator.clipboard.readText();
+    } catch (error) {
+      console.log("Could not read from clipboard, using internal copy data");
+    }
+
+    // If we have clipboard data, parse it (external paste)
+    if (clipboardData && clipboardData.trim()) {
+      // Parse TSV data (Tab-Separated Values)
+      const rows = clipboardData.split("\n").filter((row) => row.trim() !== "");
+      const newCellsData: Array<{ cellRef: string; value: string }> = [];
+
+      rows.forEach((row, rowIndex) => {
+        const columns = row.split("\t");
+        columns.forEach((value, colIndex) => {
+          const targetRow = targetPos.row + rowIndex;
+          const targetCol = targetPos.col + colIndex;
+
+          // Check bounds
+          if (
+            targetRow >= 0 &&
+            targetRow < ROWS &&
+            targetCol >= 0 &&
+            targetCol < COLS
+          ) {
+            const targetCellRef = getCellRef(targetRow, targetCol);
+            newCellsData.push({
+              cellRef: targetCellRef,
+              value: value.trim(),
+            });
+          }
+        });
+      });
+
+      // Apply external paste data
+      setSheets((prevSheets) => {
+        return prevSheets.map((sheet) => {
+          if (sheet.id !== activeSheetId) return sheet;
+
+          const updatedCells = { ...sheet.cells };
+
+          // Update all target cells with pasted values
+          newCellsData.forEach(({ cellRef, value }) => {
+            updatedCells[cellRef] = {
+              ...updatedCells[cellRef],
+              value: value,
+              formula: value,
+              computed: value,
+            };
+          });
+
+          return {
+            ...sheet,
+            cells: updatedCells,
+          };
+        });
+      });
+
+      // Recalculate formulas after paste
+      setTimeout(async () => {
+        setSheets((prevSheets) => {
+          return prevSheets.map((sheet) => {
+            if (sheet.id !== activeSheetId) return sheet;
+
+            const updatedCells = { ...sheet.cells };
+
+            Promise.all(
+              newCellsData.map(async ({ cellRef }) => {
+                const cell = updatedCells[cellRef];
+                if (cell) {
+                  const computed = await evaluateFormula(
+                    cell.formula,
+                    updatedCells,
+                    prevSheets,
+                  );
+                  updatedCells[cellRef] = {
+                    ...cell,
+                    computed: computed ?? "",
+                  };
+                }
+              }),
+            );
+
+            return {
+              ...sheet,
+              cells: updatedCells,
+            };
+          });
+        });
+
+        // Recalculate dependent cells
+        for (const { cellRef } of newCellsData) {
+          const dependencyChain = getDependencyChain(cellRef, cells);
+          for (const depCell of dependencyChain) {
+            if (depCell !== cellRef) {
+              await updateCell(depCell, cells[depCell]?.formula || "");
+            }
+          }
+        }
+      }, 50);
+
+      console.log(`Pasted ${newCellsData.length} cell(s) from clipboard`);
+      return;
+    }
+
+    // Fallback to internal paste (with formula adjustment)
+    if (copiedCells.size === 0 || !copiedRange) return;
+
+    const rowOffset = targetPos.row - copiedRange.minRow;
+    const colOffset = targetPos.col - copiedRange.minCol;
+
+    // Build new cells data
+    const newCellsData: Array<{ cellRef: string; value: string; style: any }> =
+      [];
+
+    copiedCells.forEach((cellData, sourceCellRef) => {
+      const sourcePos = parseCellRef(sourceCellRef);
+      if (!sourcePos) return;
+
+      const targetRow = sourcePos.row + rowOffset;
+      const targetCol = sourcePos.col + colOffset;
+
+      // Check bounds
+      if (
+        targetRow < 0 ||
+        targetRow >= ROWS ||
+        targetCol < 0 ||
+        targetCol >= COLS
+      ) {
+        return;
+      }
+
+      const targetCellRef = getCellRef(targetRow, targetCol);
+
+      // Adjust formula references if it's a formula
+      let newFormula = cellData.formula;
+      if (newFormula.startsWith("=")) {
+        // Adjust relative cell references in the formula
+        newFormula = newFormula.replace(
+          /((?:[A-Za-z0-9]+:[A-Za-z0-9]+!|[A-Za-z0-9]+!)?[A-Z]+\d+)/g,
+          (match) => {
+            // Check if it's an absolute reference (with $)
+            if (match.includes("$")) {
+              return match; // Don't adjust absolute references
+            }
+
+            // Handle cross-sheet references
+            if (match.includes("!")) {
+              const [sheetPart, cellPart] = match.split("!");
+              const refPos = parseCellRef(cellPart);
+              if (refPos) {
+                const newRow = refPos.row + rowOffset;
+                const newCol = refPos.col + colOffset;
+                if (
+                  newRow >= 0 &&
+                  newRow < ROWS &&
+                  newCol >= 0 &&
+                  newCol < COLS
+                ) {
+                  return `${sheetPart}!${getCellRef(newRow, newCol)}`;
+                }
+              }
+              return match;
+            }
+
+            // Regular cell reference
+            const refPos = parseCellRef(match);
+            if (refPos) {
+              const newRow = refPos.row + rowOffset;
+              const newCol = refPos.col + colOffset;
+              if (
+                newRow >= 0 &&
+                newRow < ROWS &&
+                newCol >= 0 &&
+                newCol < COLS
+              ) {
+                return getCellRef(newRow, newCol);
+              }
+            }
+            return match;
+          },
+        );
+      }
+
+      newCellsData.push({
+        cellRef: targetCellRef,
+        value: newFormula,
+        style: {
+          bold: cellData.bold,
+          textColor: cellData.textColor,
+          backgroundColor: cellData.backgroundColor,
+          border: cellData.border,
+        },
+      });
+    });
+
+    // Apply all changes at once
+    setSheets((prevSheets) => {
+      return prevSheets.map((sheet) => {
+        if (sheet.id !== activeSheetId) return sheet;
+
+        const updatedCells = { ...sheet.cells };
+
+        // Update all target cells
+        newCellsData.forEach(({ cellRef, value, style }) => {
+          updatedCells[cellRef] = {
+            value: value,
+            formula: value,
+            computed: value,
+            ...style,
+          };
+        });
+
+        return {
+          ...sheet,
+          cells: updatedCells,
+        };
+      });
+    });
+
+    // Recalculate formulas after paste
+    setTimeout(async () => {
+      setSheets((prevSheets) => {
+        return prevSheets.map((sheet) => {
+          if (sheet.id !== activeSheetId) return sheet;
+
+          const updatedCells = { ...sheet.cells };
+
+          Promise.all(
+            newCellsData.map(async ({ cellRef }) => {
+              const cell = updatedCells[cellRef];
+              if (cell) {
+                const computed = await evaluateFormula(
+                  cell.formula,
+                  updatedCells,
+                  prevSheets,
+                );
+                updatedCells[cellRef] = {
+                  ...cell,
+                  computed: computed ?? "",
+                };
+              }
+            }),
+          );
+
+          return {
+            ...sheet,
+            cells: updatedCells,
+          };
+        });
+      });
+
+      // Recalculate dependent cells
+      for (const { cellRef } of newCellsData) {
+        const dependencyChain = getDependencyChain(cellRef, cells);
+        for (const depCell of dependencyChain) {
+          if (depCell !== cellRef) {
+            await updateCell(depCell, cells[depCell]?.formula || "");
+          }
+        }
+      }
+    }, 50);
+
+    console.log(
+      `Pasted ${newCellsData.length} cell(s) with formula adjustment`,
+    );
+  }, [
+    copiedCells,
+    copiedRange,
+    selectedCell,
+    activeSheetId,
+    cells,
+    evaluateFormula,
+    getDependencyChain,
+    updateCell,
+    saveToHistory,
+  ]);
+
+  // Handle global keyboard events
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check if any input, textarea, or select element is focused
+      const activeElement = document.activeElement;
+      const isInputFocused =
+        activeElement &&
+        (activeElement.tagName === "INPUT" ||
+          activeElement.tagName === "TEXTAREA" ||
+          activeElement.tagName === "SELECT" ||
+          (activeElement as HTMLElement).contentEditable === "true");
+
+      // Only handle navigation when formula input is not focused and no other inputs are focused
+      if (
+        !isFormulaInputFocused &&
+        !isAddingToFormula &&
+        !editingSheetName &&
+        !showFunctionLibrary &&
+        !showTemplateLibrary &&
+        !isInputFocused
+      ) {
+        switch (e.key) {
+          case "ArrowUp":
+            e.preventDefault();
+            navigateCell("up");
+            break;
+          case "ArrowDown":
+            e.preventDefault();
+            navigateCell("down");
+            break;
+          case "ArrowLeft":
+            e.preventDefault();
+            navigateCell("left");
+            break;
+          case "ArrowRight":
+            e.preventDefault();
+            navigateCell("right");
+            break;
+          case "Enter":
+            e.preventDefault();
+            navigateCell("down");
+            break;
+          case "Tab":
+            e.preventDefault();
+            navigateCell("right");
+            break;
+          case "F2":
+            e.preventDefault();
+            // Start inline editing mode
+            handleStartInlineEditing(selectedCell);
+            break;
+          case "Delete":
+          case "Backspace":
+            e.preventDefault();
+            // Clear cell content
+            setFormulaInput("");
+            updateCell(selectedCell, "");
+            break;
+          default:
+            // Handle copy (Ctrl+C or Cmd+C)
+            if ((e.ctrlKey || e.metaKey) && e.key === "c") {
+              e.preventDefault();
+              handleCopy();
+              break;
+            }
+            // Handle paste (Ctrl+V or Cmd+V)
+            if ((e.ctrlKey || e.metaKey) && e.key === "v") {
+              e.preventDefault();
+              handlePaste();
+              break;
+            }
+            // Handle undo (Ctrl+Z or Cmd+Z)
+            if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+              e.preventDefault();
+              handleUndo();
+              break;
+            }
+            // Handle redo (Ctrl+Y or Cmd+Shift+Z)
+            if (
+              (e.ctrlKey && e.key === "y") ||
+              (e.metaKey && e.shiftKey && e.key === "z")
+            ) {
+              e.preventDefault();
+              handleRedo();
+              break;
+            }
+            // If user types a regular character, start inline editing
+            if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+              e.preventDefault();
+              // Start inline editing mode
+              setEditingCell(selectedCell);
+              setInlineCellValue(e.key);
+              setFormulaInput(e.key);
+              // Enable formula building mode if starting with "="
+              if (e.key === "=") {
+                setIsFormulaBuildingMode(true);
+              }
+            }
+            break;
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [
+    selectedCell,
+    isFormulaInputFocused,
+    isAddingToFormula,
+    formulaInput,
+    editingSheetName,
+    showFunctionLibrary,
+    showTemplateLibrary,
+    navigateCell,
+    handleCopy,
+    handlePaste,
+    handleUndo,
+    handleRedo,
+    updateCell,
+  ]);
 
   // Handle cell click
   const handleCellClick = (cellRef: string, event?: React.MouseEvent) => {
@@ -2038,6 +2717,9 @@ const SpreadSheet = ({
       setEditingCell(cellRef);
       setInlineCellValue(cellFormula);
       setFormulaInput(cellFormula);
+      // Enable formula building mode if the cell contains a formula
+      const isFormula = cellFormula.startsWith("=");
+      setIsFormulaBuildingMode(isFormula);
     },
     [cells],
   );
@@ -2046,15 +2728,27 @@ const SpreadSheet = ({
   const handleInlineValueChange = useCallback((value: string) => {
     setInlineCellValue(value);
     setFormulaInput(value);
+    // Enable/disable formula building mode based on value
+    const isFormula = value.startsWith("=");
+    setIsFormulaBuildingMode(isFormula);
+    if (!isFormula) {
+      setIsAddingToFormula(false);
+      setRangeSelectionStart(null);
+    }
   }, []);
 
   // Handle stopping inline editing
   const handleStopInlineEditing = useCallback(() => {
     if (editingCell) {
-      updateCell(editingCell, inlineCellValue);
+      // Only update if value has changed
+      const currentCell = cells[editingCell];
+      const currentValue = currentCell?.formula || currentCell?.value || "";
+      if (inlineCellValue !== currentValue) {
+        updateCell(editingCell, inlineCellValue);
+      }
       setEditingCell(null);
     }
-  }, [editingCell, inlineCellValue, updateCell]);
+  }, [editingCell, inlineCellValue, updateCell, cells]);
 
   // Handle navigation after editing
   const handleNavigateAfterEdit = useCallback(
@@ -2176,6 +2870,7 @@ const SpreadSheet = ({
       hiddenCells: new Set<string>(),
       freezeRow: 0,
       freezeColumn: 0,
+      mergedCells: [],
     };
 
     // If there's exactly one template, load it into the new sheet
@@ -2196,55 +2891,63 @@ const SpreadSheet = ({
     if (templates.length === 1) {
       setTimeout(() => {
         const recalculateNewSheetFormulas = async () => {
-          const template = templates[0];
-          const newCells = { ...template.cells };
-          const updatedComputedValues: Record<string, string | number> = {};
+          setSheets((latestSheets) => {
+            const template = templates[0];
+            const newCells = { ...template.cells };
+            const updatedComputedValues: Record<string, string | number> = {};
 
-          // Process all cells to recalculate formulas
-          for (const ref of Object.keys(newCells)) {
-            try {
-              const result = await evaluateFormula(
-                newCells[ref].formula,
-                newCells,
-              );
-              updatedComputedValues[ref] = result !== undefined ? result : "";
+            // Process all cells to recalculate formulas
+            (async () => {
+              for (const ref of Object.keys(newCells)) {
+                try {
+                  const result = await evaluateFormula(
+                    newCells[ref].formula,
+                    newCells,
+                    latestSheets,
+                  );
+                  updatedComputedValues[ref] =
+                    result !== undefined ? result : "";
 
-              // Update the cell grid with the new computed value for next cell calculations
-              newCells[ref] = {
-                ...newCells[ref],
-                computed: updatedComputedValues[ref],
-              };
-            } catch (error) {
-              console.error(`Error calculating cell ${ref}:`, error);
-              updatedComputedValues[ref] = "#ERROR";
-              newCells[ref] = {
-                ...newCells[ref],
-                computed: "#ERROR",
-              };
-            }
-          }
-
-          // Apply all the computed values at once
-          setSheets((latestSheets) =>
-            latestSheets.map((sheet) => {
-              if (sheet.id === newSheet.id) {
-                const updatedCellsWithComputed = { ...sheet.cells };
-
-                // Update computed values for all cells
-                Object.keys(updatedComputedValues).forEach((ref) => {
-                  if (updatedCellsWithComputed[ref]) {
-                    updatedCellsWithComputed[ref] = {
-                      ...updatedCellsWithComputed[ref],
-                      computed: updatedComputedValues[ref],
-                    };
-                  }
-                });
-
-                return { ...sheet, cells: updatedCellsWithComputed };
+                  // Update the cell grid with the new computed value for next cell calculations
+                  newCells[ref] = {
+                    ...newCells[ref],
+                    computed: updatedComputedValues[ref],
+                  };
+                } catch (error) {
+                  console.error(`Error calculating cell ${ref}:`, error);
+                  updatedComputedValues[ref] = "#ERROR";
+                  newCells[ref] = {
+                    ...newCells[ref],
+                    computed: "#ERROR",
+                  };
+                }
               }
-              return sheet;
-            }),
-          );
+
+              // Apply all the computed values at once
+              setSheets((currentSheets) =>
+                currentSheets.map((sheet) => {
+                  if (sheet.id === newSheet.id) {
+                    const updatedCellsWithComputed = { ...sheet.cells };
+
+                    // Update computed values for all cells
+                    Object.keys(updatedComputedValues).forEach((ref) => {
+                      if (updatedCellsWithComputed[ref]) {
+                        updatedCellsWithComputed[ref] = {
+                          ...updatedCellsWithComputed[ref],
+                          computed: updatedComputedValues[ref],
+                        };
+                      }
+                    });
+
+                    return { ...sheet, cells: updatedCellsWithComputed };
+                  }
+                  return sheet;
+                }),
+              );
+            })();
+
+            return latestSheets;
+          });
         };
 
         recalculateNewSheetFormulas();
@@ -2364,6 +3067,7 @@ const SpreadSheet = ({
             hiddenCells: new Set<string>(),
             freezeRow: templateSheet.cellsStyles.freezeRow || 0,
             freezeColumn: templateSheet.cellsStyles.freezeColumn || 0,
+            mergedCells: templateSheet.cellsStyles.mergedCells || [],
           };
         });
 
@@ -2381,6 +3085,7 @@ const SpreadSheet = ({
                 const result = await evaluateFormula(
                   newCells[ref].formula,
                   newCells,
+                  newSheets,
                 );
                 updatedComputedValues[ref] = result !== undefined ? result : "";
 
@@ -2479,6 +3184,7 @@ const SpreadSheet = ({
               hiddenCells: new Set<string>(),
               freezeRow: template.cellsStyles?.freezeRow || 0,
               freezeColumn: template.cellsStyles?.freezeColumn || 0,
+              mergedCells: template.cellsStyles?.mergedCells || [],
             };
           }
           return sheet;
@@ -2500,6 +3206,7 @@ const SpreadSheet = ({
               const result = await evaluateFormula(
                 newCells[ref].formula,
                 newCells,
+                updatedSheets,
               );
               updatedComputedValues[ref] = result !== undefined ? result : "";
 
@@ -2588,7 +3295,13 @@ const SpreadSheet = ({
           onFormulaFocus={() => setIsFormulaInputFocused(true)}
           onFormulaBlur={() => {
             setIsFormulaInputFocused(false);
-            updateCell(selectedCell, formulaInput);
+            // Only update if value has changed
+            const currentCell = cells[selectedCell];
+            const currentValue =
+              currentCell?.formula || currentCell?.value || "";
+            if (formulaInput !== currentValue) {
+              updateCell(selectedCell, formulaInput);
+            }
           }}
           updateCursorPosition={updateCursorPosition}
           onShowFunctionLibrary={() => setShowFunctionLibrary(true)}
@@ -2651,6 +3364,7 @@ const SpreadSheet = ({
         hiddenCells={currentSheet?.hiddenCells || new Set<string>()}
         freezeRow={currentSheet?.freezeRow || 0}
         freezeColumn={currentSheet?.freezeColumn || 0}
+        mergedCells={currentSheet?.mergedCells || []}
         onRowHeaderContextMenu={handleRowHeaderContextMenu}
         onColumnHeaderContextMenu={handleColumnHeaderContextMenu}
         onCellContextMenu={handleCellContextMenu}
@@ -2694,7 +3408,7 @@ const SpreadSheet = ({
                 className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
                 onClick={() => hideColumn(contextMenu.index)}
               >
-                Ocultar columna {COLUMN_LABELS[contextMenu.index]}
+                Ocultar columna {getColumnLabel(contextMenu.index)}
               </button>
               {(currentSheet?.userHiddenColumns?.size || 0) > 0 && (
                 <button
@@ -2717,8 +3431,45 @@ const SpreadSheet = ({
                 (currentSheet?.freezeRow || 0) > 0 ||
                 (currentSheet?.freezeColumn || 0) > 0;
 
+              // Check if cell is part of a merged region
+              const isMerged = currentSheet?.mergedCells.some((merge) => {
+                const mergeStart = parseCellRef(merge.startCell);
+                const mergeEnd = parseCellRef(merge.endCell);
+                if (!mergeStart || !mergeEnd || !pos) return false;
+                return (
+                  pos.row >= mergeStart.row &&
+                  pos.row <= mergeEnd.row &&
+                  pos.col >= mergeStart.col &&
+                  pos.col <= mergeEnd.col
+                );
+              });
+
+              const canMerge = selectedCells.size > 1;
+
               return (
                 <>
+                  {canMerge && (
+                    <>
+                      <button
+                        className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
+                        onClick={mergeCells}
+                      >
+                        🔗 Combinar celdas
+                      </button>
+                      <div className="border-t my-1"></div>
+                    </>
+                  )}
+                  {isMerged && (
+                    <>
+                      <button
+                        className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
+                        onClick={unmergeCells}
+                      >
+                        ✂️ Separar celdas
+                      </button>
+                      <div className="border-t my-1"></div>
+                    </>
+                  )}
                   {isCellHidden ? (
                     <button
                       className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"

@@ -20,7 +20,7 @@ const SpreadSheetRowHeader: React.FC<SpreadSheetRowHeaderProps> = ({
 }) => {
   return (
     <div
-      className="w-12 border-r border-gray-300 flex items-center justify-center text-sm font-medium text-gray-700 bg-gray-50 relative group"
+      className="w-12 border-r border-b border-gray-300 flex items-center justify-center text-sm font-medium text-gray-700 bg-gray-50 relative group box-border"
       style={{ height: rowHeight }}
       onContextMenu={onContextMenu}
     >

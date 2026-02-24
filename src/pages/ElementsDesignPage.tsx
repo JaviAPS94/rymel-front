@@ -617,6 +617,7 @@ const ElementsDesignPage = () => {
       userHiddenColumns: new Set(
         Array.isArray(sheet.userHiddenColumns) ? sheet.userHiddenColumns : [],
       ),
+      mergedCells: sheet.mergedCells || [],
     });
 
     if (designBase?.subDesigns) {
@@ -640,6 +641,10 @@ const ElementsDesignPage = () => {
         templateHiddenColumns: new Set(),
         userHiddenRows: new Set(),
         userHiddenColumns: new Set(),
+        hiddenCells: new Set(),
+        freezeRow: 0,
+        freezeColumn: 0,
+        mergedCells: [],
       },
     ];
   }, [designBase, designData]);
@@ -663,6 +668,7 @@ const ElementsDesignPage = () => {
       userHiddenColumns: new Set(
         Array.isArray(sheet.userHiddenColumns) ? sheet.userHiddenColumns : [],
       ),
+      mergedCells: sheet.mergedCells || [],
     });
 
     if (designBase?.cost?.subCosts) {
@@ -686,6 +692,10 @@ const ElementsDesignPage = () => {
         templateHiddenColumns: new Set(),
         userHiddenRows: new Set(),
         userHiddenColumns: new Set(),
+        hiddenCells: new Set(),
+        freezeRow: 0,
+        freezeColumn: 0,
+        mergedCells: [],
       },
     ];
   }, [designBase, designData]);
@@ -704,6 +714,10 @@ const ElementsDesignPage = () => {
             templateHiddenColumns: new Set(),
             userHiddenRows: new Set(),
             userHiddenColumns: new Set(),
+            hiddenCells: new Set(),
+            freezeRow: 0,
+            freezeColumn: 0,
+            mergedCells: [],
           },
         ],
   );
@@ -722,6 +736,10 @@ const ElementsDesignPage = () => {
             templateHiddenColumns: new Set(),
             userHiddenRows: new Set(),
             userHiddenColumns: new Set(),
+            hiddenCells: new Set(),
+            freezeRow: 0,
+            freezeColumn: 0,
+            mergedCells: [],
           },
         ],
   );
@@ -785,9 +803,11 @@ const ElementsDesignPage = () => {
         ...designData,
         id: designId,
       };
-      await updateDesign(updatedDesignData);
+      console.log(updatedDesignData);
+      //await updateDesign(updatedDesignData);
     } else {
-      await saveDesignWithSubDesigns(designData);
+      console.log(designData);
+      //await saveDesignWithSubDesigns(designData);
     }
   };
 
