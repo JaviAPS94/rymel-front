@@ -1,6 +1,13 @@
-import type React from "react";
+import React from "react";
 
-import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import {
+  useState,
+  useCallback,
+  useRef,
+  useEffect,
+  useMemo,
+  startTransition,
+} from "react";
 import {
   CellGrid,
   DesignSubtype,
@@ -18,7 +25,7 @@ import FunctionLibraryModal from "./FunctionLibraryModal";
 import TemplateLibraryModal from "./TemplateLibraryModal";
 import { CustomFunction, Sheet } from "./spreadsheet-types";
 
-const ROWS = 200;
+const ROWS = 250;
 const COLS = 50; // Rendered columns (supports Excel-style naming A-ZZ in formulas)
 const DEFAULT_COLUMN_WIDTH = 96;
 const DEFAULT_ROW_HEIGHT = 32;
@@ -124,6 +131,10 @@ const SpreadSheet = ({
   const [redoStack, setRedoStack] = useState<Sheet[][]>([]);
   const maxHistorySize = 50; // Limit history to prevent memory issues
 
+  // Performance optimization: debounce history saving
+  const saveToHistoryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingHistorySaveRef = useRef<boolean>(false);
+
   // Helper: select a single cell (clears others)
   const selectSingleCell = (cellRef: string) => {
     setSelectedCell(cellRef);
@@ -190,7 +201,34 @@ const SpreadSheet = ({
     });
     // Clear redo stack when a new action is performed
     setRedoStack([]);
+    pendingHistorySaveRef.current = false;
   }, [sheets, maxHistorySize, serializeSheetsForHistory]);
+
+  // Debounced version for typing - saves after 1 second of inactivity
+  const saveToHistoryDebounced = useCallback(() => {
+    if (saveToHistoryTimeoutRef.current) {
+      clearTimeout(saveToHistoryTimeoutRef.current);
+    }
+
+    if (!pendingHistorySaveRef.current) {
+      // First change - save immediately to history
+      saveToHistory();
+      pendingHistorySaveRef.current = true;
+    }
+
+    // Schedule a save after typing stops
+    saveToHistoryTimeoutRef.current = setTimeout(() => {
+      pendingHistorySaveRef.current = false;
+    }, 1000);
+  }, [saveToHistory]);
+
+  // Immediate save for non-typing actions (paste, style changes, etc.)
+  const saveToHistoryImmediate = useCallback(() => {
+    if (saveToHistoryTimeoutRef.current) {
+      clearTimeout(saveToHistoryTimeoutRef.current);
+    }
+    saveToHistory();
+  }, [saveToHistory]);
 
   // Undo last action
   const handleUndo = useCallback(() => {
@@ -254,8 +292,8 @@ const SpreadSheet = ({
         border: string;
       }>,
     ) => {
-      // Save current state to history before making changes
-      saveToHistory();
+      // Save current state to history before making changes (immediate for style changes)
+      saveToHistoryImmediate();
 
       setSheets((prevSheets) =>
         prevSheets.map((sheet) => {
@@ -274,7 +312,7 @@ const SpreadSheet = ({
         }),
       );
     },
-    [activeSheetId, selectedCells, setSheets, saveToHistory],
+    [activeSheetId, selectedCells, setSheets, saveToHistoryImmediate],
   );
 
   // Expose toolbar render function for FormulaBar
@@ -340,6 +378,7 @@ const SpreadSheet = ({
   );
 
   const [formulaInput, setFormulaInput] = useState<string>("");
+  const formulaInputValueRef = useRef<string>(""); // Track immediate value without causing re-renders
   const [isFormulaBuildingMode, setIsFormulaBuildingMode] =
     useState<boolean>(false);
   const [isAddingToFormula, setIsAddingToFormula] = useState<boolean>(false);
@@ -406,6 +445,15 @@ const SpreadSheet = ({
     }
   }, [activeSheetId, isAddingToFormula]);
 
+  // Cleanup debounce timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveToHistoryTimeoutRef.current) {
+        clearTimeout(saveToHistoryTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const formulaInputRef = useRef<HTMLInputElement>(null);
 
   // Get current sheet
@@ -427,14 +475,29 @@ const SpreadSheet = ({
     return combined;
   }, [currentSheet?.templateHiddenColumns, currentSheet?.userHiddenColumns]);
 
-  // Update toolbar state when selected cell changes
+  // Update toolbar state when selected cell changes (batch updates to avoid multiple re-renders)
   useEffect(() => {
     const cell = cells[selectedCell];
-    setCellTextColor(cell?.textColor || "");
-    setCellBackgroundColor(cell?.backgroundColor || "");
-    setCellBorder(cell?.border || "");
-    setCellBold(!!cell?.bold);
-  }, [selectedCell, cells]);
+    // Batch state updates by checking if values actually changed
+    const newTextColor = cell?.textColor || "";
+    const newBackgroundColor = cell?.backgroundColor || "";
+    const newBorder = cell?.border || "";
+    const newBold = !!cell?.bold;
+
+    // Only update if values changed to minimize re-renders
+    if (cellTextColor !== newTextColor) setCellTextColor(newTextColor);
+    if (cellBackgroundColor !== newBackgroundColor)
+      setCellBackgroundColor(newBackgroundColor);
+    if (cellBorder !== newBorder) setCellBorder(newBorder);
+    if (cellBold !== newBold) setCellBold(newBold);
+  }, [
+    selectedCell,
+    cells,
+    cellTextColor,
+    cellBackgroundColor,
+    cellBorder,
+    cellBold,
+  ]);
 
   // Get column width
   const getColumnWidth = (col: number): number => {
@@ -563,17 +626,23 @@ const SpreadSheet = ({
   // Select a cell (used for navigation)
   const selectCell = useCallback(
     (cellRef: string) => {
+      // First, update the most critical state immediately for responsiveness
       setSelectedCell(cellRef);
       setSelectedCells(new Set([cellRef])); // Update multi-selection state
-      const cell = cells[cellRef];
-      const cellFormula = cell?.formula || "";
-      setFormulaInput(cellFormula);
-      setFormulaCursorPosition(cellFormula.length);
-      setIsFormulaBuildingMode(cellFormula.startsWith("="));
-      setRangeSelectionStart(null);
-      setIsAddingToFormula(false);
-      // Exit inline editing when selecting a new cell
-      setEditingCell(null);
+
+      // Then batch the rest of the updates as lower priority
+      startTransition(() => {
+        const cell = cells[cellRef];
+        const cellFormula = cell?.formula || "";
+        formulaInputValueRef.current = cellFormula;
+        setFormulaInput(cellFormula);
+        setFormulaCursorPosition(cellFormula.length);
+        setIsFormulaBuildingMode(cellFormula.startsWith("="));
+        setRangeSelectionStart(null);
+        setIsAddingToFormula(false);
+        // Exit inline editing when selecting a new cell
+        setEditingCell(null);
+      });
     },
     [cells],
   );
@@ -1928,11 +1997,24 @@ const SpreadSheet = ({
     [findDependentCells],
   );
 
-  // Update cell value in current sheet
+  // Update cell value in current sheet (optimized for typing performance)
   const updateCell = useCallback(
-    async (cellRef: string, value: string) => {
-      // Save current state to history before making changes
-      saveToHistory();
+    async (
+      cellRef: string,
+      value: string,
+      options?: { skipHistory?: boolean; immediate?: boolean },
+    ) => {
+      // For typing, use debounced history; for other actions, save immediately
+      if (!options?.skipHistory) {
+        if (options?.immediate) {
+          saveToHistoryImmediate();
+        } else {
+          saveToHistoryDebounced();
+        }
+      }
+
+      // Fast path: if value doesn't start with '=', it's not a formula
+      const isFormula = value.trim().startsWith("=");
 
       // Get current state
       setSheets((prevSheets) => {
@@ -1943,79 +2025,90 @@ const SpreadSheet = ({
 
         const newCells = { ...currentSheet.cells };
 
+        // Parse the value to number if it's numeric, otherwise keep as string
+        const numValue = Number(value);
+        const computedValue = isFormula
+          ? value
+          : !isNaN(numValue) && value.trim() !== ""
+            ? numValue
+            : value;
+
         // Create or update the cell with new value
         newCells[cellRef] = {
           ...newCells[cellRef],
           value: value,
           formula: value,
-          computed: value, // Initial computed value will be recalculated below
+          computed: computedValue,
         };
 
-        // Get all cells that need to be recalculated
-        const cellsToRecalculate = getDependencyChain(cellRef, newCells);
+        // Only evaluate formulas if this is actually a formula
+        if (isFormula) {
+          // Get all cells that need to be recalculated
+          const cellsToRecalculate = getDependencyChain(cellRef, newCells);
 
-        // Sort cells: process the changed cell first, then dependents
-        const sortedCells = [
-          cellRef,
-          ...cellsToRecalculate.filter((ref) => ref !== cellRef),
-        ];
+          // Sort cells: process the changed cell first, then dependents
+          const sortedCells = [
+            cellRef,
+            ...cellsToRecalculate.filter((ref) => ref !== cellRef),
+          ];
 
-        // Schedule async recalculation without blocking the initial update
-        Promise.resolve().then(async () => {
-          const updatedComputedValues: Record<string, string | number> = {};
+          // Schedule async recalculation without blocking the initial update
+          Promise.resolve().then(async () => {
+            const updatedComputedValues: Record<string, string | number> = {};
 
-          // Process each cell that needs recalculation
-          for (const ref of sortedCells) {
-            const cellToCalc = newCells[ref];
-            if (!cellToCalc) continue;
+            // Process each cell that needs recalculation
+            for (const ref of sortedCells) {
+              const cellToCalc = newCells[ref];
+              if (!cellToCalc) continue;
 
-            try {
-              const result = await evaluateFormula(
-                cellToCalc.formula,
-                newCells,
-                prevSheets,
-              );
-              updatedComputedValues[ref] = result !== undefined ? result : "";
+              try {
+                const result = await evaluateFormula(
+                  cellToCalc.formula,
+                  newCells,
+                  prevSheets,
+                );
+                updatedComputedValues[ref] = result !== undefined ? result : "";
 
-              // Update the temp cell grid with the new computed value for next cell calculations
-              newCells[ref] = {
-                ...newCells[ref],
-                computed: updatedComputedValues[ref],
-              };
-            } catch (error) {
-              console.error(`Error calculating cell ${ref}:`, error);
-              updatedComputedValues[ref] = "#ERROR";
-              newCells[ref] = {
-                ...newCells[ref],
-                computed: "#ERROR",
-              };
-            }
-          }
-
-          // Apply all the computed values at once in a single state update
-          setSheets((latestSheets) =>
-            latestSheets.map((sheet) => {
-              if (sheet.id === activeSheetId) {
-                const updatedCellsWithComputed = { ...sheet.cells };
-
-                // Update computed values only for cells that were recalculated
-                Object.keys(updatedComputedValues).forEach((ref) => {
-                  if (updatedCellsWithComputed[ref]) {
-                    updatedCellsWithComputed[ref] = {
-                      ...updatedCellsWithComputed[ref],
-                      computed: updatedComputedValues[ref],
-                    };
-                  }
-                });
-
-                return { ...sheet, cells: updatedCellsWithComputed };
+                // Update the temp cell grid with the new computed value for next cell calculations
+                newCells[ref] = {
+                  ...newCells[ref],
+                  computed: updatedComputedValues[ref],
+                };
+              } catch (error) {
+                console.error(`Error calculating cell ${ref}:`, error);
+                updatedComputedValues[ref] = "#ERROR";
+                newCells[ref] = {
+                  ...newCells[ref],
+                  computed: "#ERROR",
+                };
               }
-              return sheet;
-            }),
-          );
-        });
+            }
 
-        // Return updated sheets with new cell values (computed values will be updated asynchronously)
+            // Apply all the computed values at once in a single state update
+            setSheets((latestSheets) =>
+              latestSheets.map((sheet) => {
+                if (sheet.id === activeSheetId) {
+                  const updatedCellsWithComputed = { ...sheet.cells };
+
+                  // Update computed values only for cells that were recalculated
+                  Object.keys(updatedComputedValues).forEach((ref) => {
+                    if (updatedCellsWithComputed[ref]) {
+                      updatedCellsWithComputed[ref] = {
+                        ...updatedCellsWithComputed[ref],
+                        computed: updatedComputedValues[ref],
+                      };
+                    }
+                  });
+
+                  return { ...sheet, cells: updatedCellsWithComputed };
+                }
+                return sheet;
+              }),
+            );
+          });
+        }
+
+        // Return updated sheets with new cell values (computed values will be updated asynchronously for formulas)
         return prevSheets.map((sheet) => {
           if (sheet.id === activeSheetId) {
             return { ...sheet, cells: newCells };
@@ -2024,14 +2117,20 @@ const SpreadSheet = ({
         });
       });
     },
-    [evaluateFormula, activeSheetId, getDependencyChain, saveToHistory],
+    [
+      evaluateFormula,
+      activeSheetId,
+      getDependencyChain,
+      saveToHistoryDebounced,
+      saveToHistoryImmediate,
+    ],
   );
 
   // Handler for updating dropdown cell values
   const handleDropdownCellChange = useCallback(
     async (cellRef: string, value: string) => {
-      // Save current state to history before making changes
-      saveToHistory();
+      // Save current state to history before making changes (immediate for dropdown)
+      saveToHistoryImmediate();
 
       // Update the cell value while preserving options and other properties
       setSheets((prevSheets) => {
@@ -2111,7 +2210,12 @@ const SpreadSheet = ({
         });
       });
     },
-    [evaluateFormula, activeSheetId, getDependencyChain, saveToHistory],
+    [
+      evaluateFormula,
+      activeSheetId,
+      getDependencyChain,
+      saveToHistoryImmediate,
+    ],
   );
 
   // Insert text at cursor position
@@ -2223,8 +2327,8 @@ const SpreadSheet = ({
 
   // Handle paste
   const handlePaste = useCallback(async () => {
-    // Save current state to history before pasting
-    saveToHistory();
+    // Save current state to history before pasting (immediate for paste)
+    saveToHistoryImmediate();
 
     const targetPos = parseCellRef(selectedCell);
     if (!targetPos) return;
@@ -2506,7 +2610,7 @@ const SpreadSheet = ({
     evaluateFormula,
     getDependencyChain,
     updateCell,
-    saveToHistory,
+    saveToHistoryImmediate,
   ]);
 
   // Handle global keyboard events
@@ -2602,6 +2706,7 @@ const SpreadSheet = ({
               setEditingCell(selectedCell);
               setInlineCellValue(e.key);
               setFormulaInput(e.key);
+              formulaInputValueRef.current = e.key;
               // Enable formula building mode if starting with "="
               if (e.key === "=") {
                 setIsFormulaBuildingMode(true);
@@ -2717,6 +2822,7 @@ const SpreadSheet = ({
       setEditingCell(cellRef);
       setInlineCellValue(cellFormula);
       setFormulaInput(cellFormula);
+      formulaInputValueRef.current = cellFormula;
       // Enable formula building mode if the cell contains a formula
       const isFormula = cellFormula.startsWith("=");
       setIsFormulaBuildingMode(isFormula);
@@ -2724,31 +2830,24 @@ const SpreadSheet = ({
     [cells],
   );
 
-  // Handle inline editing value change
-  const handleInlineValueChange = useCallback((value: string) => {
-    setInlineCellValue(value);
-    setFormulaInput(value);
-    // Enable/disable formula building mode based on value
-    const isFormula = value.startsWith("=");
-    setIsFormulaBuildingMode(isFormula);
-    if (!isFormula) {
-      setIsAddingToFormula(false);
-      setRangeSelectionStart(null);
-    }
-  }, []);
-
   // Handle stopping inline editing
-  const handleStopInlineEditing = useCallback(() => {
-    if (editingCell) {
-      // Only update if value has changed
-      const currentCell = cells[editingCell];
-      const currentValue = currentCell?.formula || currentCell?.value || "";
-      if (inlineCellValue !== currentValue) {
-        updateCell(editingCell, inlineCellValue);
+  const handleStopInlineEditing = useCallback(
+    (value: string) => {
+      if (editingCell) {
+        // Only update if value has changed
+        const currentCell = cells[editingCell];
+        const currentValue = currentCell?.formula || currentCell?.value || "";
+        if (value !== currentValue) {
+          updateCell(editingCell, value);
+        }
+        setEditingCell(null);
+        // Sync the formula input with the final value
+        setFormulaInput(value);
+        formulaInputValueRef.current = value;
       }
-      setEditingCell(null);
-    }
-  }, [editingCell, inlineCellValue, updateCell, cells]);
+    },
+    [editingCell, updateCell, cells],
+  );
 
   // Handle navigation after editing
   const handleNavigateAfterEdit = useCallback(
@@ -2758,33 +2857,34 @@ const SpreadSheet = ({
     [navigateCell],
   );
 
-  // Sync formula input with inline editing
-  useEffect(() => {
-    if (editingCell && editingCell === selectedCell) {
-      setFormulaInput(inlineCellValue);
-    }
-  }, [inlineCellValue, editingCell, selectedCell]);
+  // Handle formula input change (optimized for typing performance)
+  const handleFormulaChange = useCallback(
+    (value: string) => {
+      // Store in ref for immediate access without re-renders
+      formulaInputValueRef.current = value;
 
-  // Handle formula input change
-  const handleFormulaChange = (value: string) => {
-    // Also update inline editing if active
-    if (editingCell === selectedCell) {
-      setInlineCellValue(value);
-    }
-    setFormulaInput(value);
-    updateCursorPosition();
+      // Batch state updates to minimize re-renders
+      const isFormula = value.startsWith("=");
 
-    // Check if we're in formula mode
-    const isFormula = value.startsWith("=");
-    setIsFormulaBuildingMode(isFormula);
+      // Use startTransition for non-urgent formula input updates
+      startTransition(() => {
+        setFormulaInput(value);
+        updateCursorPosition();
 
-    if (!isFormula) {
-      setRangeSelectionStart(null);
-      setIsAddingToFormula(false);
-    }
+        if (isFormula !== isFormulaBuildingMode) {
+          setIsFormulaBuildingMode(isFormula);
+        }
 
-    // Don't update cell on every keystroke - only on Enter or blur
-  };
+        if (!isFormula) {
+          setRangeSelectionStart(null);
+          setIsAddingToFormula(false);
+        }
+      });
+
+      // Don't update cell on every keystroke - only on Enter or blur
+    },
+    [isFormulaBuildingMode, updateCursorPosition],
+  );
 
   // Toggle adding to formula mode
   const toggleAddingToFormula = () => {
@@ -3295,12 +3395,14 @@ const SpreadSheet = ({
           onFormulaFocus={() => setIsFormulaInputFocused(true)}
           onFormulaBlur={() => {
             setIsFormulaInputFocused(false);
-            // Only update if value has changed
-            const currentCell = cells[selectedCell];
-            const currentValue =
-              currentCell?.formula || currentCell?.value || "";
-            if (formulaInput !== currentValue) {
-              updateCell(selectedCell, formulaInput);
+            // Only update if value has changed and not in inline editing mode
+            if (!editingCell) {
+              const currentCell = cells[selectedCell];
+              const currentValue =
+                currentCell?.formula || currentCell?.value || "";
+              if (formulaInput !== currentValue) {
+                updateCell(selectedCell, formulaInput);
+              }
             }
           }}
           updateCursorPosition={updateCursorPosition}
@@ -3372,7 +3474,6 @@ const SpreadSheet = ({
         editingCell={editingCell}
         inlineCellValue={inlineCellValue}
         onStartInlineEditing={handleStartInlineEditing}
-        onInlineValueChange={handleInlineValueChange}
         onStopInlineEditing={handleStopInlineEditing}
         onNavigateAfterEdit={handleNavigateAfterEdit}
       />

@@ -118,4 +118,4 @@ const FormulaBar: React.FC<FormulaBarProps> = ({
   );
 };
 
-export default FormulaBar;
+export default React.memo(FormulaBar);

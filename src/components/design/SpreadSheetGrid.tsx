@@ -1,13 +1,15 @@
-import React from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import SpreadSheetColumnHeader from "./SpreadSheetColumnHeader";
 import SpreadSheetRowHeader from "./SpreadSheetRowHeader";
 import SpreadSheetCell from "./SpreadSheetCell";
 import { CellGrid } from "../../commons/types";
 import { MergedCell } from "./spreadsheet-types";
 
-const ROWS = 200;
+const ROWS = 250;
 const COLS = 50; // Rendered columns (supports Excel-style naming A-ZZ in formulas)
 const DEFAULT_ROW_HEIGHT = 32;
+const OVERSCAN_ROWS = 5; // Render extra rows above/below viewport for smooth scrolling
+const OVERSCAN_COLS = 3; // Render extra columns left/right of viewport
 
 // Helper function to convert column index (0-based) to Excel-style column name
 const getColumnLabel = (col: number): string => {
@@ -58,8 +60,7 @@ interface SpreadSheetGridProps {
   editingCell: string | null;
   inlineCellValue: string;
   onStartInlineEditing?: (cellRef: string) => void;
-  onInlineValueChange?: (value: string) => void;
-  onStopInlineEditing?: () => void;
+  onStopInlineEditing?: (value: string) => void;
   onNavigateAfterEdit?: (direction: "down" | "right") => void;
 }
 
@@ -86,10 +87,104 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
   editingCell,
   inlineCellValue,
   onStartInlineEditing,
-  onInlineValueChange,
   onStopInlineEditing,
   onNavigateAfterEdit,
 }) => {
+  // Virtualization state
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [visibleRange, setVisibleRange] = useState({
+    startRow: 0,
+    endRow: 30,
+    startCol: 0,
+    endCol: 15,
+  });
+
+  // Calculate visible range based on scroll position
+  const updateVisibleRange = useCallback(() => {
+    if (!containerRef.current) return;
+
+    const container = containerRef.current;
+    const scrollTop = container.scrollTop;
+    const scrollLeft = container.scrollLeft;
+    const viewportHeight = container.clientHeight;
+    const viewportWidth = container.clientWidth;
+
+    // Calculate visible rows
+    let currentHeight = 32; // Column header height
+    let startRow = 0;
+    let endRow = ROWS - 1;
+
+    // Find first visible row
+    for (let i = 0; i < ROWS; i++) {
+      if (hiddenRows.has(i)) continue;
+      const rowHeight = getRowHeight(i);
+      if (currentHeight + rowHeight > scrollTop) {
+        startRow = Math.max(0, i - OVERSCAN_ROWS);
+        break;
+      }
+      currentHeight += rowHeight;
+    }
+
+    // Find last visible row
+    currentHeight = 32;
+    for (let i = 0; i < ROWS; i++) {
+      if (hiddenRows.has(i)) continue;
+      currentHeight += getRowHeight(i);
+      if (currentHeight > scrollTop + viewportHeight) {
+        endRow = Math.min(ROWS - 1, i + OVERSCAN_ROWS);
+        break;
+      }
+    }
+
+    // Calculate visible columns
+    let currentWidth = 48; // Row header width
+    let startCol = 0;
+    let endCol = COLS - 1;
+
+    // Find first visible column
+    for (let i = 0; i < COLS; i++) {
+      if (hiddenColumns.has(i)) continue;
+      const colWidth = getColumnWidth(i);
+      if (currentWidth + colWidth > scrollLeft) {
+        startCol = Math.max(0, i - OVERSCAN_COLS);
+        break;
+      }
+      currentWidth += colWidth;
+    }
+
+    // Find last visible column
+    currentWidth = 48;
+    for (let i = 0; i < COLS; i++) {
+      if (hiddenColumns.has(i)) continue;
+      currentWidth += getColumnWidth(i);
+      if (currentWidth > scrollLeft + viewportWidth) {
+        endCol = Math.min(COLS - 1, i + OVERSCAN_COLS);
+        break;
+      }
+    }
+
+    setVisibleRange({ startRow, endRow, startCol, endCol });
+  }, [getRowHeight, getColumnWidth, hiddenRows, hiddenColumns]);
+
+  // Update visible range on scroll
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    updateVisibleRange();
+
+    const handleScroll = () => {
+      requestAnimationFrame(updateVisibleRange);
+    };
+
+    container.addEventListener("scroll", handleScroll, { passive: true });
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [updateVisibleRange]);
+
+  // Update visible range when dependencies change
+  useEffect(() => {
+    updateVisibleRange();
+  }, [updateVisibleRange, hiddenRows, hiddenColumns, freezeRow, freezeColumn]);
   // Get cell reference (e.g., A1, B2)
   const getCellRef = (row: number, col: number): string => {
     return `${getColumnLabel(col)}${row + 1}`;
@@ -153,165 +248,245 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
     return offset;
   };
 
+  // Calculate total grid dimensions for virtualization
+  const getTotalWidth = useCallback(() => {
+    let total = 48; // Row header width
+    for (let i = 0; i < COLS; i++) {
+      if (!hiddenColumns.has(i)) {
+        total += getColumnWidth(i);
+      }
+    }
+    return total;
+  }, [getColumnWidth, hiddenColumns]);
+
+  const getTotalHeight = useCallback(() => {
+    let total = 32; // Column header height
+    for (let i = 0; i < ROWS; i++) {
+      if (!hiddenRows.has(i)) {
+        total += getRowHeight(i);
+      }
+    }
+    return total;
+  }, [getRowHeight, hiddenRows]);
+
+  // Calculate offset for a specific row (for absolute positioning)
+  const getRowOffset = useCallback(
+    (row: number) => {
+      let offset = 32; // Column header height
+      for (let i = 0; i < row; i++) {
+        if (!hiddenRows.has(i)) {
+          offset += getRowHeight(i);
+        }
+      }
+      return offset;
+    },
+    [getRowHeight, hiddenRows],
+  );
+
+  // Calculate offset for a specific column (for absolute positioning)
+  const getColOffset = useCallback(
+    (col: number) => {
+      let offset = 48; // Row header width
+      for (let i = 0; i < col; i++) {
+        if (!hiddenColumns.has(i)) {
+          offset += getColumnWidth(i);
+        }
+      }
+      return offset;
+    },
+    [getColumnWidth, hiddenColumns],
+  );
+
   return (
-    <div className="flex-1 overflow-auto relative border-l border-t border-gray-300">
-      <div className="inline-block min-w-full">
+    <div
+      ref={containerRef}
+      className="flex-1 overflow-auto relative border-l border-t border-gray-300"
+    >
+      <div
+        className="relative"
+        style={{
+          width: getTotalWidth(),
+          height: getTotalHeight(),
+        }}
+      >
         {/* Column Headers */}
         <div className="flex sticky top-0 bg-gray-50 border-b z-30">
           <div className="w-12 h-8 border-r border-gray-300 bg-gray-100 sticky left-0 z-40"></div>
-          {Array.from({ length: COLS }, (_, col) => {
-            // Skip hidden columns
-            if (hiddenColumns.has(col)) {
+          {Array.from(
+            { length: visibleRange.endCol - visibleRange.startCol + 1 },
+            (_, idx) => {
+              const col = visibleRange.startCol + idx;
+              // Skip hidden columns
+              if (hiddenColumns.has(col)) {
+                return null;
+              }
+
+              const isFrozen = col < freezeColumn;
+              const headerStyle = isFrozen
+                ? {
+                    position: "sticky" as const,
+                    left: getFrozenColumnOffset(col),
+                    zIndex: 35,
+                  }
+                : {
+                    position: "absolute" as const,
+                    left: getColOffset(col),
+                  };
+
+              return (
+                <div key={col} style={headerStyle}>
+                  <SpreadSheetColumnHeader
+                    columnIndex={col}
+                    columnLabel={getColumnLabel(col)}
+                    columnWidth={getColumnWidth(col)}
+                    defaultRowHeight={DEFAULT_ROW_HEIGHT}
+                    onResizeStart={handleResizeStart}
+                    onContextMenu={(e) => onColumnHeaderContextMenu(e, col)}
+                  />
+                </div>
+              );
+            },
+          )}
+        </div>
+
+        {/* Rows - only render visible rows */}
+        {Array.from(
+          { length: visibleRange.endRow - visibleRange.startRow + 1 },
+          (_, idx) => {
+            const row = visibleRange.startRow + idx;
+            // Skip hidden rows
+            if (hiddenRows.has(row)) {
               return null;
             }
 
-            const isFrozen = col < freezeColumn;
-            const headerStyle = isFrozen
+            const isRowFrozen = row < freezeRow;
+            const rowStyle = isRowFrozen
               ? {
                   position: "sticky" as const,
-                  left: getFrozenColumnOffset(col),
-                  zIndex: 35,
+                  top: getFrozenRowOffset(row),
+                  zIndex: 25,
                 }
-              : {};
+              : {
+                  position: "absolute" as const,
+                  top: getRowOffset(row),
+                  left: 0,
+                  right: 0,
+                };
 
             return (
-              <div key={col} style={headerStyle}>
-                <SpreadSheetColumnHeader
-                  columnIndex={col}
-                  columnLabel={getColumnLabel(col)}
-                  columnWidth={getColumnWidth(col)}
-                  defaultRowHeight={DEFAULT_ROW_HEIGHT}
-                  onResizeStart={handleResizeStart}
-                  onContextMenu={(e) => onColumnHeaderContextMenu(e, col)}
-                />
+              <div key={row} className="flex" style={rowStyle}>
+                {/* Row Header */}
+                <div
+                  style={{
+                    position: "sticky",
+                    left: 0,
+                    zIndex: isRowFrozen ? 30 : 20,
+                  }}
+                >
+                  <SpreadSheetRowHeader
+                    rowIndex={row}
+                    rowHeight={getRowHeight(row)}
+                    onResizeStart={handleResizeStart}
+                    onContextMenu={(e) => onRowHeaderContextMenu(e, row)}
+                  />
+                </div>
+
+                {/* Cells - only render visible columns */}
+                {Array.from(
+                  { length: visibleRange.endCol - visibleRange.startCol + 1 },
+                  (_, idx) => {
+                    const col = visibleRange.startCol + idx;
+                    // Skip hidden columns
+                    if (hiddenColumns.has(col)) {
+                      return null;
+                    }
+
+                    // Skip cells that are part of a merge but not the master cell
+                    if (shouldHideMergedCell(row, col)) {
+                      return null;
+                    }
+
+                    const cellRef = getCellRef(row, col);
+                    const cell = cells[cellRef];
+                    const isSelected = selectedCells.has(cellRef);
+                    const isHidden = hiddenCells.has(cellRef);
+                    const isColFrozen = col < freezeColumn;
+                    const isFrozen = isRowFrozen || isColFrozen;
+
+                    // Get merge info if this cell is the master of a merged region
+                    const mergeInfo = getMergeInfo(row, col);
+                    const isMasterCell =
+                      mergeInfo &&
+                      parseCellRef(mergeInfo.startCell)?.row === row &&
+                      parseCellRef(mergeInfo.startCell)?.col === col;
+
+                    // Calculate dimensions for merged cells
+                    let cellWidth = getColumnWidth(col);
+                    let cellHeight = getRowHeight(row);
+
+                    if (isMasterCell && mergeInfo) {
+                      // Sum up widths for all columns in the merge
+                      const mergeStart = parseCellRef(mergeInfo.startCell);
+                      const mergeEnd = parseCellRef(mergeInfo.endCell);
+                      if (mergeStart && mergeEnd) {
+                        cellWidth = 0;
+                        for (let c = mergeStart.col; c <= mergeEnd.col; c++) {
+                          if (!hiddenColumns.has(c)) {
+                            cellWidth += getColumnWidth(c);
+                          }
+                        }
+
+                        cellHeight = 0;
+                        for (let r = mergeStart.row; r <= mergeEnd.row; r++) {
+                          if (!hiddenRows.has(r)) {
+                            cellHeight += getRowHeight(r);
+                          }
+                        }
+                      }
+                    }
+
+                    const cellStyle = isColFrozen
+                      ? {
+                          position: "sticky" as const,
+                          left: getFrozenColumnOffset(col),
+                          zIndex: isRowFrozen ? 30 : 15,
+                        }
+                      : {
+                          position: "absolute" as const,
+                          left: getColOffset(col),
+                        };
+
+                    return (
+                      <div key={col} style={cellStyle}>
+                        <SpreadSheetCell
+                          cellRef={cellRef}
+                          cell={cell}
+                          isSelected={isSelected}
+                          isHidden={isHidden}
+                          isFrozen={isFrozen}
+                          isAddingToFormula={isAddingToFormula}
+                          rangeSelectionStart={rangeSelectionStart}
+                          columnWidth={cellWidth}
+                          rowHeight={cellHeight}
+                          onCellClick={handleCellClick}
+                          onCellContextMenu={onCellContextMenu}
+                          onCellValueChange={onCellValueChange}
+                          isEditing={editingCell === cellRef}
+                          editingValue={
+                            editingCell === cellRef ? inlineCellValue : ""
+                          }
+                          onStartEditing={onStartInlineEditing}
+                          onStopEditing={onStopInlineEditing}
+                          onNavigateAfterEdit={onNavigateAfterEdit}
+                        />
+                      </div>
+                    );
+                  },
+                )}
               </div>
             );
-          })}
-        </div>
-
-        {/* Rows */}
-        {Array.from({ length: ROWS }, (_, row) => {
-          // Skip hidden rows
-          if (hiddenRows.has(row)) {
-            return null;
-          }
-
-          const isRowFrozen = row < freezeRow;
-          const rowStyle = isRowFrozen
-            ? {
-                position: "sticky" as const,
-                top: getFrozenRowOffset(row),
-                zIndex: 25,
-              }
-            : {};
-
-          return (
-            <div key={row} className="flex" style={rowStyle}>
-              {/* Row Header */}
-              <div
-                style={{
-                  position: "sticky",
-                  left: 0,
-                  zIndex: isRowFrozen ? 30 : 20,
-                }}
-              >
-                <SpreadSheetRowHeader
-                  rowIndex={row}
-                  rowHeight={getRowHeight(row)}
-                  onResizeStart={handleResizeStart}
-                  onContextMenu={(e) => onRowHeaderContextMenu(e, row)}
-                />
-              </div>
-
-              {/* Cells */}
-              {Array.from({ length: COLS }, (_, col) => {
-                // Skip hidden columns
-                if (hiddenColumns.has(col)) {
-                  return null;
-                }
-
-                // Skip cells that are part of a merge but not the master cell
-                if (shouldHideMergedCell(row, col)) {
-                  return null;
-                }
-
-                const cellRef = getCellRef(row, col);
-                const cell = cells[cellRef];
-                const isSelected = selectedCells.has(cellRef);
-                const isHidden = hiddenCells.has(cellRef);
-                const isColFrozen = col < freezeColumn;
-                const isFrozen = isRowFrozen || isColFrozen;
-
-                // Get merge info if this cell is the master of a merged region
-                const mergeInfo = getMergeInfo(row, col);
-                const isMasterCell =
-                  mergeInfo &&
-                  parseCellRef(mergeInfo.startCell)?.row === row &&
-                  parseCellRef(mergeInfo.startCell)?.col === col;
-
-                // Calculate dimensions for merged cells
-                let cellWidth = getColumnWidth(col);
-                let cellHeight = getRowHeight(row);
-
-                if (isMasterCell && mergeInfo) {
-                  // Sum up widths for all columns in the merge
-                  const mergeStart = parseCellRef(mergeInfo.startCell);
-                  const mergeEnd = parseCellRef(mergeInfo.endCell);
-                  if (mergeStart && mergeEnd) {
-                    cellWidth = 0;
-                    for (let c = mergeStart.col; c <= mergeEnd.col; c++) {
-                      if (!hiddenColumns.has(c)) {
-                        cellWidth += getColumnWidth(c);
-                      }
-                    }
-
-                    cellHeight = 0;
-                    for (let r = mergeStart.row; r <= mergeEnd.row; r++) {
-                      if (!hiddenRows.has(r)) {
-                        cellHeight += getRowHeight(r);
-                      }
-                    }
-                  }
-                }
-
-                const cellStyle = isColFrozen
-                  ? {
-                      position: "sticky" as const,
-                      left: getFrozenColumnOffset(col),
-                      zIndex: isRowFrozen ? 30 : 15,
-                    }
-                  : {};
-
-                return (
-                  <div key={col} style={cellStyle}>
-                    <SpreadSheetCell
-                      cellRef={cellRef}
-                      cell={cell}
-                      isSelected={isSelected}
-                      isHidden={isHidden}
-                      isFrozen={isFrozen}
-                      isAddingToFormula={isAddingToFormula}
-                      rangeSelectionStart={rangeSelectionStart}
-                      columnWidth={cellWidth}
-                      rowHeight={cellHeight}
-                      onCellClick={handleCellClick}
-                      onCellContextMenu={onCellContextMenu}
-                      onCellValueChange={onCellValueChange}
-                      isEditing={editingCell === cellRef}
-                      editingValue={
-                        editingCell === cellRef ? inlineCellValue : ""
-                      }
-                      onStartEditing={onStartInlineEditing}
-                      onEditingValueChange={onInlineValueChange}
-                      onStopEditing={onStopInlineEditing}
-                      onNavigateAfterEdit={onNavigateAfterEdit}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })}
+          },
+        )}
       </div>
     </div>
   );

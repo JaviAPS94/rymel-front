@@ -93,4 +93,4 @@ const CrossTabSelector: React.FC<CrossTabSelectorProps> = ({
   );
 };
 
-export default CrossTabSelector;
+export default React.memo(CrossTabSelector);

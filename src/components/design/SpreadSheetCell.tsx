@@ -17,8 +17,7 @@ interface SpreadSheetCellProps {
   isEditing: boolean;
   editingValue: string;
   onStartEditing?: (cellRef: string) => void;
-  onEditingValueChange?: (value: string) => void;
-  onStopEditing?: () => void;
+  onStopEditing?: (value: string) => void;
   onNavigateAfterEdit?: (direction: "down" | "right") => void;
 }
 
@@ -38,7 +37,6 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
   isEditing,
   editingValue,
   onStartEditing,
-  onEditingValueChange,
   onStopEditing,
   onNavigateAfterEdit,
 }) => {
@@ -49,12 +47,24 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
     if (isEditing && inputRef.current) {
       inputRef.current.focus();
       // Move cursor to end
-      inputRef.current.setSelectionRange(
-        editingValue.length,
-        editingValue.length,
-      );
+      const length = inputRef.current.value.length;
+      inputRef.current.setSelectionRange(length, length);
     }
-  }, [isEditing, editingValue]);
+  }, [isEditing]);
+
+  // Sync input value when editingValue changes (e.g., from formula bar)
+  React.useEffect(() => {
+    if (
+      isEditing &&
+      inputRef.current &&
+      inputRef.current.value !== editingValue
+    ) {
+      const cursorPosition = inputRef.current.selectionStart || 0;
+      inputRef.current.value = editingValue;
+      // Restore cursor position
+      inputRef.current.setSelectionRange(cursorPosition, cursorPosition);
+    }
+  }, [editingValue, isEditing]);
   // Check if this cell has dropdown options
   const hasOptions = cell?.options && cell.options.length > 0;
 
@@ -179,26 +189,21 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
           </svg>
         </div>
       ) : isEditing ? (
-        // Inline editing mode - show input directly in cell
+        // Inline editing mode - show input directly in cell (UNCONTROLLED for performance)
         <input
           ref={inputRef}
           type="text"
-          value={editingValue}
-          onChange={(e) => {
-            if (onEditingValueChange) {
-              onEditingValueChange(e.target.value);
-            }
-          }}
+          defaultValue={editingValue}
           onBlur={() => {
-            if (onStopEditing) {
-              onStopEditing();
+            if (onStopEditing && inputRef.current) {
+              onStopEditing(inputRef.current.value);
             }
           }}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();
-              if (onStopEditing) {
-                onStopEditing();
+              if (onStopEditing && inputRef.current) {
+                onStopEditing(inputRef.current.value);
               }
               // Navigate down after stopping edit
               setTimeout(() => {
@@ -208,8 +213,8 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
               }, 0);
             } else if (e.key === "Tab") {
               e.preventDefault();
-              if (onStopEditing) {
-                onStopEditing();
+              if (onStopEditing && inputRef.current) {
+                onStopEditing(inputRef.current.value);
               }
               // Navigate right after stopping edit
               setTimeout(() => {
@@ -219,8 +224,8 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
               }, 0);
             } else if (e.key === "Escape") {
               e.preventDefault();
-              if (onStopEditing) {
-                onStopEditing();
+              if (onStopEditing && inputRef.current) {
+                onStopEditing(inputRef.current.value);
               }
             }
           }}

@@ -89,4 +89,4 @@ const SheetTabs: React.FC<SheetTabsProps> = ({
   );
 };
 
-export default SheetTabs;
+export default React.memo(SheetTabs);
