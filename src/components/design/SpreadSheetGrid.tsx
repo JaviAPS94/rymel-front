@@ -312,26 +312,55 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
         {/* Column Headers */}
         <div className="flex sticky top-0 bg-gray-50 border-b z-30">
           <div className="w-12 h-8 border-r border-gray-300 bg-gray-100 sticky left-0 z-40"></div>
-          {Array.from(
-            { length: visibleRange.endCol - visibleRange.startCol + 1 },
-            (_, idx) => {
-              const col = visibleRange.startCol + idx;
+
+          {/* Frozen column headers (always visible) */}
+          {freezeColumn > 0 &&
+            Array.from({ length: freezeColumn }, (_, col) => {
               // Skip hidden columns
               if (hiddenColumns.has(col)) {
                 return null;
               }
 
-              const isFrozen = col < freezeColumn;
-              const headerStyle = isFrozen
-                ? {
-                    position: "sticky" as const,
-                    left: getFrozenColumnOffset(col),
-                    zIndex: 35,
-                  }
-                : {
-                    position: "absolute" as const,
-                    left: getColOffset(col),
-                  };
+              const headerStyle = {
+                position: "sticky" as const,
+                left: getFrozenColumnOffset(col),
+                zIndex: 35,
+              };
+
+              return (
+                <div key={`frozen-header-${col}`} style={headerStyle}>
+                  <SpreadSheetColumnHeader
+                    columnIndex={col}
+                    columnLabel={getColumnLabel(col)}
+                    columnWidth={getColumnWidth(col)}
+                    defaultRowHeight={DEFAULT_ROW_HEIGHT}
+                    onResizeStart={handleResizeStart}
+                    onContextMenu={(e) => onColumnHeaderContextMenu(e, col)}
+                  />
+                </div>
+              );
+            })}
+
+          {/* Visible non-frozen column headers */}
+          {Array.from(
+            { length: visibleRange.endCol - visibleRange.startCol + 1 },
+            (_, idx) => {
+              const col = visibleRange.startCol + idx;
+
+              // Skip frozen columns (already rendered above)
+              if (col < freezeColumn) {
+                return null;
+              }
+
+              // Skip hidden columns
+              if (hiddenColumns.has(col)) {
+                return null;
+              }
+
+              const headerStyle = {
+                position: "absolute" as const,
+                left: getColOffset(col),
+              };
 
               return (
                 <div key={col} style={headerStyle}>
@@ -349,38 +378,29 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
           )}
         </div>
 
-        {/* Rows - only render visible rows */}
-        {Array.from(
-          { length: visibleRange.endRow - visibleRange.startRow + 1 },
-          (_, idx) => {
-            const row = visibleRange.startRow + idx;
+        {/* Rows - Frozen rows are always rendered, regular rows are virtualized */}
+        {/* First: Render frozen rows (always visible) */}
+        {freezeRow > 0 &&
+          Array.from({ length: freezeRow }, (_, row) => {
             // Skip hidden rows
             if (hiddenRows.has(row)) {
               return null;
             }
 
-            const isRowFrozen = row < freezeRow;
-            const rowStyle = isRowFrozen
-              ? {
-                  position: "sticky" as const,
-                  top: getFrozenRowOffset(row),
-                  zIndex: 25,
-                }
-              : {
-                  position: "absolute" as const,
-                  top: getRowOffset(row),
-                  left: 0,
-                  right: 0,
-                };
+            const rowStyle = {
+              position: "sticky" as const,
+              top: getFrozenRowOffset(row),
+              zIndex: 25,
+            };
 
             return (
-              <div key={row} className="flex" style={rowStyle}>
+              <div key={`frozen-${row}`} className="flex" style={rowStyle}>
                 {/* Row Header */}
                 <div
                   style={{
                     position: "sticky",
                     left: 0,
-                    zIndex: isRowFrozen ? 30 : 20,
+                    zIndex: 30,
                   }}
                 >
                   <SpreadSheetRowHeader
@@ -391,11 +411,10 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                   />
                 </div>
 
-                {/* Cells - only render visible columns */}
-                {Array.from(
-                  { length: visibleRange.endCol - visibleRange.startCol + 1 },
-                  (_, idx) => {
-                    const col = visibleRange.startCol + idx;
+                {/* Cells - render frozen columns + visible columns */}
+                {/* First render frozen columns */}
+                {freezeColumn > 0 &&
+                  Array.from({ length: freezeColumn }, (_, col) => {
                     // Skip hidden columns
                     if (hiddenColumns.has(col)) {
                       return null;
@@ -410,8 +429,313 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                     const cell = cells[cellRef];
                     const isSelected = selectedCells.has(cellRef);
                     const isHidden = hiddenCells.has(cellRef);
-                    const isColFrozen = col < freezeColumn;
-                    const isFrozen = isRowFrozen || isColFrozen;
+
+                    // Get merge info if this cell is the master of a merged region
+                    const mergeInfo = getMergeInfo(row, col);
+                    const isMasterCell =
+                      mergeInfo &&
+                      parseCellRef(mergeInfo.startCell)?.row === row &&
+                      parseCellRef(mergeInfo.startCell)?.col === col;
+
+                    // Calculate dimensions for merged cells
+                    let cellWidth = getColumnWidth(col);
+                    let cellHeight = getRowHeight(row);
+
+                    if (isMasterCell && mergeInfo) {
+                      const mergeStart = parseCellRef(mergeInfo.startCell);
+                      const mergeEnd = parseCellRef(mergeInfo.endCell);
+                      if (mergeStart && mergeEnd) {
+                        cellWidth = 0;
+                        for (let c = mergeStart.col; c <= mergeEnd.col; c++) {
+                          if (!hiddenColumns.has(c)) {
+                            cellWidth += getColumnWidth(c);
+                          }
+                        }
+
+                        cellHeight = 0;
+                        for (let r = mergeStart.row; r <= mergeEnd.row; r++) {
+                          if (!hiddenRows.has(r)) {
+                            cellHeight += getRowHeight(r);
+                          }
+                        }
+                      }
+                    }
+
+                    const cellStyle = {
+                      position: "sticky" as const,
+                      left: getFrozenColumnOffset(col),
+                      zIndex: 30,
+                    };
+
+                    return (
+                      <div key={`frozen-col-${col}`} style={cellStyle}>
+                        <SpreadSheetCell
+                          cellRef={cellRef}
+                          cell={cell}
+                          isSelected={isSelected}
+                          isHidden={isHidden}
+                          isFrozen={true}
+                          isAddingToFormula={isAddingToFormula}
+                          rangeSelectionStart={rangeSelectionStart}
+                          columnWidth={cellWidth}
+                          rowHeight={cellHeight}
+                          onCellClick={handleCellClick}
+                          onCellContextMenu={onCellContextMenu}
+                          onCellValueChange={onCellValueChange}
+                          isEditing={editingCell === cellRef}
+                          editingValue={
+                            editingCell === cellRef ? inlineCellValue : ""
+                          }
+                          onStartEditing={onStartInlineEditing}
+                          onStopEditing={onStopInlineEditing}
+                          onNavigateAfterEdit={onNavigateAfterEdit}
+                        />
+                      </div>
+                    );
+                  })}
+
+                {/* Then render visible non-frozen columns */}
+                {Array.from(
+                  { length: visibleRange.endCol - visibleRange.startCol + 1 },
+                  (_, idx) => {
+                    const col = visibleRange.startCol + idx;
+
+                    // Skip frozen columns (already rendered)
+                    if (col < freezeColumn) {
+                      return null;
+                    }
+
+                    // Skip hidden columns
+                    if (hiddenColumns.has(col)) {
+                      return null;
+                    }
+
+                    // Skip cells that are part of a merge but not the master cell
+                    if (shouldHideMergedCell(row, col)) {
+                      return null;
+                    }
+
+                    const cellRef = getCellRef(row, col);
+                    const cell = cells[cellRef];
+                    const isSelected = selectedCells.has(cellRef);
+                    const isHidden = hiddenCells.has(cellRef);
+
+                    // Get merge info if this cell is the master of a merged region
+                    const mergeInfo = getMergeInfo(row, col);
+                    const isMasterCell =
+                      mergeInfo &&
+                      parseCellRef(mergeInfo.startCell)?.row === row &&
+                      parseCellRef(mergeInfo.startCell)?.col === col;
+
+                    // Calculate dimensions for merged cells
+                    let cellWidth = getColumnWidth(col);
+                    let cellHeight = getRowHeight(row);
+
+                    if (isMasterCell && mergeInfo) {
+                      const mergeStart = parseCellRef(mergeInfo.startCell);
+                      const mergeEnd = parseCellRef(mergeInfo.endCell);
+                      if (mergeStart && mergeEnd) {
+                        cellWidth = 0;
+                        for (let c = mergeStart.col; c <= mergeEnd.col; c++) {
+                          if (!hiddenColumns.has(c)) {
+                            cellWidth += getColumnWidth(c);
+                          }
+                        }
+
+                        cellHeight = 0;
+                        for (let r = mergeStart.row; r <= mergeEnd.row; r++) {
+                          if (!hiddenRows.has(r)) {
+                            cellHeight += getRowHeight(r);
+                          }
+                        }
+                      }
+                    }
+
+                    const cellStyle = {
+                      position: "absolute" as const,
+                      left: getColOffset(col),
+                    };
+
+                    return (
+                      <div key={col} style={cellStyle}>
+                        <SpreadSheetCell
+                          cellRef={cellRef}
+                          cell={cell}
+                          isSelected={isSelected}
+                          isHidden={isHidden}
+                          isFrozen={true}
+                          isAddingToFormula={isAddingToFormula}
+                          rangeSelectionStart={rangeSelectionStart}
+                          columnWidth={cellWidth}
+                          rowHeight={cellHeight}
+                          onCellClick={handleCellClick}
+                          onCellContextMenu={onCellContextMenu}
+                          onCellValueChange={onCellValueChange}
+                          isEditing={editingCell === cellRef}
+                          editingValue={
+                            editingCell === cellRef ? inlineCellValue : ""
+                          }
+                          onStartEditing={onStartInlineEditing}
+                          onStopEditing={onStopInlineEditing}
+                          onNavigateAfterEdit={onNavigateAfterEdit}
+                        />
+                      </div>
+                    );
+                  },
+                )}
+              </div>
+            );
+          })}
+
+        {/* Second: Render visible non-frozen rows */}
+        {Array.from(
+          { length: visibleRange.endRow - visibleRange.startRow + 1 },
+          (_, idx) => {
+            const row = visibleRange.startRow + idx;
+
+            // Skip frozen rows (already rendered above)
+            if (row < freezeRow) {
+              return null;
+            }
+
+            // Skip hidden rows
+            if (hiddenRows.has(row)) {
+              return null;
+            }
+
+            const rowStyle = {
+              position: "absolute" as const,
+              top: getRowOffset(row),
+              left: 0,
+              right: 0,
+            };
+
+            return (
+              <div key={row} className="flex" style={rowStyle}>
+                {/* Row Header */}
+                <div
+                  style={{
+                    position: "sticky",
+                    left: 0,
+                    zIndex: 20,
+                  }}
+                >
+                  <SpreadSheetRowHeader
+                    rowIndex={row}
+                    rowHeight={getRowHeight(row)}
+                    onResizeStart={handleResizeStart}
+                    onContextMenu={(e) => onRowHeaderContextMenu(e, row)}
+                  />
+                </div>
+
+                {/* Cells - render frozen columns + visible columns */}
+                {/* First render frozen columns */}
+                {freezeColumn > 0 &&
+                  Array.from({ length: freezeColumn }, (_, col) => {
+                    // Skip hidden columns
+                    if (hiddenColumns.has(col)) {
+                      return null;
+                    }
+
+                    // Skip cells that are part of a merge but not the master cell
+                    if (shouldHideMergedCell(row, col)) {
+                      return null;
+                    }
+
+                    const cellRef = getCellRef(row, col);
+                    const cell = cells[cellRef];
+                    const isSelected = selectedCells.has(cellRef);
+                    const isHidden = hiddenCells.has(cellRef);
+
+                    // Get merge info if this cell is the master of a merged region
+                    const mergeInfo = getMergeInfo(row, col);
+                    const isMasterCell =
+                      mergeInfo &&
+                      parseCellRef(mergeInfo.startCell)?.row === row &&
+                      parseCellRef(mergeInfo.startCell)?.col === col;
+
+                    // Calculate dimensions for merged cells
+                    let cellWidth = getColumnWidth(col);
+                    let cellHeight = getRowHeight(row);
+
+                    if (isMasterCell && mergeInfo) {
+                      const mergeStart = parseCellRef(mergeInfo.startCell);
+                      const mergeEnd = parseCellRef(mergeInfo.endCell);
+                      if (mergeStart && mergeEnd) {
+                        cellWidth = 0;
+                        for (let c = mergeStart.col; c <= mergeEnd.col; c++) {
+                          if (!hiddenColumns.has(c)) {
+                            cellWidth += getColumnWidth(c);
+                          }
+                        }
+
+                        cellHeight = 0;
+                        for (let r = mergeStart.row; r <= mergeEnd.row; r++) {
+                          if (!hiddenRows.has(r)) {
+                            cellHeight += getRowHeight(r);
+                          }
+                        }
+                      }
+                    }
+
+                    const cellStyle = {
+                      position: "sticky" as const,
+                      left: getFrozenColumnOffset(col),
+                      zIndex: 15,
+                    };
+
+                    return (
+                      <div key={`frozen-col-${col}`} style={cellStyle}>
+                        <SpreadSheetCell
+                          cellRef={cellRef}
+                          cell={cell}
+                          isSelected={isSelected}
+                          isHidden={isHidden}
+                          isFrozen={true}
+                          isAddingToFormula={isAddingToFormula}
+                          rangeSelectionStart={rangeSelectionStart}
+                          columnWidth={cellWidth}
+                          rowHeight={cellHeight}
+                          onCellClick={handleCellClick}
+                          onCellContextMenu={onCellContextMenu}
+                          onCellValueChange={onCellValueChange}
+                          isEditing={editingCell === cellRef}
+                          editingValue={
+                            editingCell === cellRef ? inlineCellValue : ""
+                          }
+                          onStartEditing={onStartInlineEditing}
+                          onStopEditing={onStopInlineEditing}
+                          onNavigateAfterEdit={onNavigateAfterEdit}
+                        />
+                      </div>
+                    );
+                  })}
+
+                {/* Then render visible non-frozen columns */}
+                {Array.from(
+                  { length: visibleRange.endCol - visibleRange.startCol + 1 },
+                  (_, idx) => {
+                    const col = visibleRange.startCol + idx;
+
+                    // Skip frozen columns (already rendered)
+                    if (col < freezeColumn) {
+                      return null;
+                    }
+
+                    // Skip hidden columns
+                    if (hiddenColumns.has(col)) {
+                      return null;
+                    }
+
+                    // Skip cells that are part of a merge but not the master cell
+                    if (shouldHideMergedCell(row, col)) {
+                      return null;
+                    }
+
+                    const cellRef = getCellRef(row, col);
+                    const cell = cells[cellRef];
+                    const isSelected = selectedCells.has(cellRef);
+                    const isHidden = hiddenCells.has(cellRef);
 
                     // Get merge info if this cell is the master of a merged region
                     const mergeInfo = getMergeInfo(row, col);
@@ -445,16 +769,10 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                       }
                     }
 
-                    const cellStyle = isColFrozen
-                      ? {
-                          position: "sticky" as const,
-                          left: getFrozenColumnOffset(col),
-                          zIndex: isRowFrozen ? 30 : 15,
-                        }
-                      : {
-                          position: "absolute" as const,
-                          left: getColOffset(col),
-                        };
+                    const cellStyle = {
+                      position: "absolute" as const,
+                      left: getColOffset(col),
+                    };
 
                     return (
                       <div key={col} style={cellStyle}>
@@ -463,7 +781,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                           cell={cell}
                           isSelected={isSelected}
                           isHidden={isHidden}
-                          isFrozen={isFrozen}
+                          isFrozen={false}
                           isAddingToFormula={isAddingToFormula}
                           rangeSelectionStart={rangeSelectionStart}
                           columnWidth={cellWidth}
