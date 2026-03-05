@@ -53,6 +53,14 @@ const getColumnIndex = (label: string): number => {
   return index - 1;
 };
 
+// Helper function to round numbers to 2 decimal places
+const roundToTwoDecimals = (value: number | string): number | string => {
+  if (typeof value === "number" && !isNaN(value)) {
+    return Math.round(value * 100) / 100;
+  }
+  return value;
+};
+
 interface SpreadSheetProps {
   subTypeWithFunctions: DesignSubtype;
   templates: Template[];
@@ -1369,7 +1377,9 @@ const SpreadSheet = ({
             return "0";
           }
 
-          const params = args
+          // Support both comma and semicolon as separators (regional formats)
+          const normalizedArgs = args.replace(/;/g, ",");
+          const params = normalizedArgs
             .split(",")
             .map((param: string) => param.trim())
             .filter((param: unknown) => param !== "");
@@ -1379,7 +1389,7 @@ const SpreadSheet = ({
           }
 
           const lookupValue = params[0];
-          const tableRange = params[1];
+          let tableRange = params[1];
           const columnIndex = Number.parseInt(params[2]);
           const exactMatch = params[3]
             ? params[3].toLowerCase() === "true" || params[3] === "1"
@@ -1389,9 +1399,47 @@ const SpreadSheet = ({
             return "0";
           }
 
-          // Parse the table range (e.g., A1:D10)
-          if (!tableRange.includes(":") || tableRange.includes("!")) {
+          // Parse the table range - support cross-sheet references
+          if (!tableRange.includes(":")) {
             return "0";
+          }
+
+          // Handle cross-sheet references: Tablas!B3:C10 or Tablas!B3:Tablas!C10
+          let targetSheetName: string | null = null;
+          let targetCellGrid = cellGrid;
+
+          if (tableRange.includes("!")) {
+            // Extract sheet name and normalize the range
+            const parts = tableRange.split(":");
+            let startPart = parts[0];
+            let endPart = parts[1];
+
+            // Extract sheet name from start part
+            if (startPart.includes("!")) {
+              const sheetAndCell = startPart.split("!");
+              targetSheetName = sheetAndCell[0];
+              startPart = sheetAndCell[1];
+            }
+
+            // If end part also has sheet reference, remove it
+            if (endPart.includes("!")) {
+              endPart = endPart.split("!")[1];
+            }
+
+            // Reconstruct the range without sheet references
+            tableRange = `${startPart}:${endPart}`;
+
+            // Find the target sheet
+            if (targetSheetName) {
+              const targetSheet = currentSheets.find(
+                (s) => s.name === targetSheetName || s.id === targetSheetName,
+              );
+              if (targetSheet) {
+                targetCellGrid = targetSheet.cells;
+              } else {
+                return "0";
+              }
+            }
           }
 
           const [start, end] = tableRange.split(":");
@@ -1402,15 +1450,44 @@ const SpreadSheet = ({
             return "0";
           }
 
-          // Get the lookup value
+          // Get the lookup value - evaluate expressions like I39*10
           let searchValue: string | number;
-          if (/^[A-Z]+\d+$/.test(lookupValue)) {
-            searchValue = getCellValueFromAnySheet(lookupValue, currentSheets);
-          } else if (!isNaN(Number.parseFloat(lookupValue))) {
-            searchValue = Number.parseFloat(lookupValue);
-          } else {
-            // Remove quotes if it's a string literal
-            searchValue = lookupValue.replace(/^["']|["']$/g, "");
+          // Replace cell references in the lookup value with actual values
+          let evaluatedLookup = lookupValue.replace(
+            /\$?([A-Za-z0-9]+:[A-Za-z0-9]+!|[A-Za-z0-9]+!)?\$?[A-Z]+\$?\d+/g,
+            (match: string) => {
+              const cleanMatch = match.replace(/\$/g, "");
+              const cellValue = getCellValueFromAnySheet(
+                cleanMatch,
+                currentSheets,
+              );
+              if (typeof cellValue === "number") {
+                return cellValue.toString();
+              }
+              return "0";
+            },
+          );
+
+          // Try to evaluate if it's a math expression
+          try {
+            const evaluated = Function(
+              `"use strict"; return (${evaluatedLookup})`,
+            )();
+            if (typeof evaluated === "number" && !isNaN(evaluated)) {
+              searchValue = evaluated;
+            } else if (!isNaN(Number.parseFloat(evaluatedLookup))) {
+              searchValue = Number.parseFloat(evaluatedLookup);
+            } else {
+              // Remove quotes if it's a string literal
+              searchValue = lookupValue.replace(/^["']|["']$/g, "");
+            }
+          } catch {
+            // If evaluation fails, try parsing as number or use as string
+            if (!isNaN(Number.parseFloat(evaluatedLookup))) {
+              searchValue = Number.parseFloat(evaluatedLookup);
+            } else {
+              searchValue = lookupValue.replace(/^["']|["']$/g, "");
+            }
           }
 
           // Check if column index is within the range
@@ -1423,7 +1500,7 @@ const SpreadSheet = ({
           let lastMatchRow = -1;
           for (let r = startPos.row; r <= endPos.row; r++) {
             const lookupCellRef = getCellRef(r, startPos.col);
-            const lookupCell = cellGrid[lookupCellRef];
+            const lookupCell = targetCellGrid[lookupCellRef];
 
             let cellValue: string | number = "";
             if (lookupCell) {
@@ -1479,7 +1556,7 @@ const SpreadSheet = ({
               // Return value from the specified column
               const resultCol = startPos.col + columnIndex - 1;
               const resultCellRef = getCellRef(r, resultCol);
-              const resultCell = cellGrid[resultCellRef];
+              const resultCell = targetCellGrid[resultCellRef];
 
               if (resultCell) {
                 const resultValue =
@@ -1499,7 +1576,228 @@ const SpreadSheet = ({
           if (!exactMatch && lastMatchRow >= 0) {
             const resultCol = startPos.col + columnIndex - 1;
             const resultCellRef = getCellRef(lastMatchRow, resultCol);
-            const resultCell = cellGrid[resultCellRef];
+            const resultCell = targetCellGrid[resultCellRef];
+
+            if (resultCell) {
+              const resultValue =
+                typeof resultCell.computed === "number"
+                  ? resultCell.computed
+                  : resultCell.computed || resultCell.value || "";
+              return typeof resultValue === "number"
+                ? resultValue.toString()
+                : "0";
+            }
+          }
+
+          return "0";
+        });
+
+        // VLOOKUP function (English version)
+        expression = expression.replace(/VLOOKUP\(([^)]*)\)/g, (_, args) => {
+          if (!args.trim()) {
+            return "0";
+          }
+
+          // Support both comma and semicolon as separators (regional formats)
+          const normalizedArgs = args.replace(/;/g, ",");
+          const params = normalizedArgs
+            .split(",")
+            .map((param: string) => param.trim())
+            .filter((param: unknown) => param !== "");
+
+          if (params.length < 3) {
+            return "0";
+          }
+
+          const lookupValue = params[0];
+          let tableRange = params[1];
+          const columnIndex = Number.parseInt(params[2]);
+          const exactMatch = params[3]
+            ? params[3].toLowerCase() === "true" || params[3] === "1"
+            : true;
+
+          if (isNaN(columnIndex) || columnIndex < 1) {
+            return "0";
+          }
+
+          // Parse the table range - support cross-sheet references
+          if (!tableRange.includes(":")) {
+            return "0";
+          }
+
+          // Handle cross-sheet references: Tablas!B3:C10 or Tablas!B3:Tablas!C10
+          let targetSheetName: string | null = null;
+          let targetCellGrid = cellGrid;
+
+          if (tableRange.includes("!")) {
+            // Extract sheet name and normalize the range
+            const parts = tableRange.split(":");
+            let startPart = parts[0];
+            let endPart = parts[1];
+
+            // Extract sheet name from start part
+            if (startPart.includes("!")) {
+              const sheetAndCell = startPart.split("!");
+              targetSheetName = sheetAndCell[0];
+              startPart = sheetAndCell[1];
+            }
+
+            // If end part also has sheet reference, remove it
+            if (endPart.includes("!")) {
+              endPart = endPart.split("!")[1];
+            }
+
+            // Reconstruct the range without sheet references
+            tableRange = `${startPart}:${endPart}`;
+
+            // Find the target sheet
+            if (targetSheetName) {
+              const targetSheet = currentSheets.find(
+                (s) => s.name === targetSheetName || s.id === targetSheetName,
+              );
+              if (targetSheet) {
+                targetCellGrid = targetSheet.cells;
+              } else {
+                return "0";
+              }
+            }
+          }
+
+          const [start, end] = tableRange.split(":");
+          const startPos = parseCellRef(start.trim());
+          const endPos = parseCellRef(end.trim());
+
+          if (!startPos || !endPos) {
+            return "0";
+          }
+
+          // Get the lookup value - evaluate expressions like I39*10
+          let searchValue: string | number;
+          // Replace cell references in the lookup value with actual values
+          let evaluatedLookup = lookupValue.replace(
+            /\$?([A-Za-z0-9]+:[A-Za-z0-9]+!|[A-Za-z0-9]+!)?\$?[A-Z]+\$?\d+/g,
+            (match: string) => {
+              const cleanMatch = match.replace(/\$/g, "");
+              const cellValue = getCellValueFromAnySheet(
+                cleanMatch,
+                currentSheets,
+              );
+              if (typeof cellValue === "number") {
+                return cellValue.toString();
+              }
+              return "0";
+            },
+          );
+
+          // Try to evaluate if it's a math expression
+          try {
+            const evaluated = Function(
+              `"use strict"; return (${evaluatedLookup})`,
+            )();
+            if (typeof evaluated === "number" && !isNaN(evaluated)) {
+              searchValue = evaluated;
+            } else if (!isNaN(Number.parseFloat(evaluatedLookup))) {
+              searchValue = Number.parseFloat(evaluatedLookup);
+            } else {
+              // Remove quotes if it's a string literal
+              searchValue = lookupValue.replace(/^["']|["']$/g, "");
+            }
+          } catch {
+            // If evaluation fails, try parsing as number or use as string
+            if (!isNaN(Number.parseFloat(evaluatedLookup))) {
+              searchValue = Number.parseFloat(evaluatedLookup);
+            } else {
+              searchValue = lookupValue.replace(/^["']|["']$/g, "");
+            }
+          }
+
+          // Check if column index is within the range
+          const tableWidth = endPos.col - startPos.col + 1;
+          if (columnIndex > tableWidth) {
+            return "0";
+          }
+
+          // Search in the first column of the range
+          let lastMatchRow = -1;
+          for (let r = startPos.row; r <= endPos.row; r++) {
+            const lookupCellRef = getCellRef(r, startPos.col);
+            const lookupCell = targetCellGrid[lookupCellRef];
+
+            let cellValue: string | number = "";
+            if (lookupCell) {
+              cellValue =
+                typeof lookupCell.computed === "number"
+                  ? lookupCell.computed
+                  : (lookupCell.computed || lookupCell.value || "").toString();
+            }
+
+            // Compare values
+            let isMatch = false;
+            if (exactMatch) {
+              if (
+                typeof searchValue === "number" &&
+                typeof cellValue === "number"
+              ) {
+                isMatch = Math.abs(searchValue - cellValue) < 0.0001;
+              } else {
+                isMatch =
+                  String(cellValue).toLowerCase() ===
+                  String(searchValue).toLowerCase();
+              }
+            } else {
+              // Approximate match (for sorted data)
+              if (
+                typeof searchValue === "number" &&
+                typeof cellValue === "number"
+              ) {
+                if (cellValue <= searchValue) {
+                  lastMatchRow = r;
+                }
+                if (cellValue > searchValue) {
+                  break;
+                }
+              } else {
+                if (
+                  String(cellValue).toLowerCase() <=
+                  String(searchValue).toLowerCase()
+                ) {
+                  lastMatchRow = r;
+                }
+                if (
+                  String(cellValue).toLowerCase() >
+                  String(searchValue).toLowerCase()
+                ) {
+                  break;
+                }
+              }
+              continue;
+            }
+
+            if (isMatch) {
+              // Return value from the specified column
+              const resultCol = startPos.col + columnIndex - 1;
+              const resultCellRef = getCellRef(r, resultCol);
+              const resultCell = targetCellGrid[resultCellRef];
+
+              if (resultCell) {
+                const resultValue =
+                  typeof resultCell.computed === "number"
+                    ? resultCell.computed
+                    : resultCell.computed || resultCell.value || "";
+                return typeof resultValue === "number"
+                  ? resultValue.toString()
+                  : "0";
+              }
+
+              return "0";
+            }
+          }
+
+          // For approximate match, return the last matching row
+          if (!exactMatch && lastMatchRow >= 0) {
+            const resultCol = startPos.col + columnIndex - 1;
+            const resultCellRef = getCellRef(lastMatchRow, resultCol);
+            const resultCell = targetCellGrid[resultCellRef];
 
             if (resultCell) {
               const resultValue =
@@ -2030,7 +2328,7 @@ const SpreadSheet = ({
         const computedValue = isFormula
           ? value
           : !isNaN(numValue) && value.trim() !== ""
-            ? numValue
+            ? roundToTwoDecimals(numValue)
             : value;
 
         // Create or update the cell with new value
@@ -2067,7 +2365,12 @@ const SpreadSheet = ({
                   newCells,
                   prevSheets,
                 );
-                updatedComputedValues[ref] = result !== undefined ? result : "";
+                const roundedResult =
+                  typeof result === "number"
+                    ? roundToTwoDecimals(result)
+                    : result;
+                updatedComputedValues[ref] =
+                  roundedResult !== undefined ? roundedResult : "";
 
                 // Update the temp cell grid with the new computed value for next cell calculations
                 newCells[ref] = {
@@ -2167,7 +2470,12 @@ const SpreadSheet = ({
                 newCells,
                 prevSheets,
               );
-              updatedComputedValues[ref] = result !== undefined ? result : "";
+              const roundedResult =
+                typeof result === "number"
+                  ? roundToTwoDecimals(result)
+                  : result;
+              updatedComputedValues[ref] =
+                roundedResult !== undefined ? roundedResult : "";
               newCells[ref] = {
                 ...newCells[ref],
                 computed: updatedComputedValues[ref],
@@ -2410,9 +2718,13 @@ const SpreadSheet = ({
                     updatedCells,
                     prevSheets,
                   );
+                  const roundedComputed =
+                    typeof computed === "number"
+                      ? roundToTwoDecimals(computed)
+                      : computed;
                   updatedCells[cellRef] = {
                     ...cell,
-                    computed: computed ?? "",
+                    computed: roundedComputed ?? "",
                   };
                 }
               }),
@@ -2572,9 +2884,13 @@ const SpreadSheet = ({
                   updatedCells,
                   prevSheets,
                 );
+                const roundedComputed =
+                  typeof computed === "number"
+                    ? roundToTwoDecimals(computed)
+                    : computed;
                 updatedCells[cellRef] = {
                   ...cell,
-                  computed: computed ?? "",
+                  computed: roundedComputed ?? "",
                 };
               }
             }),
@@ -3136,7 +3452,7 @@ const SpreadSheet = ({
                 if (elementValue.type === "number") {
                   const numValue = Number(elementValue.value);
                   if (!isNaN(numValue)) {
-                    computedValue = numValue;
+                    computedValue = roundToTwoDecimals(numValue);
                   }
                 }
 
@@ -3187,7 +3503,12 @@ const SpreadSheet = ({
                   newCells,
                   newSheets,
                 );
-                updatedComputedValues[ref] = result !== undefined ? result : "";
+                const roundedResult =
+                  typeof result === "number"
+                    ? roundToTwoDecimals(result)
+                    : result;
+                updatedComputedValues[ref] =
+                  roundedResult !== undefined ? roundedResult : "";
 
                 // Update the cell grid with the new computed value for next cell calculations
                 newCells[ref] = {
@@ -3254,7 +3575,7 @@ const SpreadSheet = ({
                   if (elementValue.type === "number") {
                     const numValue = Number(elementValue.value);
                     if (!isNaN(numValue)) {
-                      computedValue = numValue;
+                      computedValue = roundToTwoDecimals(numValue);
                     }
                   }
 
@@ -3308,7 +3629,12 @@ const SpreadSheet = ({
                 newCells,
                 updatedSheets,
               );
-              updatedComputedValues[ref] = result !== undefined ? result : "";
+              const roundedResult =
+                typeof result === "number"
+                  ? roundToTwoDecimals(result)
+                  : result;
+              updatedComputedValues[ref] =
+                roundedResult !== undefined ? roundedResult : "";
 
               // Update the cell grid with the new computed value for next cell calculations
               newCells[ref] = {

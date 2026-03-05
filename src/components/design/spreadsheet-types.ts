@@ -12,6 +12,22 @@ export interface Cell {
   options?: string[]; // Dropdown options for select functionality
 }
 
+export interface GraphicShape {
+  type: "rectangle" | "circle" | "line";
+  dimensions: {
+    width?: number;
+    height?: number;
+    diameter?: number;
+    length?: number;
+  };
+  position: {
+    x: number;
+    y: number;
+  };
+  label?: string;
+  color?: string;
+}
+
 export interface MergedCell {
   startCell: string; // e.g., "A1"
   endCell: string; // e.g., "B3"

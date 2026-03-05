@@ -1,5 +1,6 @@
 import React from "react";
-import { Cell } from "./spreadsheet-types";
+import { Cell, CellGrid } from "./spreadsheet-types";
+import InlineCellGraphic from "./InlineCellGraphic";
 
 interface SpreadSheetCellProps {
   cellRef: string;
@@ -19,6 +20,7 @@ interface SpreadSheetCellProps {
   onStartEditing?: (cellRef: string) => void;
   onStopEditing?: (value: string) => void;
   onNavigateAfterEdit?: (direction: "down" | "right") => void;
+  cells: CellGrid; // Add cells prop for graphics
 }
 
 const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
@@ -39,8 +41,60 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
   onStartEditing,
   onStopEditing,
   onNavigateAfterEdit,
+  cells,
 }) => {
   const inputRef = React.useRef<HTMLInputElement>(null);
+
+  // Check if this cell should display a graphic
+  const cellValue = cell?.value || "";
+  const isGraphicCell =
+    typeof cellValue === "string" && cellValue.startsWith("DRAW:");
+
+  let graphicView: "FRONTAL" | "SUPERIOR" | null = null;
+  let graphicComponents: Array<"NUCLEO" | "BOBINA" | "TANQUE"> = [];
+  let dimensionCells = {};
+
+  if (isGraphicCell) {
+    const parts = cellValue.split(":");
+    if (parts.length >= 3) {
+      const view = parts[1].toUpperCase();
+      if (view === "FRONTAL" || view === "SUPERIOR") {
+        graphicView = view as "FRONTAL" | "SUPERIOR";
+
+        // Parse components (comma-separated)
+        const componentsStr = parts[2].toUpperCase();
+        const componentsList = componentsStr.split(",").map((c) => c.trim());
+
+        for (const comp of componentsList) {
+          if (comp === "NUCLEO" || comp === "BOBINA" || comp === "TANQUE") {
+            graphicComponents.push(comp);
+          }
+        }
+
+        // Parse dimension cell references if provided (optional)
+        // Format: DRAW:VIEW:COMPONENTS:nucleoAlto,nucleoAncho:bobinaProfundidad:tanqueAlto,tanqueDiametro
+        if (parts.length >= 4) {
+          const nucleoCells = parts[3]?.split(",") || [];
+          const bobinaCells = parts[4]?.split(",") || [];
+          const tanqueCells = parts[5]?.split(",") || [];
+
+          dimensionCells = {
+            nucleo: {
+              alto: nucleoCells[0],
+              ancho: nucleoCells[1],
+            },
+            bobina: {
+              profundidad: bobinaCells[0],
+            },
+            tanque: {
+              alto: tanqueCells[0],
+              diametro: tanqueCells[1],
+            },
+          };
+        }
+      }
+    }
+  }
 
   // Focus input when entering edit mode
   React.useEffect(() => {
@@ -237,6 +291,16 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
             fontWeight: cell?.bold ? "bold" : undefined,
             color: cell?.textColor || undefined,
           }}
+        />
+      ) : graphicView && graphicComponents.length > 0 ? (
+        // Render inline graphic
+        <InlineCellGraphic
+          view={graphicView}
+          components={graphicComponents}
+          cells={cells}
+          dimensionCells={dimensionCells}
+          width={columnWidth}
+          height={rowHeight}
         />
       ) : (
         <div

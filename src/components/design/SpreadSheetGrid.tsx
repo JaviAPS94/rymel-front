@@ -472,6 +472,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                         <SpreadSheetCell
                           cellRef={cellRef}
                           cell={cell}
+                          cells={cells}
                           isSelected={isSelected}
                           isHidden={isHidden}
                           isFrozen={true}
@@ -561,6 +562,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                         <SpreadSheetCell
                           cellRef={cellRef}
                           cell={cell}
+                          cells={cells}
                           isSelected={isSelected}
                           isHidden={isHidden}
                           isFrozen={true}
@@ -689,6 +691,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                         <SpreadSheetCell
                           cellRef={cellRef}
                           cell={cell}
+                          cells={cells}
                           isSelected={isSelected}
                           isHidden={isHidden}
                           isFrozen={true}
@@ -779,6 +782,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                         <SpreadSheetCell
                           cellRef={cellRef}
                           cell={cell}
+                          cells={cells}
                           isSelected={isSelected}
                           isHidden={isHidden}
                           isFrozen={false}

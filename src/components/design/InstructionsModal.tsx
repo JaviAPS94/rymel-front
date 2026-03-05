@@ -142,6 +142,12 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({
           example: "=BUSCARV(A1, B1:E10, 3, TRUE)",
         },
         {
+          label: "VLOOKUP(value, table, column, exact)",
+          description:
+            "Searches for a value in the first column of a table and returns a value from the specified column",
+          example: "=VLOOKUP(A1, B1:E10, 3, TRUE)",
+        },
+        {
           label: "COINCIDIR(valor, rango/array, tipo)",
           description:
             "Busca un valor en un rango o array y devuelve su posición. Tipo: 0=exacto, 1=menor/igual, -1=mayor/igual",
