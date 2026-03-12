@@ -709,54 +709,118 @@ const SpreadSheet = ({
     [cells],
   );
 
+  // Helper: Get merge info for a cell if it's part of a merged region
+  const getMergeInfoForCell = useCallback(
+    (row: number, col: number) => {
+      if (!currentSheet?.mergedCells) return null;
+
+      return (
+        currentSheet.mergedCells.find((merge) => {
+          const mergeStart = parseCellRef(merge.startCell);
+          const mergeEnd = parseCellRef(merge.endCell);
+          if (!mergeStart || !mergeEnd) return false;
+
+          return (
+            row >= mergeStart.row &&
+            row <= mergeEnd.row &&
+            col >= mergeStart.col &&
+            col <= mergeEnd.col
+          );
+        }) || null
+      );
+    },
+    [currentSheet?.mergedCells],
+  );
+
   // Navigate to adjacent cell
   const navigateCell = useCallback(
     (direction: "up" | "down" | "left" | "right") => {
       const currentPos = parseCellRef(selectedCell);
       if (!currentPos) return;
 
+      // Check if current cell is part of a merge
+      const currentMerge = getMergeInfoForCell(currentPos.row, currentPos.col);
+
       let newRow = currentPos.row;
       let newCol = currentPos.col;
 
-      switch (direction) {
-        case "up":
-          // Move up, skipping hidden rows
-          newRow = currentPos.row - 1;
-          while (newRow >= 0 && hiddenRows.has(newRow)) {
-            newRow--;
-          }
-          newRow = Math.max(0, newRow);
-          break;
-        case "down":
-          // Move down, skipping hidden rows
-          newRow = currentPos.row + 1;
-          while (newRow < ROWS && hiddenRows.has(newRow)) {
-            newRow++;
-          }
-          newRow = Math.min(ROWS - 1, newRow);
-          break;
-        case "left":
-          // Move left, skipping hidden columns
-          newCol = currentPos.col - 1;
-          while (newCol >= 0 && hiddenColumns.has(newCol)) {
-            newCol--;
-          }
-          newCol = Math.max(0, newCol);
-          break;
-        case "right":
-          // Move right, skipping hidden columns
-          newCol = currentPos.col + 1;
-          while (newCol < COLS && hiddenColumns.has(newCol)) {
-            newCol++;
-          }
-          newCol = Math.min(COLS - 1, newCol);
-          break;
+      // If we're in a merged cell, we need to navigate from the edge of the merge
+      if (currentMerge) {
+        const mergeStart = parseCellRef(currentMerge.startCell);
+        const mergeEnd = parseCellRef(currentMerge.endCell);
+        if (!mergeStart || !mergeEnd) return;
+
+        switch (direction) {
+          case "up":
+            // Start from the top edge of the merge
+            newRow = mergeStart.row - 1;
+            break;
+          case "down":
+            // Start from the bottom edge of the merge
+            newRow = mergeEnd.row + 1;
+            break;
+          case "left":
+            // Start from the left edge of the merge
+            newCol = mergeStart.col - 1;
+            break;
+          case "right":
+            // Start from the right edge of the merge
+            newCol = mergeEnd.col + 1;
+            break;
+        }
+      } else {
+        // Normal navigation from a single cell
+        switch (direction) {
+          case "up":
+            newRow = currentPos.row - 1;
+            break;
+          case "down":
+            newRow = currentPos.row + 1;
+            break;
+          case "left":
+            newCol = currentPos.col - 1;
+            break;
+          case "right":
+            newCol = currentPos.col + 1;
+            break;
+        }
+      }
+
+      // Skip hidden rows/columns
+      if (direction === "up" || direction === "down") {
+        while (newRow >= 0 && newRow < ROWS && hiddenRows.has(newRow)) {
+          newRow += direction === "down" ? 1 : -1;
+        }
+        newRow = Math.max(0, Math.min(ROWS - 1, newRow));
+      } else {
+        while (newCol >= 0 && newCol < COLS && hiddenColumns.has(newCol)) {
+          newCol += direction === "right" ? 1 : -1;
+        }
+        newCol = Math.max(0, Math.min(COLS - 1, newCol));
+      }
+
+      // Check if the target cell is part of a merge
+      const targetMerge = getMergeInfoForCell(newRow, newCol);
+      if (targetMerge) {
+        // Navigate to the master cell (top-left) of the merge
+        const mergeStart = parseCellRef(targetMerge.startCell);
+        if (mergeStart) {
+          newRow = mergeStart.row;
+          newCol = mergeStart.col;
+        }
       }
 
       const newCellRef = getCellRef(newRow, newCol);
       selectCell(newCellRef);
     },
-    [selectedCell, selectCell, hiddenRows, hiddenColumns],
+    [
+      selectedCell,
+      selectCell,
+      hiddenRows,
+      hiddenColumns,
+      getMergeInfoForCell,
+      currentSheet,
+    ],
   );
 
   // Handle resize start
