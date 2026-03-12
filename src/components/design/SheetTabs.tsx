@@ -21,6 +21,11 @@ interface SheetTabsProps {
   onSheetNameKeyPress: (e: React.KeyboardEvent, sheetId: string) => void;
   onSetEditingSheetName: (sheetId: string | null) => void;
   onAddNewSheet: () => void;
+  selectionStats?: {
+    average: number | null;
+    count: number;
+    sum: number;
+  };
 }
 
 const SheetTabs: React.FC<SheetTabsProps> = ({
@@ -32,10 +37,11 @@ const SheetTabs: React.FC<SheetTabsProps> = ({
   onSheetNameKeyPress,
   onSetEditingSheetName,
   onAddNewSheet,
+  selectionStats,
 }) => {
   return (
     <div className="bg-gray-50 border-t flex items-center">
-      <div className="flex-1 flex items-center overflow-x-auto">
+      <div className="flex items-center overflow-x-auto">
         {sheets.map((sheet) => (
           <div
             key={sheet.id}
@@ -75,16 +81,43 @@ const SheetTabs: React.FC<SheetTabsProps> = ({
             )}
           </div>
         ))}
+
+        <Button
+          onClick={onAddNewSheet}
+          className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-200 border-l"
+          title="Agregar nueva hoja"
+        >
+          <FaPlus className="inline mr-1 text-blue-600" />
+          Agregar Hoja
+        </Button>
       </div>
 
-      <Button
-        onClick={onAddNewSheet}
-        className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-200 border-l"
-        title="Agregar nueva hoja"
-      >
-        <FaPlus className="inline mr-1 text-blue-600" />
-        Agregar Hoja
-      </Button>
+      {/* Flexible spacer */}
+      <div className="flex-1"></div>
+
+      {/* Selection Stats - Excel style at the right */}
+      {selectionStats && selectionStats.count > 1 && (
+        <div className="flex items-center gap-3 px-4 py-2 text-xs bg-white border-l">
+          <div className="flex items-center gap-1">
+            <span className="font-medium text-gray-600">Average:</span>
+            <span className="text-gray-900">
+              {selectionStats.average !== null
+                ? selectionStats.average.toFixed(2)
+                : "N/A"}
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="font-medium text-gray-600">Count:</span>
+            <span className="text-gray-900">{selectionStats.count}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="font-medium text-gray-600">Sum:</span>
+            <span className="text-gray-900">
+              {selectionStats.sum.toFixed(2)}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

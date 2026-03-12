@@ -43,10 +43,10 @@ const FormulaBar: React.FC<FormulaBarProps> = ({
   onExitFormulaBuildingMode,
 }) => {
   return (
-    <div className="mt-2 flex flex-col gap-2">
-      <div className="flex items-center gap-4">
-        <span className="text-sm font-medium text-gray-600">
-          {currentSheetName} - Celda: {selectedCell}
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-medium text-gray-500 whitespace-nowrap">
+          - Celda: {selectedCell}
         </span>
         <input
           ref={formulaInputRef}
@@ -60,7 +60,7 @@ const FormulaBar: React.FC<FormulaBarProps> = ({
           onFocus={onFormulaFocus}
           onBlur={onFormulaBlur}
           placeholder="Ingrese un valor o una fórmula (e.g., =A1+B1, =Sheet1!A1, =design:Sheet1!A1, =cost:Hoja1!A1)"
-          className={`flex-1 px-3 py-1 h-10 border rounded text-sm focus:outline-none focus:ring-2 ${
+          className={`flex-1 px-2 py-0.5 h-7 border rounded text-sm focus:outline-none focus:ring-2 ${
             isFormulaBuildingMode
               ? "border-blue-500 focus:ring-blue-500 bg-blue-50"
               : "border-gray-300 focus:ring-blue-500"
@@ -71,9 +71,11 @@ const FormulaBar: React.FC<FormulaBarProps> = ({
       {typeof (window as any).onCellStyleToolbarRender === "function" &&
         (window as any).onCellStyleToolbarRender()}
       {isFormulaBuildingMode && (
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-blue-600 font-medium">Modo Formula</span>
-          <span className="text-xs text-gray-500">
+        <div className="flex items-center gap-1.5 text-sm">
+          <span className="text-blue-600 font-medium text-xs">
+            Modo Formula
+          </span>
+          <span className="text-xs text-gray-400">
             Cursor: {formulaCursorPosition}
           </span>
           <Button

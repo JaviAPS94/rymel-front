@@ -109,6 +109,10 @@ const SpreadSheet = ({
   const [selectedCells, setSelectedCells] = useState<Set<string>>(
     new Set(["A1"]),
   );
+  // Ref to track the selection anchor for shift+click range selection
+  const selectionAnchorRef = useRef<string>("A1");
+  // Ref to store the grid's scrollToCell function
+  const scrollToCellRef = useRef<((cellRef: string) => void) | null>(null);
   // Track inline editing state
   const [editingCell, setEditingCell] = useState<string | null>(null);
   const [inlineCellValue, setInlineCellValue] = useState<string>("");
@@ -146,6 +150,7 @@ const SpreadSheet = ({
   // Helper: select a single cell (clears others)
   const selectSingleCell = (cellRef: string) => {
     setSelectedCell(cellRef);
+    selectionAnchorRef.current = cellRef; // Set as new anchor
     setSelectedCells(new Set([cellRef]));
   };
 
@@ -172,6 +177,14 @@ const SpreadSheet = ({
     }
     setSelectedCells(cells);
   };
+
+  // Handler: store scrollToCell function from grid
+  const handleGridReady = useCallback(
+    (scrollToCell: (cellRef: string) => void) => {
+      scrollToCellRef.current = scrollToCell;
+    },
+    [],
+  );
 
   // Helper functions to serialize/deserialize sheets for history
   const serializeSheetsForHistory = useCallback((sheets: Sheet[]) => {
@@ -325,9 +338,9 @@ const SpreadSheet = ({
 
   // Expose toolbar render function for FormulaBar
   (window as any).onCellStyleToolbarRender = () => (
-    <div className="flex items-center gap-4 mt-1 p-2 bg-gray-50 rounded border border-gray-200">
+    <div className="flex items-center gap-3 mt-1 px-2 py-1 bg-gray-50 rounded border border-gray-200">
       <button
-        className={`px-2 py-1 border rounded ${cellBold ? "font-bold bg-gray-200" : ""}`}
+        className={`px-1.5 py-0.5 border rounded text-sm ${cellBold ? "font-bold bg-gray-200" : ""}`}
         title="Negrita"
         onClick={() => updateCellStyle({ bold: !cellBold })}
         type="button"
@@ -336,16 +349,16 @@ const SpreadSheet = ({
       </button>
 
       <div className="flex items-center gap-1">
-        <span className="text-xs text-gray-600 font-medium">Texto:</span>
+        <span className="text-xs text-gray-500">Texto:</span>
         <input
           type="color"
           value={cellTextColor || "#000000"}
           title="Color de texto"
           onChange={(e) => updateCellStyle({ textColor: e.target.value })}
-          className="w-8 h-8 p-0 border rounded cursor-pointer"
+          className="w-6 h-6 p-0 border rounded cursor-pointer"
         />
         <span
-          className="text-sm font-bold ml-1"
+          className="text-xs font-bold"
           style={{ color: cellTextColor || "#000000" }}
         >
           A
@@ -353,27 +366,27 @@ const SpreadSheet = ({
       </div>
 
       <div className="flex items-center gap-1">
-        <span className="text-xs text-gray-600 font-medium">Fondo:</span>
+        <span className="text-xs text-gray-500">Fondo:</span>
         <input
           type="color"
           value={cellBackgroundColor || "#ffffff"}
           title="Color de fondo"
           onChange={(e) => updateCellStyle({ backgroundColor: e.target.value })}
-          className="w-8 h-8 p-0 border rounded cursor-pointer"
+          className="w-6 h-6 p-0 border rounded cursor-pointer"
         />
         <div
-          className="w-5 h-5 border border-gray-400 rounded ml-1"
+          className="w-4 h-4 border border-gray-400 rounded"
           style={{ backgroundColor: cellBackgroundColor || "#ffffff" }}
         />
       </div>
 
       <div className="flex items-center gap-1">
-        <span className="text-xs text-gray-600 font-medium">Borde:</span>
+        <span className="text-xs text-gray-500">Borde:</span>
         <select
           value={cellBorder || ""}
           title="Borde"
           onChange={(e) => updateCellStyle({ border: e.target.value })}
-          className="px-2 py-1 border rounded text-sm cursor-pointer"
+          className="px-1.5 py-0.5 border rounded text-xs cursor-pointer"
         >
           <option value="">Sin borde</option>
           <option value="1px solid #000">Negro</option>
@@ -469,6 +482,39 @@ const SpreadSheet = ({
   const cells = useMemo(() => currentSheet?.cells || {}, [currentSheet?.cells]);
   const columnWidths = currentSheet?.columnWidths || {};
   const rowHeights = currentSheet?.rowHeights || {};
+
+  // Calculate statistics for selected cells
+  const selectionStats = useMemo(() => {
+    if (selectedCells.size <= 1) {
+      return undefined;
+    }
+
+    const values: number[] = [];
+    selectedCells.forEach((cellRef) => {
+      const cell = cells[cellRef];
+      if (cell) {
+        const value = cell.computed ?? cell.value;
+        if (typeof value === "number" && !isNaN(value)) {
+          values.push(value);
+        } else if (typeof value === "string") {
+          const numValue = parseFloat(value.replace(",", "."));
+          if (!isNaN(numValue)) {
+            values.push(numValue);
+          }
+        }
+      }
+    });
+
+    const count = values.length;
+    const sum = count > 0 ? values.reduce((acc, val) => acc + val, 0) : 0;
+    const average = count > 0 ? sum / count : null;
+
+    return {
+      average,
+      count,
+      sum,
+    };
+  }, [selectedCells, cells]);
   // Combine template-hidden and user-hidden rows/columns
   const hiddenRows = useMemo(() => {
     const combined = new Set<number>();
@@ -506,6 +552,13 @@ const SpreadSheet = ({
     cellBorder,
     cellBold,
   ]);
+
+  // Auto-scroll when selected cell changes
+  useEffect(() => {
+    if (scrollToCellRef.current && selectedCell) {
+      scrollToCellRef.current(selectedCell);
+    }
+  }, [selectedCell]);
 
   // Get column width
   const getColumnWidth = (col: number): number => {
@@ -636,6 +689,7 @@ const SpreadSheet = ({
     (cellRef: string) => {
       // First, update the most critical state immediately for responsiveness
       setSelectedCell(cellRef);
+      selectionAnchorRef.current = cellRef;
       setSelectedCells(new Set([cellRef])); // Update multi-selection state
 
       // Then batch the rest of the updates as lower priority
@@ -2195,6 +2249,7 @@ const SpreadSheet = ({
       if (normalizedSheets[0]?.id) {
         setActiveSheetId(normalizedSheets[0].id);
         setSelectedCell("A1");
+        selectionAnchorRef.current = "A1";
         setSelectedCells(new Set(["A1"]));
         setFormulaInput("");
       }
@@ -3061,13 +3116,16 @@ const SpreadSheet = ({
     // Check for multi-select modifiers (only in normal mode, not formula building)
     if (!isFormulaBuildingMode && event) {
       if (event.shiftKey) {
-        // Range selection
-        selectCellRange(selectedCell, cellRef);
+        // Range selection - use anchor as start, clicked cell as end
+        const startCell = selectionAnchorRef.current;
         setSelectedCell(cellRef);
+        // Don't update anchor - keep the original anchor for next shift+click
+        selectCellRange(startCell, cellRef);
         return;
       } else if (event.ctrlKey || event.metaKey) {
         // Toggle selection
         setSelectedCell(cellRef);
+        selectionAnchorRef.current = cellRef; // Update anchor for ctrl+click
         setSelectedCells((prev) => {
           const next = new Set(prev);
           if (next.has(cellRef)) {
@@ -3300,6 +3358,7 @@ const SpreadSheet = ({
     setSheets((prev) => [...prev, newSheet]);
     setActiveSheetId(newSheet.id);
     setSelectedCell("A1");
+    selectionAnchorRef.current = "A1";
     setSelectedCells(new Set(["A1"]));
     setFormulaInput("");
 
@@ -3378,6 +3437,7 @@ const SpreadSheet = ({
     // If not in formula building mode, reset selection
     if (!isFormulaBuildingMode) {
       setSelectedCell("A1");
+      selectionAnchorRef.current = "A1";
       setSelectedCells(new Set(["A1"]));
       setFormulaInput("");
       setIsAddingToFormula(false);
@@ -3543,6 +3603,7 @@ const SpreadSheet = ({
         setSheets(newSheets);
         setShowTemplateLibrary(false);
         setSelectedCell("A1");
+        selectionAnchorRef.current = "A1";
         setSelectedCells(new Set(["A1"]));
         setFormulaInput("");
         return;
@@ -3703,10 +3764,7 @@ const SpreadSheet = ({
   return (
     <div className="w-full h-screen bg-white flex flex-col rounded-lg shadow-md overflow-hidden">
       {/* Header */}
-      <div className="bg-gray-100 border-b p-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold">Cálculos</h1>
-        </div>
+      <div className="bg-gray-100 border-b px-3 py-1.5">
         <FormulaBar
           selectedCell={selectedCell}
           currentSheetName={currentSheet?.name || ""}
@@ -3802,6 +3860,7 @@ const SpreadSheet = ({
         onStartInlineEditing={handleStartInlineEditing}
         onStopInlineEditing={handleStopInlineEditing}
         onNavigateAfterEdit={handleNavigateAfterEdit}
+        onGridReady={handleGridReady}
       />
 
       {/* Context Menu */}
@@ -3947,6 +4006,7 @@ const SpreadSheet = ({
         onSheetNameKeyPress={handleSheetNameKeyPress}
         onSetEditingSheetName={setEditingSheetName}
         onAddNewSheet={addNewSheet}
+        selectionStats={selectionStats}
       />
     </div>
   );

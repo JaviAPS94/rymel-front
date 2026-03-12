@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Modal } from "../core/Modal";
 import { FaKeyboard, FaCalculator, FaLightbulb } from "react-icons/fa";
-import { MdFunctions } from "react-icons/md";
+import { MdFunctions, MdOutlineImage } from "react-icons/md";
 import { BiMath } from "react-icons/bi";
 import { TbTableOptions } from "react-icons/tb";
 
@@ -83,6 +83,57 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({
           description:
             'Usa el botón "Agregar celda" para seleccionar con clicks',
           example: "Más fácil que escribir manualmente",
+        },
+      ],
+    },
+    {
+      id: "graphics",
+      title: "Gráficos Técnicos",
+      icon: <MdOutlineImage className="w-6 h-6" />,
+      color: "indigo",
+      items: [
+        {
+          label: "DRAW:FRONTAL:NUCLEO",
+          description:
+            "Vista frontal del núcleo con coordenadas. Usa referencias de celdas para alto y ancho.",
+          example: "DRAW:FRONTAL:NUCLEO:H53,H54",
+        },
+        {
+          label: "DRAW:SUPERIOR:NUCLEO,BOBINA",
+          description:
+            "Vista superior del núcleo y bobina. Ancho del núcleo y profundidad de bobina.",
+          example: "DRAW:SUPERIOR:NUCLEO,BOBINA:,H54:S55",
+        },
+        {
+          label: "DRAW:FRONTAL:TANQUE,NUCLEO,BOBINA",
+          description:
+            "Vista frontal completa de todos los componentes. Incluye tanque, núcleo y bobina.",
+          example: "DRAW:FRONTAL:TANQUE,NUCLEO,BOBINA:H53,H54::AD53,AD55",
+        },
+        {
+          label: "DRAW:SUPERIOR:TANQUE,NUCLEO,BOBINA",
+          description:
+            "Vista superior completa. Muestra el tanque (círculo), núcleo (rectángulo) y bobina (semicírculos).",
+          example: "DRAW:SUPERIOR:TANQUE,NUCLEO,BOBINA:,H54:S55:,AD55",
+        },
+        {
+          label: "Referencias de Dimensiones",
+          description:
+            "Formato: DRAW:VISTA:COMPONENTES:nucleoAlto,nucleoAncho:bobinaProfundidad:tanqueAlto,tanqueDiametro",
+          example:
+            "Usa comas para separar dimensiones del mismo componente y : para separar componentes",
+        },
+        {
+          label: "Plano de Coordenadas",
+          description:
+            "Todos los gráficos incluyen ejes X e Y con medidas cada 50mm. Escala: 1 = 100mm.",
+          example: "Las medidas se muestran automáticamente en los ejes",
+        },
+        {
+          label: "Celdas Combinadas",
+          description:
+            "Los gráficos se ajustan al tamaño de las celdas combinadas. Usa al menos 6x6 celdas combinadas.",
+          example: "Combina celdas B44:G49 para crear el área del gráfico",
         },
       ],
     },
@@ -268,6 +319,12 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({
         border: "border-purple-200",
         text: "text-purple-700",
         hover: "hover:bg-purple-100",
+      },
+      indigo: {
+        bg: "bg-indigo-50",
+        border: "border-indigo-200",
+        text: "text-indigo-700",
+        hover: "hover:bg-indigo-100",
       },
       orange: {
         bg: "bg-orange-50",

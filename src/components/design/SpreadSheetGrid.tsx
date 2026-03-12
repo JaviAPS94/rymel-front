@@ -62,6 +62,7 @@ interface SpreadSheetGridProps {
   onStartInlineEditing?: (cellRef: string) => void;
   onStopInlineEditing?: (value: string) => void;
   onNavigateAfterEdit?: (direction: "down" | "right") => void;
+  onGridReady?: (scrollToCell: (cellRef: string) => void) => void;
 }
 
 const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
@@ -89,6 +90,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
   onStartInlineEditing,
   onStopInlineEditing,
   onNavigateAfterEdit,
+  onGridReady,
 }) => {
   // Virtualization state
   const containerRef = useRef<HTMLDivElement>(null);
@@ -165,6 +167,88 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
 
     setVisibleRange({ startRow, endRow, startCol, endCol });
   }, [getRowHeight, getColumnWidth, hiddenRows, hiddenColumns]);
+
+  // Scroll to a specific cell, ensuring it's visible with some padding
+  const scrollToCell = useCallback(
+    (cellRef: string) => {
+      if (!containerRef.current) return;
+
+      const parsed = parseCellRef(cellRef);
+      if (!parsed) return;
+
+      const { row, col } = parsed;
+      const container = containerRef.current;
+      const scrollPadding = 50; // Extra space around the cell
+
+      // Calculate row position
+      let rowTop = 32; // Column header height
+      for (let i = 0; i < row; i++) {
+        if (!hiddenRows.has(i)) {
+          rowTop += getRowHeight(i);
+        }
+      }
+      const rowHeight = getRowHeight(row);
+      const rowBottom = rowTop + rowHeight;
+
+      // Calculate column position
+      let colLeft = 48; // Row header width
+      for (let i = 0; i < col; i++) {
+        if (!hiddenColumns.has(i)) {
+          colLeft += getColumnWidth(i);
+        }
+      }
+      const colWidth = getColumnWidth(col);
+      const colRight = colLeft + colWidth;
+
+      // Get current viewport
+      const viewportTop = container.scrollTop;
+      const viewportBottom = viewportTop + container.clientHeight;
+      const viewportLeft = container.scrollLeft;
+      const viewportRight = viewportLeft + container.clientWidth;
+
+      // Calculate new scroll position if needed
+      let newScrollTop = container.scrollTop;
+      let newScrollLeft = container.scrollLeft;
+
+      // Check vertical scroll
+      if (rowTop < viewportTop + scrollPadding) {
+        // Cell is above viewport or too close to top
+        newScrollTop = Math.max(0, rowTop - scrollPadding);
+      } else if (rowBottom > viewportBottom - scrollPadding) {
+        // Cell is below viewport or too close to bottom
+        newScrollTop = rowBottom - container.clientHeight + scrollPadding;
+      }
+
+      // Check horizontal scroll
+      if (colLeft < viewportLeft + scrollPadding) {
+        // Cell is left of viewport or too close to left edge
+        newScrollLeft = Math.max(0, colLeft - scrollPadding);
+      } else if (colRight > viewportRight - scrollPadding) {
+        // Cell is right of viewport or too close to right edge
+        newScrollLeft = colRight - container.clientWidth + scrollPadding;
+      }
+
+      // Perform smooth scroll if needed
+      if (
+        newScrollTop !== container.scrollTop ||
+        newScrollLeft !== container.scrollLeft
+      ) {
+        container.scrollTo({
+          top: newScrollTop,
+          left: newScrollLeft,
+          behavior: "smooth",
+        });
+      }
+    },
+    [getRowHeight, getColumnWidth, hiddenRows, hiddenColumns],
+  );
+
+  // Expose scrollToCell function to parent component
+  useEffect(() => {
+    if (onGridReady) {
+      onGridReady(scrollToCell);
+    }
+  }, [onGridReady, scrollToCell]);
 
   // Update visible range on scroll
   useEffect(() => {
