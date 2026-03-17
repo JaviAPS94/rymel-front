@@ -3,6 +3,8 @@ import React from "react";
 interface SpreadSheetRowHeaderProps {
   rowIndex: number;
   rowHeight: number;
+  width?: number;
+  fontSize?: number;
   onResizeStart: (
     e: React.MouseEvent,
     type: "column" | "row",
@@ -15,13 +17,15 @@ interface SpreadSheetRowHeaderProps {
 const SpreadSheetRowHeader: React.FC<SpreadSheetRowHeaderProps> = ({
   rowIndex,
   rowHeight,
+  width = 48,
+  fontSize = 12,
   onResizeStart,
   onContextMenu,
 }) => {
   return (
     <div
-      className="w-12 border-r border-b border-gray-300 flex items-center justify-center text-sm font-medium text-gray-700 bg-gray-50 relative group box-border"
-      style={{ height: rowHeight }}
+      className="border-r border-b border-gray-300 flex items-center justify-center font-medium text-gray-700 bg-gray-50 relative group box-border"
+      style={{ height: rowHeight, width, minWidth: width, fontSize }}
       onContextMenu={onContextMenu}
     >
       {rowIndex + 1}

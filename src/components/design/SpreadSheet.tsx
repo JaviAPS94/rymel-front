@@ -113,6 +113,8 @@ const SpreadSheet = ({
   const selectionAnchorRef = useRef<string>("A1");
   // Ref to store the grid's scrollToCell function
   const scrollToCellRef = useRef<((cellRef: string) => void) | null>(null);
+  // Zoom level (50-200%)
+  const [zoom, setZoom] = useState<number>(100);
   // Track inline editing state
   const [editingCell, setEditingCell] = useState<string | null>(null);
   const [inlineCellValue, setInlineCellValue] = useState<string>("");
@@ -847,7 +849,9 @@ const SpreadSheet = ({
       if (isResizing.type === null) return;
 
       const currentPos = isResizing.type === "column" ? e.clientX : e.clientY;
-      const delta = currentPos - isResizing.startPos;
+      const rawDelta = currentPos - isResizing.startPos;
+      // Divide by zoom scale so stored logical size stays correct
+      const delta = rawDelta / (zoom / 100);
       const newSize = Math.max(
         isResizing.type === "column" ? MIN_COLUMN_WIDTH : MIN_ROW_HEIGHT,
         isResizing.startSize + delta,
@@ -892,7 +896,7 @@ const SpreadSheet = ({
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [isResizing, activeSheetId]);
+  }, [isResizing, activeSheetId, zoom]);
 
   // Hide/Unhide functions
   const hideRow = useCallback(
@@ -3925,6 +3929,7 @@ const SpreadSheet = ({
         onStopInlineEditing={handleStopInlineEditing}
         onNavigateAfterEdit={handleNavigateAfterEdit}
         onGridReady={handleGridReady}
+        zoom={zoom}
       />
 
       {/* Context Menu */}
@@ -4071,6 +4076,8 @@ const SpreadSheet = ({
         onSetEditingSheetName={setEditingSheetName}
         onAddNewSheet={addNewSheet}
         selectionStats={selectionStats}
+        zoom={zoom}
+        onZoomChange={setZoom}
       />
     </div>
   );

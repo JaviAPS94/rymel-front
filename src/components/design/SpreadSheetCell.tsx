@@ -21,6 +21,7 @@ interface SpreadSheetCellProps {
   onStopEditing?: (value: string) => void;
   onNavigateAfterEdit?: (direction: "down" | "right") => void;
   cells: CellGrid; // Add cells prop for graphics
+  fontScale?: number; // Zoom scale factor (1.0 = 100%)
 }
 
 const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
@@ -42,6 +43,7 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
   onStopEditing,
   onNavigateAfterEdit,
   cells,
+  fontScale = 1,
 }) => {
   const inputRef = React.useRef<HTMLInputElement>(null);
 
@@ -130,6 +132,7 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
     minHeight: rowHeight,
     maxWidth: columnWidth,
     maxHeight: rowHeight,
+    fontSize: Math.round(14 * fontScale),
     fontWeight: cell?.bold ? "bold" : undefined,
     color: cell?.textColor || undefined,
     backgroundColor:
@@ -343,6 +346,7 @@ export default React.memo(SpreadSheetCell, (prevProps, nextProps) => {
     prevProps.columnWidth === nextProps.columnWidth &&
     prevProps.rowHeight === nextProps.rowHeight &&
     prevProps.isEditing === nextProps.isEditing &&
-    prevProps.editingValue === nextProps.editingValue
+    prevProps.editingValue === nextProps.editingValue &&
+    prevProps.fontScale === nextProps.fontScale
   );
 });

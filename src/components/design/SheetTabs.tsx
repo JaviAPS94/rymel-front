@@ -26,6 +26,8 @@ interface SheetTabsProps {
     count: number;
     sum: number;
   };
+  zoom?: number;
+  onZoomChange?: (zoom: number) => void;
 }
 
 const SheetTabs: React.FC<SheetTabsProps> = ({
@@ -38,6 +40,8 @@ const SheetTabs: React.FC<SheetTabsProps> = ({
   onSetEditingSheetName,
   onAddNewSheet,
   selectionStats,
+  zoom = 100,
+  onZoomChange,
 }) => {
   return (
     <div className="bg-gray-50 border-t flex items-center">
@@ -116,6 +120,39 @@ const SheetTabs: React.FC<SheetTabsProps> = ({
               {selectionStats.sum.toFixed(2)}
             </span>
           </div>
+        </div>
+      )}
+
+      {/* Zoom slider - Excel style */}
+      {onZoomChange && (
+        <div className="flex items-center gap-2 px-3 py-1 border-l bg-white select-none">
+          <button
+            className="w-5 h-5 flex items-center justify-center text-gray-500 hover:text-gray-800 font-bold leading-none"
+            onClick={() => onZoomChange(Math.max(50, zoom - 10))}
+            title="Reducir zoom"
+          >
+            −
+          </button>
+          <input
+            type="range"
+            min={50}
+            max={200}
+            step={5}
+            value={zoom}
+            onChange={(e) => onZoomChange(Number(e.target.value))}
+            className="w-24 h-1.5 accent-gray-600 cursor-pointer"
+            title={`Zoom: ${zoom}%`}
+          />
+          <button
+            className="w-5 h-5 flex items-center justify-center text-gray-500 hover:text-gray-800 font-bold leading-none"
+            onClick={() => onZoomChange(Math.min(200, zoom + 10))}
+            title="Aumentar zoom"
+          >
+            +
+          </button>
+          <span className="text-xs text-gray-700 w-9 text-right tabular-nums">
+            {zoom}%
+          </span>
         </div>
       )}
     </div>

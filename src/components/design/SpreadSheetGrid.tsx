@@ -7,7 +7,6 @@ import { MergedCell } from "./spreadsheet-types";
 
 const ROWS = 250;
 const COLS = 50; // Rendered columns (supports Excel-style naming A-ZZ in formulas)
-const DEFAULT_ROW_HEIGHT = 32;
 const OVERSCAN_ROWS = 5; // Render extra rows above/below viewport for smooth scrolling
 const OVERSCAN_COLS = 3; // Render extra columns left/right of viewport
 
@@ -63,6 +62,7 @@ interface SpreadSheetGridProps {
   onStopInlineEditing?: (value: string) => void;
   onNavigateAfterEdit?: (direction: "down" | "right") => void;
   onGridReady?: (scrollToCell: (cellRef: string) => void) => void;
+  zoom?: number;
 }
 
 const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
@@ -71,8 +71,8 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
   selectedCells,
   isAddingToFormula,
   rangeSelectionStart,
-  getColumnWidth,
-  getRowHeight,
+  getColumnWidth: getColumnWidthBase,
+  getRowHeight: getRowHeightBase,
   handleCellClick,
   handleResizeStart,
   hiddenRows,
@@ -91,7 +91,37 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
   onStopInlineEditing,
   onNavigateAfterEdit,
   onGridReady,
+  zoom = 100,
 }) => {
+  // Zoom scale factor
+  const scale = zoom / 100;
+  // Scaled dimension helpers — shadow the prop names so all layout code uses scaled values automatically
+  const getColumnWidth = useCallback(
+    (col: number) => getColumnWidthBase(col) * scale,
+    [getColumnWidthBase, scale],
+  );
+  const getRowHeight = useCallback(
+    (row: number) => getRowHeightBase(row) * scale,
+    [getRowHeightBase, scale],
+  );
+  // Scaled fixed header dimensions
+  const SCALED_HEADER_HEIGHT = Math.round(32 * scale);
+  const SCALED_ROW_HEADER_WIDTH = Math.round(48 * scale);
+  // Unscaled resize handler — passes logical (unscaled) sizes to parent so resize math stays correct
+  const handleResizeStartUnscaled = useCallback(
+    (
+      e: React.MouseEvent,
+      type: "column" | "row",
+      index: number,
+      _scaledSize: number,
+    ) => {
+      const logicalSize =
+        type === "column" ? getColumnWidthBase(index) : getRowHeightBase(index);
+      handleResizeStart(e, type, index, logicalSize);
+    },
+    [getColumnWidthBase, getRowHeightBase, handleResizeStart],
+  );
+
   // Virtualization state
   const containerRef = useRef<HTMLDivElement>(null);
   const [visibleRange, setVisibleRange] = useState({
@@ -112,7 +142,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
     const viewportWidth = container.clientWidth;
 
     // Calculate visible rows
-    let currentHeight = 32; // Column header height
+    let currentHeight = SCALED_HEADER_HEIGHT; // Column header height
     let startRow = 0;
     let endRow = ROWS - 1;
 
@@ -128,7 +158,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
     }
 
     // Find last visible row
-    currentHeight = 32;
+    currentHeight = SCALED_HEADER_HEIGHT;
     for (let i = 0; i < ROWS; i++) {
       if (hiddenRows.has(i)) continue;
       currentHeight += getRowHeight(i);
@@ -139,7 +169,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
     }
 
     // Calculate visible columns
-    let currentWidth = 48; // Row header width
+    let currentWidth = SCALED_ROW_HEADER_WIDTH; // Row header width
     let startCol = 0;
     let endCol = COLS - 1;
 
@@ -155,7 +185,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
     }
 
     // Find last visible column
-    currentWidth = 48;
+    currentWidth = SCALED_ROW_HEADER_WIDTH;
     for (let i = 0; i < COLS; i++) {
       if (hiddenColumns.has(i)) continue;
       currentWidth += getColumnWidth(i);
@@ -181,7 +211,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
       const scrollPadding = 50; // Extra space around the cell
 
       // Calculate row position
-      let rowTop = 32; // Column header height
+      let rowTop = SCALED_HEADER_HEIGHT; // Column header height
       for (let i = 0; i < row; i++) {
         if (!hiddenRows.has(i)) {
           rowTop += getRowHeight(i);
@@ -191,7 +221,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
       const rowBottom = rowTop + rowHeight;
 
       // Calculate column position
-      let colLeft = 48; // Row header width
+      let colLeft = SCALED_ROW_HEADER_WIDTH; // Row header width
       for (let i = 0; i < col; i++) {
         if (!hiddenColumns.has(i)) {
           colLeft += getColumnWidth(i);
@@ -312,7 +342,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
 
   // Calculate cumulative width for frozen columns
   const getFrozenColumnOffset = (col: number): number => {
-    let offset = 48; // Row header width
+    let offset = SCALED_ROW_HEADER_WIDTH; // Row header width
     for (let i = 0; i < col; i++) {
       if (!hiddenColumns.has(i)) {
         offset += getColumnWidth(i);
@@ -323,7 +353,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
 
   // Calculate cumulative height for frozen rows
   const getFrozenRowOffset = (row: number): number => {
-    let offset = 32; // Column header height
+    let offset = SCALED_HEADER_HEIGHT; // Column header height
     for (let i = 0; i < row; i++) {
       if (!hiddenRows.has(i)) {
         offset += getRowHeight(i);
@@ -334,29 +364,29 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
 
   // Calculate total grid dimensions for virtualization
   const getTotalWidth = useCallback(() => {
-    let total = 48; // Row header width
+    let total = SCALED_ROW_HEADER_WIDTH; // Row header width
     for (let i = 0; i < COLS; i++) {
       if (!hiddenColumns.has(i)) {
         total += getColumnWidth(i);
       }
     }
     return total;
-  }, [getColumnWidth, hiddenColumns]);
+  }, [getColumnWidth, hiddenColumns, SCALED_ROW_HEADER_WIDTH]);
 
   const getTotalHeight = useCallback(() => {
-    let total = 32; // Column header height
+    let total = SCALED_HEADER_HEIGHT; // Column header height
     for (let i = 0; i < ROWS; i++) {
       if (!hiddenRows.has(i)) {
         total += getRowHeight(i);
       }
     }
     return total;
-  }, [getRowHeight, hiddenRows]);
+  }, [getRowHeight, hiddenRows, SCALED_HEADER_HEIGHT]);
 
   // Calculate offset for a specific row (for absolute positioning)
   const getRowOffset = useCallback(
     (row: number) => {
-      let offset = 32; // Column header height
+      let offset = SCALED_HEADER_HEIGHT; // Column header height
       for (let i = 0; i < row; i++) {
         if (!hiddenRows.has(i)) {
           offset += getRowHeight(i);
@@ -364,13 +394,13 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
       }
       return offset;
     },
-    [getRowHeight, hiddenRows],
+    [getRowHeight, hiddenRows, SCALED_HEADER_HEIGHT],
   );
 
   // Calculate offset for a specific column (for absolute positioning)
   const getColOffset = useCallback(
     (col: number) => {
-      let offset = 48; // Row header width
+      let offset = SCALED_ROW_HEADER_WIDTH; // Row header width
       for (let i = 0; i < col; i++) {
         if (!hiddenColumns.has(i)) {
           offset += getColumnWidth(i);
@@ -378,7 +408,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
       }
       return offset;
     },
-    [getColumnWidth, hiddenColumns],
+    [getColumnWidth, hiddenColumns, SCALED_ROW_HEADER_WIDTH],
   );
 
   return (
@@ -395,7 +425,14 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
       >
         {/* Column Headers */}
         <div className="flex sticky top-0 bg-gray-50 border-b z-30">
-          <div className="w-12 h-8 border-r border-gray-300 bg-gray-100 sticky left-0 z-40"></div>
+          <div
+            className="border-r border-gray-300 bg-gray-100 sticky left-0 z-40"
+            style={{
+              width: SCALED_ROW_HEADER_WIDTH,
+              minWidth: SCALED_ROW_HEADER_WIDTH,
+              height: SCALED_HEADER_HEIGHT,
+            }}
+          ></div>
 
           {/* Frozen column headers (always visible) */}
           {freezeColumn > 0 &&
@@ -417,8 +454,8 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                     columnIndex={col}
                     columnLabel={getColumnLabel(col)}
                     columnWidth={getColumnWidth(col)}
-                    defaultRowHeight={DEFAULT_ROW_HEIGHT}
-                    onResizeStart={handleResizeStart}
+                    defaultRowHeight={SCALED_HEADER_HEIGHT}
+                    onResizeStart={handleResizeStartUnscaled}
                     onContextMenu={(e) => onColumnHeaderContextMenu(e, col)}
                   />
                 </div>
@@ -452,8 +489,8 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                     columnIndex={col}
                     columnLabel={getColumnLabel(col)}
                     columnWidth={getColumnWidth(col)}
-                    defaultRowHeight={DEFAULT_ROW_HEIGHT}
-                    onResizeStart={handleResizeStart}
+                    defaultRowHeight={SCALED_HEADER_HEIGHT}
+                    onResizeStart={handleResizeStartUnscaled}
                     onContextMenu={(e) => onColumnHeaderContextMenu(e, col)}
                   />
                 </div>
@@ -490,7 +527,9 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                   <SpreadSheetRowHeader
                     rowIndex={row}
                     rowHeight={getRowHeight(row)}
-                    onResizeStart={handleResizeStart}
+                    width={SCALED_ROW_HEADER_WIDTH}
+                    fontSize={Math.round(12 * scale)}
+                    onResizeStart={handleResizeStartUnscaled}
                     onContextMenu={(e) => onRowHeaderContextMenu(e, row)}
                   />
                 </div>
@@ -574,6 +613,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                           onStartEditing={onStartInlineEditing}
                           onStopEditing={onStopInlineEditing}
                           onNavigateAfterEdit={onNavigateAfterEdit}
+                          fontScale={scale}
                         />
                       </div>
                     );
@@ -664,6 +704,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                           onStartEditing={onStartInlineEditing}
                           onStopEditing={onStopInlineEditing}
                           onNavigateAfterEdit={onNavigateAfterEdit}
+                          fontScale={scale}
                         />
                       </div>
                     );
@@ -709,7 +750,9 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                   <SpreadSheetRowHeader
                     rowIndex={row}
                     rowHeight={getRowHeight(row)}
-                    onResizeStart={handleResizeStart}
+                    width={SCALED_ROW_HEADER_WIDTH}
+                    fontSize={Math.round(12 * scale)}
+                    onResizeStart={handleResizeStartUnscaled}
                     onContextMenu={(e) => onRowHeaderContextMenu(e, row)}
                   />
                 </div>
@@ -793,6 +836,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                           onStartEditing={onStartInlineEditing}
                           onStopEditing={onStopInlineEditing}
                           onNavigateAfterEdit={onNavigateAfterEdit}
+                          fontScale={scale}
                         />
                       </div>
                     );
@@ -884,6 +928,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                           onStartEditing={onStartInlineEditing}
                           onStopEditing={onStopInlineEditing}
                           onNavigateAfterEdit={onNavigateAfterEdit}
+                          fontScale={scale}
                         />
                       </div>
                     );
