@@ -53,13 +53,7 @@ const getColumnIndex = (label: string): number => {
   return index - 1;
 };
 
-// Helper function to round numbers to 2 decimal places
-const roundToTwoDecimals = (value: number | string): number | string => {
-  if (typeof value === "number" && !isNaN(value)) {
-    return Math.round(value * 100) / 100;
-  }
-  return value;
-};
+
 
 interface SpreadSheetProps {
   subTypeWithFunctions: DesignSubtype;
@@ -98,6 +92,10 @@ const SpreadSheet = ({
   const [cellBackgroundColor, setCellBackgroundColor] = useState<string>("");
   const [cellBorder, setCellBorder] = useState<string>("");
   const [cellBold, setCellBold] = useState<boolean>(false);
+  const [cellDecimals, setCellDecimals] = useState<number | undefined>(undefined);
+  const [condFmtMin, setCondFmtMin] = useState<string>("");
+  const [condFmtMax, setCondFmtMax] = useState<string>("");
+  const [condFmtColor, setCondFmtColor] = useState<string>("#ff0000");
 
   const [activeSheetId, setActiveSheetId] = useState<string>(
     sheetsInitialData && sheetsInitialData.length > 0
@@ -338,6 +336,79 @@ const SpreadSheet = ({
     [activeSheetId, selectedCells, setSheets, saveToHistoryImmediate],
   );
 
+  const updateCellDecimals = useCallback(
+    (delta: number) => {
+      saveToHistoryImmediate();
+      setSheets((prevSheets) =>
+        prevSheets.map((sheet) => {
+          if (sheet.id !== activeSheetId) return sheet;
+          const updatedCells = { ...sheet.cells };
+          selectedCells.forEach((cellRef) => {
+            const cell = updatedCells[cellRef];
+            const current = (() => {
+              if (cell?.decimals !== undefined) return cell.decimals;
+              // Infer decimals from the actual computed value
+              const v = cell?.computed;
+              if (typeof v === "number" && isFinite(v)) {
+                const str = v.toString();
+                const dot = str.indexOf(".");
+                return dot === -1 ? 0 : str.length - dot - 1;
+              }
+              return 0;
+            })();
+            const next = Math.max(0, Math.min(10, current + delta));
+            updatedCells[cellRef] = {
+              ...updatedCells[cellRef],
+              decimals: next,
+            };
+          });
+          return { ...sheet, cells: updatedCells };
+        }),
+      );
+    },
+    [activeSheetId, selectedCells, setSheets, saveToHistoryImmediate],
+  );
+
+  const applyConditionalFormat = useCallback(
+    (min: string, max: string, color: string) => {
+      const minVal = min.trim() !== "" ? Number(min) : undefined;
+      const maxVal = max.trim() !== "" ? Number(max) : undefined;
+      if (minVal !== undefined && isNaN(minVal)) return;
+      if (maxVal !== undefined && isNaN(maxVal)) return;
+      saveToHistoryImmediate();
+      setSheets((prevSheets) =>
+        prevSheets.map((sheet) => {
+          if (sheet.id !== activeSheetId) return sheet;
+          const updatedCells = { ...sheet.cells };
+          selectedCells.forEach((cellRef) => {
+            const existing = updatedCells[cellRef];
+            updatedCells[cellRef] = {
+              ...(existing ?? { value: "", formula: "", computed: "" }),
+              conditionalFormat: { min: minVal, max: maxVal, color },
+            };
+          });
+          return { ...sheet, cells: updatedCells };
+        }),
+      );
+    },
+    [activeSheetId, selectedCells, setSheets, saveToHistoryImmediate],
+  );
+
+  const clearConditionalFormat = useCallback(() => {
+    saveToHistoryImmediate();
+    setSheets((prevSheets) =>
+      prevSheets.map((sheet) => {
+        if (sheet.id !== activeSheetId) return sheet;
+        const updatedCells = { ...sheet.cells };
+        selectedCells.forEach((cellRef) => {
+          const { conditionalFormat: _removed, ...rest } = updatedCells[cellRef] || {};
+          updatedCells[cellRef] = rest as typeof updatedCells[typeof cellRef];
+        });
+        return { ...sheet, cells: updatedCells };
+      }),
+    );
+  }, [activeSheetId, selectedCells, setSheets, saveToHistoryImmediate]);
+
   // Expose toolbar render function for FormulaBar
   (window as any).onCellStyleToolbarRender = () => (
     <div className="flex items-center gap-3 mt-1 px-2 py-1 bg-gray-50 rounded border border-gray-200">
@@ -349,6 +420,35 @@ const SpreadSheet = ({
       >
         B
       </button>
+
+      {/* Decrease / Increase decimal places */}
+      <div className="flex items-center gap-1">
+        <button
+          className="px-1.5 py-0.5 border rounded text-xs leading-none hover:bg-gray-100"
+          title="Disminuir decimales"
+          onClick={() => updateCellDecimals(-1)}
+          type="button"
+        >
+          <span className="flex items-center gap-px font-mono">
+            <span>←</span>
+            <span>.00</span>
+          </span>
+        </button>
+        <button
+          className="px-1.5 py-0.5 border rounded text-xs leading-none hover:bg-gray-100"
+          title="Aumentar decimales"
+          onClick={() => updateCellDecimals(1)}
+          type="button"
+        >
+          <span className="flex items-center gap-px font-mono">
+            <span>.00</span>
+            <span>→</span>
+          </span>
+        </button>
+        {cellDecimals !== undefined && (
+          <span className="text-xs text-gray-400">{cellDecimals}d</span>
+        )}
+      </div>
 
       <div className="flex items-center gap-1">
         <span className="text-xs text-gray-500">Texto:</span>
@@ -396,6 +496,51 @@ const SpreadSheet = ({
           <option value="2px solid #007bff">Azul</option>
           <option value="2px solid #e11d48">Rojo</option>
         </select>
+      </div>
+
+      {/* Conditional formatting: highlight when value is outside [min, max] */}
+      <div className="flex items-center gap-1 border-l pl-3">
+        <span className="text-xs text-gray-500 whitespace-nowrap">Rango:</span>
+        <input
+          type="number"
+          placeholder="mín"
+          value={condFmtMin}
+          onChange={(e) => setCondFmtMin(e.target.value)}
+          className="w-14 px-1 py-0.5 border rounded text-xs"
+          title="Valor mínimo del rango"
+        />
+        <span className="text-xs text-gray-400">–</span>
+        <input
+          type="number"
+          placeholder="máx"
+          value={condFmtMax}
+          onChange={(e) => setCondFmtMax(e.target.value)}
+          className="w-14 px-1 py-0.5 border rounded text-xs"
+          title="Valor máximo del rango"
+        />
+        <input
+          type="color"
+          value={condFmtColor}
+          onChange={(e) => setCondFmtColor(e.target.value)}
+          className="w-6 h-6 p-0 border rounded cursor-pointer"
+          title="Color de alerta"
+        />
+        <button
+          type="button"
+          onClick={() => applyConditionalFormat(condFmtMin, condFmtMax, condFmtColor)}
+          className="px-1.5 py-0.5 border rounded text-xs hover:bg-blue-50 hover:border-blue-400"
+          title="Aplicar formato condicional"
+        >
+          ✓
+        </button>
+        <button
+          type="button"
+          onClick={clearConditionalFormat}
+          className="px-1.5 py-0.5 border rounded text-xs hover:bg-red-50 hover:border-red-400 text-gray-500"
+          title="Quitar formato condicional"
+        >
+          ✕
+        </button>
       </div>
     </div>
   );
@@ -540,12 +685,23 @@ const SpreadSheet = ({
     const newBorder = cell?.border || "";
     const newBold = !!cell?.bold;
 
+    const newDecimals = cell?.decimals;
+
     // Only update if values changed to minimize re-renders
     if (cellTextColor !== newTextColor) setCellTextColor(newTextColor);
     if (cellBackgroundColor !== newBackgroundColor)
       setCellBackgroundColor(newBackgroundColor);
     if (cellBorder !== newBorder) setCellBorder(newBorder);
     if (cellBold !== newBold) setCellBold(newBold);
+    if (cellDecimals !== newDecimals) setCellDecimals(newDecimals);
+
+    const cf = cell?.conditionalFormat;
+    const newCondMin = cf?.min !== undefined ? String(cf.min) : "";
+    const newCondMax = cf?.max !== undefined ? String(cf.max) : "";
+    const newCondColor = cf?.color || "#ff0000";
+    setCondFmtMin(newCondMin);
+    setCondFmtMax(newCondMax);
+    setCondFmtColor(newCondColor);
   }, [
     selectedCell,
     cells,
@@ -553,6 +709,7 @@ const SpreadSheet = ({
     cellBackgroundColor,
     cellBorder,
     cellBold,
+    cellDecimals,
   ]);
 
   // Auto-scroll when selected cell changes
@@ -2451,7 +2608,7 @@ const SpreadSheet = ({
         const computedValue = isFormula
           ? value
           : !isNaN(numValue) && value.trim() !== ""
-            ? roundToTwoDecimals(numValue)
+            ? numValue
             : value;
 
         // Create or update the cell with new value
@@ -2488,12 +2645,8 @@ const SpreadSheet = ({
                   newCells,
                   prevSheets,
                 );
-                const roundedResult =
-                  typeof result === "number"
-                    ? roundToTwoDecimals(result)
-                    : result;
                 updatedComputedValues[ref] =
-                  roundedResult !== undefined ? roundedResult : "";
+                  result !== undefined ? result : "";
 
                 // Update the temp cell grid with the new computed value for next cell calculations
                 newCells[ref] = {
@@ -2593,12 +2746,8 @@ const SpreadSheet = ({
                 newCells,
                 prevSheets,
               );
-              const roundedResult =
-                typeof result === "number"
-                  ? roundToTwoDecimals(result)
-                  : result;
               updatedComputedValues[ref] =
-                roundedResult !== undefined ? roundedResult : "";
+                result !== undefined ? result : "";
               newCells[ref] = {
                 ...newCells[ref],
                 computed: updatedComputedValues[ref],
@@ -2841,13 +2990,9 @@ const SpreadSheet = ({
                     updatedCells,
                     prevSheets,
                   );
-                  const roundedComputed =
-                    typeof computed === "number"
-                      ? roundToTwoDecimals(computed)
-                      : computed;
                   updatedCells[cellRef] = {
                     ...cell,
-                    computed: roundedComputed ?? "",
+                    computed: computed ?? "",
                   };
                 }
               }),
@@ -3007,13 +3152,9 @@ const SpreadSheet = ({
                   updatedCells,
                   prevSheets,
                 );
-                const roundedComputed =
-                  typeof computed === "number"
-                    ? roundToTwoDecimals(computed)
-                    : computed;
                 updatedCells[cellRef] = {
                   ...cell,
-                  computed: roundedComputed ?? "",
+                  computed: computed ?? "",
                 };
               }
             }),
@@ -3580,7 +3721,7 @@ const SpreadSheet = ({
                 if (elementValue.type === "number") {
                   const numValue = Number(elementValue.value);
                   if (!isNaN(numValue)) {
-                    computedValue = roundToTwoDecimals(numValue);
+                    computedValue = numValue;
                   }
                 }
 
@@ -3631,12 +3772,8 @@ const SpreadSheet = ({
                   newCells,
                   newSheets,
                 );
-                const roundedResult =
-                  typeof result === "number"
-                    ? roundToTwoDecimals(result)
-                    : result;
                 updatedComputedValues[ref] =
-                  roundedResult !== undefined ? roundedResult : "";
+                  result !== undefined ? result : "";
 
                 // Update the cell grid with the new computed value for next cell calculations
                 newCells[ref] = {
@@ -3704,7 +3841,7 @@ const SpreadSheet = ({
                   if (elementValue.type === "number") {
                     const numValue = Number(elementValue.value);
                     if (!isNaN(numValue)) {
-                      computedValue = roundToTwoDecimals(numValue);
+                      computedValue = numValue;
                     }
                   }
 
@@ -3758,12 +3895,8 @@ const SpreadSheet = ({
                 newCells,
                 updatedSheets,
               );
-              const roundedResult =
-                typeof result === "number"
-                  ? roundToTwoDecimals(result)
-                  : result;
               updatedComputedValues[ref] =
-                roundedResult !== undefined ? roundedResult : "";
+                result !== undefined ? result : "";
 
               // Update the cell grid with the new computed value for next cell calculations
               newCells[ref] = {

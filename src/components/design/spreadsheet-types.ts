@@ -10,6 +10,12 @@ export interface Cell {
   backgroundColor?: string;
   border?: string; // e.g., '1px solid #000'
   options?: string[]; // Dropdown options for select functionality
+  decimals?: number; // Number of decimal places to display (undefined = auto)
+  conditionalFormat?: {
+    min?: number;
+    max?: number;
+    color: string;
+  };
 }
 
 export interface GraphicShape {

@@ -124,6 +124,20 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
   // Check if this cell has dropdown options
   const hasOptions = cell?.options && cell.options.length > 0;
 
+  // Evaluate conditional formatting: highlight when value is outside [min, max]
+  const conditionalBgColor = (() => {
+    const cf = cell?.conditionalFormat;
+    if (!cf) return undefined;
+    const v =
+      typeof cell?.computed === "number"
+        ? cell.computed
+        : parseFloat(String(cell?.computed ?? ""));
+    if (isNaN(v)) return undefined;
+    const belowMin = cf.min !== undefined && v < cf.min;
+    const aboveMax = cf.max !== undefined && v > cf.max;
+    return belowMin || aboveMax ? cf.color : undefined;
+  })();
+
   // Compute style from cell properties
   const cellStyle: React.CSSProperties = {
     width: columnWidth,
@@ -136,7 +150,7 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
     fontWeight: cell?.bold ? "bold" : undefined,
     color: cell?.textColor || undefined,
     backgroundColor:
-      cell?.backgroundColor || (isFrozen ? "#ffffff" : undefined),
+      conditionalBgColor || cell?.backgroundColor || (isFrozen ? "#ffffff" : undefined),
     boxSizing: "border-box",
     borderTop: "none", // Remove top border to avoid doubling with row above
     borderLeft: "none", // Remove left border to avoid doubling with column to left
@@ -318,7 +332,15 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
             }
           }}
         >
-          <span className="truncate">{cell?.computed?.toString() || ""}</span>
+          <span className="truncate">
+            {(() => {
+              const v = cell?.computed;
+              if (typeof v === "number" && isFinite(v) && cell?.decimals !== undefined) {
+                return v.toFixed(cell.decimals);
+              }
+              return v?.toString() || "";
+            })()}
+          </span>
         </div>
       )}
       {/* Visual indicator for adding mode */}
@@ -347,6 +369,10 @@ export default React.memo(SpreadSheetCell, (prevProps, nextProps) => {
     prevProps.rowHeight === nextProps.rowHeight &&
     prevProps.isEditing === nextProps.isEditing &&
     prevProps.editingValue === nextProps.editingValue &&
-    prevProps.fontScale === nextProps.fontScale
+    prevProps.fontScale === nextProps.fontScale &&
+    prevProps.cell?.decimals === nextProps.cell?.decimals &&
+    prevProps.cell?.conditionalFormat?.min === nextProps.cell?.conditionalFormat?.min &&
+    prevProps.cell?.conditionalFormat?.max === nextProps.cell?.conditionalFormat?.max &&
+    prevProps.cell?.conditionalFormat?.color === nextProps.cell?.conditionalFormat?.color
   );
 });
