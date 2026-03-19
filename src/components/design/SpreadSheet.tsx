@@ -53,8 +53,6 @@ const getColumnIndex = (label: string): number => {
   return index - 1;
 };
 
-
-
 interface SpreadSheetProps {
   subTypeWithFunctions: DesignSubtype;
   templates: Template[];
@@ -92,7 +90,9 @@ const SpreadSheet = ({
   const [cellBackgroundColor, setCellBackgroundColor] = useState<string>("");
   const [cellBorder, setCellBorder] = useState<string>("");
   const [cellBold, setCellBold] = useState<boolean>(false);
-  const [cellDecimals, setCellDecimals] = useState<number | undefined>(undefined);
+  const [cellDecimals, setCellDecimals] = useState<number | undefined>(
+    undefined,
+  );
   const [condFmtMin, setCondFmtMin] = useState<string>("");
   const [condFmtMax, setCondFmtMax] = useState<string>("");
   const [condFmtColor, setCondFmtColor] = useState<string>("#ff0000");
@@ -401,8 +401,9 @@ const SpreadSheet = ({
         if (sheet.id !== activeSheetId) return sheet;
         const updatedCells = { ...sheet.cells };
         selectedCells.forEach((cellRef) => {
-          const { conditionalFormat: _removed, ...rest } = updatedCells[cellRef] || {};
-          updatedCells[cellRef] = rest as typeof updatedCells[typeof cellRef];
+          const { conditionalFormat: _removed, ...rest } =
+            updatedCells[cellRef] || {};
+          updatedCells[cellRef] = rest as (typeof updatedCells)[typeof cellRef];
         });
         return { ...sheet, cells: updatedCells };
       }),
@@ -527,7 +528,9 @@ const SpreadSheet = ({
         />
         <button
           type="button"
-          onClick={() => applyConditionalFormat(condFmtMin, condFmtMax, condFmtColor)}
+          onClick={() =>
+            applyConditionalFormat(condFmtMin, condFmtMax, condFmtColor)
+          }
           className="px-1.5 py-0.5 border rounded text-xs hover:bg-blue-50 hover:border-blue-400"
           title="Aplicar formato condicional"
         >
@@ -2645,8 +2648,7 @@ const SpreadSheet = ({
                   newCells,
                   prevSheets,
                 );
-                updatedComputedValues[ref] =
-                  result !== undefined ? result : "";
+                updatedComputedValues[ref] = result !== undefined ? result : "";
 
                 // Update the temp cell grid with the new computed value for next cell calculations
                 newCells[ref] = {
@@ -2746,8 +2748,7 @@ const SpreadSheet = ({
                 newCells,
                 prevSheets,
               );
-              updatedComputedValues[ref] =
-                result !== undefined ? result : "";
+              updatedComputedValues[ref] = result !== undefined ? result : "";
               newCells[ref] = {
                 ...newCells[ref],
                 computed: updatedComputedValues[ref],
@@ -3772,8 +3773,7 @@ const SpreadSheet = ({
                   newCells,
                   newSheets,
                 );
-                updatedComputedValues[ref] =
-                  result !== undefined ? result : "";
+                updatedComputedValues[ref] = result !== undefined ? result : "";
 
                 // Update the cell grid with the new computed value for next cell calculations
                 newCells[ref] = {
@@ -3895,8 +3895,7 @@ const SpreadSheet = ({
                 newCells,
                 updatedSheets,
               );
-              updatedComputedValues[ref] =
-                result !== undefined ? result : "";
+              updatedComputedValues[ref] = result !== undefined ? result : "";
 
               // Update the cell grid with the new computed value for next cell calculations
               newCells[ref] = {
