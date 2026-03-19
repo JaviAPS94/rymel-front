@@ -16,6 +16,7 @@ export interface Cell {
     max?: number;
     color: string;
   };
+  note?: string; // Cell note/comment (like Excel notes)
 }
 
 export interface GraphicShape {

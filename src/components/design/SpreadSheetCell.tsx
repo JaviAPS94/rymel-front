@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Cell, CellGrid } from "./spreadsheet-types";
 import InlineCellGraphic from "./InlineCellGraphic";
 
@@ -150,7 +150,9 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
     fontWeight: cell?.bold ? "bold" : undefined,
     color: cell?.textColor || undefined,
     backgroundColor:
-      conditionalBgColor || cell?.backgroundColor || (isFrozen ? "#ffffff" : undefined),
+      conditionalBgColor ||
+      cell?.backgroundColor ||
+      (isFrozen ? "#ffffff" : undefined),
     boxSizing: "border-box",
     borderTop: "none", // Remove top border to avoid doubling with row above
     borderLeft: "none", // Remove left border to avoid doubling with column to left
@@ -335,13 +337,21 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
           <span className="truncate">
             {(() => {
               const v = cell?.computed;
-              if (typeof v === "number" && isFinite(v) && cell?.decimals !== undefined) {
+              if (
+                typeof v === "number" &&
+                isFinite(v) &&
+                cell?.decimals !== undefined
+              ) {
                 return v.toFixed(cell.decimals);
               }
               return v?.toString() || "";
             })()}
           </span>
         </div>
+      )}
+      {/* Note indicator */}
+      {cell?.note && !isHidden && (
+        <NoteIndicator note={cell.note} fontScale={fontScale} />
       )}
       {/* Visual indicator for adding mode */}
       {isAddingToFormula && !isHidden && (
@@ -371,8 +381,45 @@ export default React.memo(SpreadSheetCell, (prevProps, nextProps) => {
     prevProps.editingValue === nextProps.editingValue &&
     prevProps.fontScale === nextProps.fontScale &&
     prevProps.cell?.decimals === nextProps.cell?.decimals &&
-    prevProps.cell?.conditionalFormat?.min === nextProps.cell?.conditionalFormat?.min &&
-    prevProps.cell?.conditionalFormat?.max === nextProps.cell?.conditionalFormat?.max &&
-    prevProps.cell?.conditionalFormat?.color === nextProps.cell?.conditionalFormat?.color
+    prevProps.cell?.conditionalFormat?.min ===
+      nextProps.cell?.conditionalFormat?.min &&
+    prevProps.cell?.conditionalFormat?.max ===
+      nextProps.cell?.conditionalFormat?.max &&
+    prevProps.cell?.conditionalFormat?.color ===
+      nextProps.cell?.conditionalFormat?.color &&
+    prevProps.cell?.note === nextProps.cell?.note
   );
 });
+
+// Note indicator with hover tooltip
+const NoteIndicator: React.FC<{ note: string; fontScale: number }> = React.memo(
+  ({ note, fontScale }) => {
+    const [showTooltip, setShowTooltip] = useState(false);
+
+    return (
+      <div
+        className="absolute top-0 right-0 z-10"
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
+      >
+        {/* Purple triangle indicator */}
+        <div
+          className="w-0 h-0"
+          style={{
+            borderLeft: `${Math.round(8 * fontScale)}px solid transparent`,
+            borderTop: `${Math.round(8 * fontScale)}px solid #7c3aed`,
+          }}
+        />
+        {/* Tooltip */}
+        {showTooltip && (
+          <div
+            className="absolute right-0 top-full mt-1 bg-yellow-50 border border-yellow-300 shadow-lg rounded px-2 py-1 text-xs text-gray-800 whitespace-pre-wrap max-w-[200px] z-50"
+            style={{ fontSize: Math.round(11 * fontScale) }}
+          >
+            {note}
+          </div>
+        )}
+      </div>
+    );
+  },
+);

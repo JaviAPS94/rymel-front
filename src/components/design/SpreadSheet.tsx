@@ -592,6 +592,13 @@ const SpreadSheet = ({
     useState<boolean>(false);
   const [evaluateFunction] = useEvaluateFunctionMutation();
 
+  // Note editing state
+  const [noteModal, setNoteModal] = useState<{
+    visible: boolean;
+    cellRef: string;
+    value: string;
+  }>({ visible: false, cellRef: "", value: "" });
+
   // Template state
 
   // Track if initial template has been loaded
@@ -1221,6 +1228,72 @@ const SpreadSheet = ({
           return {
             ...sheet,
             freezeRow: 0,
+            freezeColumn: 0,
+          };
+        }
+        return sheet;
+      }),
+    );
+    setContextMenu({ visible: false, x: 0, y: 0, type: null, index: -1 });
+  }, [activeSheetId]);
+
+  const freezeRowsOnly = useCallback(
+    (upToRow: number) => {
+      setSheets((prevSheets) =>
+        prevSheets.map((sheet) => {
+          if (sheet.id === activeSheetId) {
+            return {
+              ...sheet,
+              freezeRow: upToRow,
+            };
+          }
+          return sheet;
+        }),
+      );
+      setContextMenu({ visible: false, x: 0, y: 0, type: null, index: -1 });
+    },
+    [activeSheetId],
+  );
+
+  const unfreezeRows = useCallback(() => {
+    setSheets((prevSheets) =>
+      prevSheets.map((sheet) => {
+        if (sheet.id === activeSheetId) {
+          return {
+            ...sheet,
+            freezeRow: 0,
+          };
+        }
+        return sheet;
+      }),
+    );
+    setContextMenu({ visible: false, x: 0, y: 0, type: null, index: -1 });
+  }, [activeSheetId]);
+
+  const freezeColumnsOnly = useCallback(
+    (upToCol: number) => {
+      setSheets((prevSheets) =>
+        prevSheets.map((sheet) => {
+          if (sheet.id === activeSheetId) {
+            return {
+              ...sheet,
+              freezeColumn: upToCol,
+            };
+          }
+          return sheet;
+        }),
+      );
+      setContextMenu({ visible: false, x: 0, y: 0, type: null, index: -1 });
+    },
+    [activeSheetId],
+  );
+
+  const unfreezeColumns = useCallback(() => {
+    setSheets((prevSheets) =>
+      prevSheets.map((sheet) => {
+        if (sheet.id === activeSheetId) {
+          return {
+            ...sheet,
             freezeColumn: 0,
           };
         }
@@ -2395,10 +2468,164 @@ const SpreadSheet = ({
           },
         );
 
+        // --- Logical functions: AND, OR, SI/IF (processed after cell refs are resolved) ---
+
+        // Helper: evaluate a simple numeric/comparison expression
+        const evalSimpleExpr = (expr: string): number | string => {
+          try {
+            const val = Function(`"use strict"; return (${expr})`)();
+            if (typeof val === "boolean") return val ? 1 : 0;
+            if (typeof val === "number" && !isNaN(val)) return val;
+            return String(val);
+          } catch {
+            return expr;
+          }
+        };
+
+        // AND(cond1, cond2, ...) → 1 if all truthy, else 0
+        let andProcessed = true;
+        while (andProcessed) {
+          andProcessed = false;
+          // Find innermost AND( first
+          const andMatch = expression.match(/\bAND\(/i);
+          if (andMatch && andMatch.index !== undefined) {
+            const startIdx = andMatch.index;
+            const openParen = startIdx + andMatch[0].length;
+            const closeIdx = findClosingParen(expression, openParen);
+            if (closeIdx !== -1) {
+              const argsStr = expression.substring(openParen, closeIdx);
+              const args = splitFunctionArgs(argsStr);
+              const allTrue = args.every((arg) => {
+                const v = evalSimpleExpr(arg);
+                return typeof v === "number" ? v !== 0 : Boolean(v);
+              });
+              expression =
+                expression.substring(0, startIdx) +
+                (allTrue ? "1" : "0") +
+                expression.substring(closeIdx + 1);
+              andProcessed = true;
+            }
+          }
+        }
+
+        // OR / O(cond1, cond2, ...) → 1 if any truthy, else 0
+        let orProcessed = true;
+        while (orProcessed) {
+          orProcessed = false;
+          const orMatch = expression.match(/\b(?:OR|O)\(/i);
+          if (orMatch && orMatch.index !== undefined) {
+            const startIdx = orMatch.index;
+            const openParen = startIdx + orMatch[0].length;
+            const closeIdx = findClosingParen(expression, openParen);
+            if (closeIdx !== -1) {
+              const argsStr = expression.substring(openParen, closeIdx);
+              const args = splitFunctionArgs(argsStr);
+              const anyTrue = args.some((arg) => {
+                const v = evalSimpleExpr(arg);
+                return typeof v === "number" ? v !== 0 : Boolean(v);
+              });
+              expression =
+                expression.substring(0, startIdx) +
+                (anyTrue ? "1" : "0") +
+                expression.substring(closeIdx + 1);
+              orProcessed = true;
+            }
+          }
+        }
+
+        // SI / IF(condition, value_true, value_false) — process innermost first
+        let siProcessed = true;
+        while (siProcessed) {
+          siProcessed = false;
+          // Match innermost SI( or IF( (case-insensitive)
+          const siMatch = expression.match(/\b(?:SI|IF)\(/i);
+          if (siMatch && siMatch.index !== undefined) {
+            const startIdx = siMatch.index;
+            const openParen = startIdx + siMatch[0].length;
+            const closeIdx = findClosingParen(expression, openParen);
+            if (closeIdx !== -1) {
+              const argsStr = expression.substring(openParen, closeIdx);
+              const args = splitFunctionArgs(argsStr);
+              if (args.length >= 2) {
+                const conditionVal = evalSimpleExpr(args[0]);
+                const isTruthy =
+                  typeof conditionVal === "number"
+                    ? conditionVal !== 0
+                    : Boolean(conditionVal);
+                let result: string;
+                if (isTruthy) {
+                  const v = evalSimpleExpr(args[1]);
+                  result = String(v);
+                } else {
+                  if (args.length >= 3) {
+                    const v = evalSimpleExpr(args[2]);
+                    result = String(v);
+                  } else {
+                    result = "0";
+                  }
+                }
+                expression =
+                  expression.substring(0, startIdx) +
+                  result +
+                  expression.substring(closeIdx + 1);
+                siProcessed = true;
+              } else {
+                expression =
+                  expression.substring(0, startIdx) +
+                  "#ERROR" +
+                  expression.substring(closeIdx + 1);
+                siProcessed = true;
+              }
+            }
+          }
+        }
+
         // Handle power operator (^) - convert to Math.pow
         expression = expression.replace(
           /(\d+(?:\.\d+)?|$$[^)]+$$)\s*\^\s*(\d+(?:\.\d+)?|$$[^)]+$$)/g,
           (_, base, exponent) => `Math.pow(${base}, ${exponent})`,
+        );
+
+        // Math functions - Spanish and English names → Math.* equivalents
+        // Trigonometric (radians)
+        expression = expression.replace(/\b(?:SENO|SIN)\(/gi, "Math.sin(");
+        expression = expression.replace(/\b(?:COSENO|COS)\(/gi, "Math.cos(");
+        expression = expression.replace(/\b(?:TANGENTE|TAN)\(/gi, "Math.tan(");
+        expression = expression.replace(/\b(?:ASENO|ASIN)\(/gi, "Math.asin(");
+        expression = expression.replace(/\b(?:ACOSENO|ACOS)\(/gi, "Math.acos(");
+        expression = expression.replace(/\bATAN\(/gi, "Math.atan(");
+        // Logarithmic
+        expression = expression.replace(
+          /\b(?:LOGARITMO|LOG)\(/gi,
+          "Math.log10(",
+        );
+        expression = expression.replace(/\bLN\(/gi, "Math.log(");
+        // Other math functions
+        expression = expression.replace(/\b(?:RAIZ|SQRT)\(/gi, "Math.sqrt(");
+        expression = expression.replace(/\bABS\(/gi, "Math.abs(");
+        expression = expression.replace(
+          /\b(?:POTENCIA|POWER)\(/gi,
+          "Math.pow(",
+        );
+        expression = expression.replace(
+          /\b(?:REDONDEAR|ROUND)\(([^,]+),\s*(\d+)\)/gi,
+          (_, value, decimals) =>
+            `(Math.round(${value} * Math.pow(10, ${decimals})) / Math.pow(10, ${decimals}))`,
+        );
+        expression = expression.replace(
+          /\b(?:TECHO|CEILING)\(/gi,
+          "Math.ceil(",
+        );
+        expression = expression.replace(/\b(?:PISO|FLOOR)\(/gi, "Math.floor(");
+        expression = expression.replace(/\bPI\(\)/gi, "Math.PI");
+        // Degrees ↔ Radians conversion
+        expression = expression.replace(
+          /\b(?:RADIANES|RADIANS)\(/gi,
+          "(Math.PI/180)*(",
+        );
+        expression = expression.replace(
+          /\b(?:GRADOS|DEGREES)\(/gi,
+          "(180/Math.PI)*(",
         );
 
         // Check if expression is empty or invalid after processing
@@ -4066,135 +4293,327 @@ const SpreadSheet = ({
 
       {/* Context Menu */}
       {contextMenu.visible && (
-        <div
-          className="fixed bg-white border border-gray-300 shadow-lg rounded z-50"
-          style={{ top: contextMenu.y, left: contextMenu.x }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {contextMenu.type === "row" && (
-            <>
-              <button
-                className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
-                onClick={() => hideRow(contextMenu.index)}
-              >
-                Ocultar fila {contextMenu.index + 1}
-              </button>
-              {(currentSheet?.userHiddenRows?.size || 0) > 0 && (
-                <button
-                  className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm border-t"
-                  onClick={unhideAllRows}
-                >
-                  Mostrar todas las filas
-                </button>
-              )}
-            </>
-          )}
-          {contextMenu.type === "column" && (
-            <>
-              <button
-                className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
-                onClick={() => hideColumn(contextMenu.index)}
-              >
-                Ocultar columna {getColumnLabel(contextMenu.index)}
-              </button>
-              {(currentSheet?.userHiddenColumns?.size || 0) > 0 && (
-                <button
-                  className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm border-t"
-                  onClick={unhideAllColumns}
-                >
-                  Mostrar todas las columnas
-                </button>
-              )}
-            </>
-          )}
-          {contextMenu.type === "cell" &&
-            contextMenu.cellRef &&
-            (() => {
-              const isCellHidden = currentSheet?.hiddenCells?.has(
-                contextMenu.cellRef,
-              );
-              const pos = parseCellRef(contextMenu.cellRef);
-              const hasFrozenPanes =
-                (currentSheet?.freezeRow || 0) > 0 ||
-                (currentSheet?.freezeColumn || 0) > 0;
-
-              // Check if cell is part of a merged region
-              const isMerged = currentSheet?.mergedCells.some((merge) => {
-                const mergeStart = parseCellRef(merge.startCell);
-                const mergeEnd = parseCellRef(merge.endCell);
-                if (!mergeStart || !mergeEnd || !pos) return false;
-                return (
-                  pos.row >= mergeStart.row &&
-                  pos.row <= mergeEnd.row &&
-                  pos.col >= mergeStart.col &&
-                  pos.col <= mergeEnd.col
-                );
+        <>
+          {/* Backdrop to close context menu when clicking outside */}
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() =>
+              setContextMenu({
+                visible: false,
+                x: 0,
+                y: 0,
+                type: null,
+                index: -1,
+              })
+            }
+            onContextMenu={(e) => {
+              e.preventDefault();
+              setContextMenu({
+                visible: false,
+                x: 0,
+                y: 0,
+                type: null,
+                index: -1,
               });
+            }}
+          />
+          <div
+            className="fixed bg-white border border-gray-300 shadow-lg rounded z-50"
+            style={{ top: contextMenu.y, left: contextMenu.x }}
+          >
+            {contextMenu.type === "row" && (
+              <>
+                <button
+                  className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
+                  onClick={() => hideRow(contextMenu.index)}
+                >
+                  Ocultar fila {contextMenu.index + 1}
+                </button>
+                {(currentSheet?.userHiddenRows?.size || 0) > 0 && (
+                  <button
+                    className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm border-t"
+                    onClick={unhideAllRows}
+                  >
+                    Mostrar todas las filas
+                  </button>
+                )}
+                <div className="border-t my-1"></div>
+                <button
+                  className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
+                  onClick={() => freezeRowsOnly(contextMenu.index + 1)}
+                >
+                  🔒 Inmovilizar filas hasta fila {contextMenu.index + 1}
+                </button>
+                {(currentSheet?.freezeRow || 0) > 0 && (
+                  <button
+                    className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
+                    onClick={unfreezeRows}
+                  >
+                    🔓 Movilizar filas
+                  </button>
+                )}
+              </>
+            )}
+            {contextMenu.type === "column" && (
+              <>
+                <button
+                  className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
+                  onClick={() => hideColumn(contextMenu.index)}
+                >
+                  Ocultar columna {getColumnLabel(contextMenu.index)}
+                </button>
+                {(currentSheet?.userHiddenColumns?.size || 0) > 0 && (
+                  <button
+                    className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm border-t"
+                    onClick={unhideAllColumns}
+                  >
+                    Mostrar todas las columnas
+                  </button>
+                )}
+                <div className="border-t my-1"></div>
+                <button
+                  className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
+                  onClick={() => freezeColumnsOnly(contextMenu.index + 1)}
+                >
+                  🔒 Inmovilizar columnas hasta columna{" "}
+                  {getColumnLabel(contextMenu.index)}
+                </button>
+                {(currentSheet?.freezeColumn || 0) > 0 && (
+                  <button
+                    className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
+                    onClick={unfreezeColumns}
+                  >
+                    🔓 Movilizar columnas
+                  </button>
+                )}
+              </>
+            )}
+            {contextMenu.type === "cell" &&
+              contextMenu.cellRef &&
+              (() => {
+                const isCellHidden = currentSheet?.hiddenCells?.has(
+                  contextMenu.cellRef,
+                );
+                const pos = parseCellRef(contextMenu.cellRef);
+                const hasFrozenPanes =
+                  (currentSheet?.freezeRow || 0) > 0 ||
+                  (currentSheet?.freezeColumn || 0) > 0;
 
-              const canMerge = selectedCells.size > 1;
+                // Check if cell is part of a merged region
+                const isMerged = currentSheet?.mergedCells.some((merge) => {
+                  const mergeStart = parseCellRef(merge.startCell);
+                  const mergeEnd = parseCellRef(merge.endCell);
+                  if (!mergeStart || !mergeEnd || !pos) return false;
+                  return (
+                    pos.row >= mergeStart.row &&
+                    pos.row <= mergeEnd.row &&
+                    pos.col >= mergeStart.col &&
+                    pos.col <= mergeEnd.col
+                  );
+                });
 
-              return (
-                <>
-                  {canMerge && (
-                    <>
-                      <button
-                        className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
-                        onClick={mergeCells}
-                      >
-                        🔗 Combinar celdas
-                      </button>
-                      <div className="border-t my-1"></div>
-                    </>
-                  )}
-                  {isMerged && (
-                    <>
-                      <button
-                        className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
-                        onClick={unmergeCells}
-                      >
-                        ✂️ Separar celdas
-                      </button>
-                      <div className="border-t my-1"></div>
-                    </>
-                  )}
-                  {isCellHidden ? (
-                    <button
-                      className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
-                      onClick={() => unhideCell(contextMenu.cellRef!)}
-                    >
-                      Mostrar celda {contextMenu.cellRef}
-                    </button>
-                  ) : (
-                    <button
-                      className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
-                      onClick={() => hideCell(contextMenu.cellRef!)}
-                    >
-                      Ocultar celda {contextMenu.cellRef}
-                    </button>
-                  )}
-                  {pos && (
-                    <>
-                      <div className="border-t my-1"></div>
-                      <button
-                        className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
-                        onClick={() => freezePanes(pos.row, pos.col)}
-                      >
-                        🔒 Inmovilizar paneles aquí
-                      </button>
-                      {hasFrozenPanes && (
+                const canMerge = selectedCells.size > 1;
+
+                return (
+                  <>
+                    {canMerge && (
+                      <>
                         <button
                           className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
-                          onClick={unfreezePanes}
+                          onClick={mergeCells}
                         >
-                          🔓 Movilizar paneles
+                          🔗 Combinar celdas
                         </button>
-                      )}
-                    </>
-                  )}
-                </>
-              );
-            })()}
-        </div>
+                        <div className="border-t my-1"></div>
+                      </>
+                    )}
+                    {isMerged && (
+                      <>
+                        <button
+                          className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
+                          onClick={unmergeCells}
+                        >
+                          ✂️ Separar celdas
+                        </button>
+                        <div className="border-t my-1"></div>
+                      </>
+                    )}
+                    {isCellHidden ? (
+                      <button
+                        className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
+                        onClick={() => unhideCell(contextMenu.cellRef!)}
+                      >
+                        Mostrar celda {contextMenu.cellRef}
+                      </button>
+                    ) : (
+                      <button
+                        className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
+                        onClick={() => hideCell(contextMenu.cellRef!)}
+                      >
+                        Ocultar celda {contextMenu.cellRef}
+                      </button>
+                    )}
+                    {pos && (
+                      <>
+                        <div className="border-t my-1"></div>
+                        <button
+                          className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
+                          onClick={() => freezePanes(pos.row, pos.col)}
+                        >
+                          🔒 Inmovilizar paneles aquí
+                        </button>
+                        {hasFrozenPanes && (
+                          <button
+                            className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
+                            onClick={unfreezePanes}
+                          >
+                            🔓 Movilizar paneles
+                          </button>
+                        )}
+                      </>
+                    )}
+                    <div className="border-t my-1"></div>
+                    <button
+                      className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
+                      onClick={() => {
+                        const existingNote =
+                          currentSheet?.cells[contextMenu.cellRef!]?.note || "";
+                        setNoteModal({
+                          visible: true,
+                          cellRef: contextMenu.cellRef!,
+                          value: existingNote,
+                        });
+                        setContextMenu({
+                          visible: false,
+                          x: 0,
+                          y: 0,
+                          type: null,
+                          index: -1,
+                        });
+                      }}
+                    >
+                      📝{" "}
+                      {currentSheet?.cells[contextMenu.cellRef!]?.note
+                        ? "Editar nota"
+                        : "Agregar nota"}
+                    </button>
+                    {currentSheet?.cells[contextMenu.cellRef!]?.note && (
+                      <button
+                        className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm text-red-600"
+                        onClick={() => {
+                          const ref = contextMenu.cellRef!;
+                          setSheets((prev) =>
+                            prev.map((sheet) => {
+                              if (sheet.id !== activeSheetId) return sheet;
+                              const newCells = { ...sheet.cells };
+                              if (newCells[ref]) {
+                                newCells[ref] = { ...newCells[ref] };
+                                delete newCells[ref].note;
+                              }
+                              return { ...sheet, cells: newCells };
+                            }),
+                          );
+                          setContextMenu({
+                            visible: false,
+                            x: 0,
+                            y: 0,
+                            type: null,
+                            index: -1,
+                          });
+                        }}
+                      >
+                        🗑️ Eliminar nota
+                      </button>
+                    )}
+                  </>
+                );
+              })()}
+          </div>
+        </>
+      )}
+
+      {/* Note Editing Modal */}
+      {noteModal.visible && (
+        <>
+          <div
+            className="fixed inset-0 bg-black bg-opacity-30 z-50"
+            onClick={() =>
+              setNoteModal({ visible: false, cellRef: "", value: "" })
+            }
+          />
+          <div
+            className="fixed z-50 bg-white border border-gray-300 shadow-xl rounded-lg p-4 w-80"
+            style={{
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+            }}
+          >
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-sm font-semibold text-gray-700">
+                📝 Nota - {noteModal.cellRef}
+              </h3>
+              <button
+                className="text-gray-400 hover:text-gray-600"
+                onClick={() =>
+                  setNoteModal({ visible: false, cellRef: "", value: "" })
+                }
+              >
+                ✕
+              </button>
+            </div>
+            <textarea
+              className="w-full border border-gray-300 rounded p-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-400"
+              rows={4}
+              value={noteModal.value}
+              onChange={(e) =>
+                setNoteModal((prev) => ({ ...prev, value: e.target.value }))
+              }
+              placeholder="Escribe una nota..."
+              autoFocus
+            />
+            <div className="flex justify-end gap-2 mt-2">
+              <button
+                className="px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-100"
+                onClick={() =>
+                  setNoteModal({ visible: false, cellRef: "", value: "" })
+                }
+              >
+                Cancelar
+              </button>
+              <button
+                className="px-3 py-1 text-sm rounded bg-blue-500 text-white hover:bg-blue-600"
+                onClick={() => {
+                  const { cellRef, value } = noteModal;
+                  setSheets((prev) =>
+                    prev.map((sheet) => {
+                      if (sheet.id !== activeSheetId) return sheet;
+                      const newCells = { ...sheet.cells };
+                      const existingCell = newCells[cellRef] || {
+                        value: "",
+                        formula: "",
+                        computed: "",
+                      };
+                      if (value.trim()) {
+                        newCells[cellRef] = {
+                          ...existingCell,
+                          note: value.trim(),
+                        };
+                      } else {
+                        newCells[cellRef] = { ...existingCell };
+                        delete newCells[cellRef].note;
+                      }
+                      return { ...sheet, cells: newCells };
+                    }),
+                  );
+                  setNoteModal({ visible: false, cellRef: "", value: "" });
+                }}
+              >
+                Guardar
+              </button>
+            </div>
+          </div>
+        </>
       )}
 
       {/* Sheet Tabs */}

@@ -3,7 +3,7 @@ import { Modal } from "../core/Modal";
 import { FaKeyboard, FaCalculator, FaLightbulb } from "react-icons/fa";
 import { MdFunctions, MdOutlineImage } from "react-icons/md";
 import { BiMath } from "react-icons/bi";
-import { TbTableOptions } from "react-icons/tb";
+import { TbTableOptions, TbMathFunction, TbLogicAnd } from "react-icons/tb";
 
 interface InstructionsModalProps {
   isOpen: boolean;
@@ -266,6 +266,161 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({
       ],
     },
     {
+      id: "mathfunctions",
+      title: "Funciones Matemáticas",
+      icon: <TbMathFunction className="w-6 h-6" />,
+      color: "teal",
+      items: [
+        {
+          label: "SENO(x) / SIN(x)",
+          description: "Devuelve el seno de un ángulo en radianes",
+          example: "=SENO(1.5708) → 1",
+        },
+        {
+          label: "COSENO(x) / COS(x)",
+          description: "Devuelve el coseno de un ángulo en radianes",
+          example: "=COSENO(0) → 1",
+        },
+        {
+          label: "TANGENTE(x) / TAN(x)",
+          description: "Devuelve la tangente de un ángulo en radianes",
+          example: "=TANGENTE(0.7854) → 1",
+        },
+        {
+          label: "ASENO(x) / ASIN(x)",
+          description: "Devuelve el arco seno (en radianes)",
+          example: "=ASENO(0.5) → 0.5236",
+        },
+        {
+          label: "ACOSENO(x) / ACOS(x)",
+          description: "Devuelve el arco coseno (en radianes)",
+          example: "=ACOSENO(0.5) → 1.0472",
+        },
+        {
+          label: "ATAN(x)",
+          description: "Devuelve el arco tangente (en radianes)",
+          example: "=ATAN(1) → 0.7854",
+        },
+        {
+          label: "LOGARITMO(x) / LOG(x)",
+          description: "Logaritmo en base 10",
+          example: "=LOGARITMO(100) → 2",
+        },
+        {
+          label: "LN(x)",
+          description: "Logaritmo natural (base e)",
+          example: "=LN(2.718) → 1",
+        },
+        {
+          label: "RAIZ(x) / SQRT(x)",
+          description: "Raíz cuadrada de un número",
+          example: "=RAIZ(16) → 4",
+        },
+        {
+          label: "ABS(x)",
+          description: "Valor absoluto de un número",
+          example: "=ABS(-5) → 5",
+        },
+        {
+          label: "POTENCIA(x, y) / POWER(x, y)",
+          description: "Eleva x a la potencia y",
+          example: "=POTENCIA(2, 3) → 8",
+        },
+        {
+          label: "REDONDEAR(x, d) / ROUND(x, d)",
+          description: "Redondea x a d decimales",
+          example: "=REDONDEAR(3.456, 2) → 3.46",
+        },
+        {
+          label: "TECHO(x) / CEILING(x)",
+          description: "Redondea hacia arriba al entero más cercano",
+          example: "=TECHO(3.2) → 4",
+        },
+        {
+          label: "PISO(x) / FLOOR(x)",
+          description: "Redondea hacia abajo al entero más cercano",
+          example: "=PISO(3.8) → 3",
+        },
+        {
+          label: "PI()",
+          description: "Devuelve el valor de π (3.14159...)",
+          example: "=PI() → 3.14159",
+        },
+        {
+          label: "RADIANES(x) / RADIANS(x)",
+          description: "Convierte grados a radianes",
+          example: "=RADIANES(90) → 1.5708",
+        },
+        {
+          label: "GRADOS(x) / DEGREES(x)",
+          description: "Convierte radianes a grados",
+          example: "=GRADOS(1.5708) → 90",
+        },
+        {
+          label: "Combinando funciones",
+          description:
+            "Puedes usar RADIANES() para pasar grados a las funciones trigonométricas",
+          example: "=SENO(RADIANES(90)) → 1",
+        },
+      ],
+    },
+    {
+      id: "logical",
+      title: "Funciones Lógicas",
+      icon: <TbLogicAnd className="w-6 h-6" />,
+      color: "cyan",
+      items: [
+        {
+          label: "SI(condición, valor_verdadero, valor_falso)",
+          description:
+            "Evalúa una condición y devuelve un valor si es verdadera y otro si es falsa (equivalente a IF de Excel)",
+          example: "=SI(A1>10, 100, 0)",
+        },
+        {
+          label: "IF(condition, value_true, value_false)",
+          description:
+            "Versión en inglés de SI. Evalúa una condición y devuelve un valor según el resultado",
+          example: "=IF(B1>=5, B1*2, B1)",
+        },
+        {
+          label: "AND(condición1, condición2, ...)",
+          description:
+            "Devuelve verdadero (1) si TODAS las condiciones son verdaderas, falso (0) si alguna no lo es",
+          example: "=AND(A1>0, B1<100)",
+        },
+        {
+          label: "OR(condición1, condición2, ...) / O(...)",
+          description:
+            "Devuelve verdadero (1) si ALGUNA condición es verdadera, falso (0) si ninguna lo es",
+          example: "=OR(A1>100, B1>100)",
+        },
+        {
+          label: "SI con AND",
+          description:
+            "Combina SI con AND para evaluar múltiples condiciones que deben cumplirse todas",
+          example: "=SI(AND(A1>0, A1<100), A1*2, 0)",
+        },
+        {
+          label: "SI con OR",
+          description:
+            "Combina SI con OR para evaluar cuando al menos una condición se cumple",
+          example: "=SI(OR(A1>100, B1>100), 1, 0)",
+        },
+        {
+          label: "SI anidados (SINO)",
+          description:
+            "Anida múltiples SI para evaluar varias condiciones en cascada (equivale a IF/ELSE IF/ELSE)",
+          example: "=SI(A1>100, 3, SI(A1>50, 2, SI(A1>0, 1, 0)))",
+        },
+        {
+          label: "Operadores de comparación",
+          description:
+            "Usa > (mayor), < (menor), >= (mayor o igual), <= (menor o igual), == (igual), != (diferente)",
+          example: "=SI(A1>=10, A1, 0)",
+        },
+      ],
+    },
+    {
       id: "tips",
       title: "Consejos Útiles",
       icon: <FaLightbulb className="w-6 h-6" />,
@@ -343,6 +498,18 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({
         border: "border-yellow-200",
         text: "text-yellow-700",
         hover: "hover:bg-yellow-100",
+      },
+      teal: {
+        bg: "bg-teal-50",
+        border: "border-teal-200",
+        text: "text-teal-700",
+        hover: "hover:bg-teal-100",
+      },
+      cyan: {
+        bg: "bg-cyan-50",
+        border: "border-cyan-200",
+        text: "text-cyan-700",
+        hover: "hover:bg-cyan-100",
       },
     };
     return colors[color] || colors.blue;
