@@ -60,9 +60,11 @@ interface SpreadSheetGridProps {
   inlineCellValue: string;
   onStartInlineEditing?: (cellRef: string) => void;
   onStopInlineEditing?: (value: string) => void;
-  onNavigateAfterEdit?: (direction: "down" | "right") => void;
+  onNavigateAfterEdit?: (direction: "up" | "down" | "left" | "right") => void;
   onGridReady?: (scrollToCell: (cellRef: string) => void) => void;
   zoom?: number;
+  namedRangeStartCells?: Set<string>;
+  goToHighlightCell?: string | null;
 }
 
 const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
@@ -92,6 +94,8 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
   onNavigateAfterEdit,
   onGridReady,
   zoom = 100,
+  namedRangeStartCells = new Set(),
+  goToHighlightCell = null,
 }) => {
   // Zoom scale factor
   const scale = zoom / 100;
@@ -591,7 +595,15 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                     };
 
                     return (
-                      <div key={`frozen-col-${col}`} style={cellStyle}>
+                      <div
+                        key={`frozen-col-${col}`}
+                        style={cellStyle}
+                        className={
+                          goToHighlightCell === cellRef
+                            ? "goto-highlight-cell"
+                            : undefined
+                        }
+                      >
                         <SpreadSheetCell
                           cellRef={cellRef}
                           cell={cell}
@@ -614,6 +626,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                           onStopEditing={onStopInlineEditing}
                           onNavigateAfterEdit={onNavigateAfterEdit}
                           fontScale={scale}
+                          isNamedRangeStart={namedRangeStartCells.has(cellRef)}
                         />
                       </div>
                     );
@@ -682,7 +695,15 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                     };
 
                     return (
-                      <div key={col} style={cellStyle}>
+                      <div
+                        key={col}
+                        style={cellStyle}
+                        className={
+                          goToHighlightCell === cellRef
+                            ? "goto-highlight-cell"
+                            : undefined
+                        }
+                      >
                         <SpreadSheetCell
                           cellRef={cellRef}
                           cell={cell}
@@ -705,6 +726,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                           onStopEditing={onStopInlineEditing}
                           onNavigateAfterEdit={onNavigateAfterEdit}
                           fontScale={scale}
+                          isNamedRangeStart={namedRangeStartCells.has(cellRef)}
                         />
                       </div>
                     );
@@ -814,7 +836,15 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                     };
 
                     return (
-                      <div key={`frozen-col-${col}`} style={cellStyle}>
+                      <div
+                        key={`frozen-col-${col}`}
+                        style={cellStyle}
+                        className={
+                          goToHighlightCell === cellRef
+                            ? "goto-highlight-cell"
+                            : undefined
+                        }
+                      >
                         <SpreadSheetCell
                           cellRef={cellRef}
                           cell={cell}
@@ -837,6 +867,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                           onStopEditing={onStopInlineEditing}
                           onNavigateAfterEdit={onNavigateAfterEdit}
                           fontScale={scale}
+                          isNamedRangeStart={namedRangeStartCells.has(cellRef)}
                         />
                       </div>
                     );
@@ -906,7 +937,15 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                     };
 
                     return (
-                      <div key={col} style={cellStyle}>
+                      <div
+                        key={col}
+                        style={cellStyle}
+                        className={
+                          goToHighlightCell === cellRef
+                            ? "goto-highlight-cell"
+                            : undefined
+                        }
+                      >
                         <SpreadSheetCell
                           cellRef={cellRef}
                           cell={cell}
@@ -929,6 +968,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                           onStopEditing={onStopInlineEditing}
                           onNavigateAfterEdit={onNavigateAfterEdit}
                           fontScale={scale}
+                          isNamedRangeStart={namedRangeStartCells.has(cellRef)}
                         />
                       </div>
                     );

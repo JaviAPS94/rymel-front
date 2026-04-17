@@ -19,9 +19,10 @@ interface SpreadSheetCellProps {
   editingValue: string;
   onStartEditing?: (cellRef: string) => void;
   onStopEditing?: (value: string) => void;
-  onNavigateAfterEdit?: (direction: "down" | "right") => void;
+  onNavigateAfterEdit?: (direction: "up" | "down" | "left" | "right") => void;
   cells: CellGrid; // Add cells prop for graphics
   fontScale?: number; // Zoom scale factor (1.0 = 100%)
+  isNamedRangeStart?: boolean; // Whether this cell is the start of a named range
 }
 
 const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
@@ -44,6 +45,7 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
   onNavigateAfterEdit,
   cells,
   fontScale = 1,
+  isNamedRangeStart = false,
 }) => {
   const inputRef = React.useRef<HTMLInputElement>(null);
 
@@ -167,6 +169,11 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
     cellStyle.borderRight = cell.border;
     cellStyle.borderBottom = cell.border;
   }
+  // Individual border sides override the shorthand
+  if (cell?.borderTop) cellStyle.borderTop = cell.borderTop;
+  if (cell?.borderRight) cellStyle.borderRight = cell.borderRight;
+  if (cell?.borderBottom) cellStyle.borderBottom = cell.borderBottom;
+  if (cell?.borderLeft) cellStyle.borderLeft = cell.borderLeft;
 
   // Selection styling - use box-shadow instead of ring to avoid layout shift
   if (isSelected) {
@@ -301,6 +308,7 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
                 onStopEditing(inputRef.current.value);
               }
             }
+            // Arrow keys are NOT intercepted — they navigate within the cell text (Excel behavior)
           }}
           onClick={(e) => e.stopPropagation()}
           className={`w-full h-full px-1 text-sm flex items-center ${
@@ -353,6 +361,38 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
       {cell?.note && !isHidden && (
         <NoteIndicator note={cell.note} fontScale={fontScale} />
       )}
+      {/* Named range start indicator */}
+      {isNamedRangeStart && !isHidden && (
+        <div
+          className="absolute top-0 left-0 z-10"
+          title="Inicio de tabla etiquetada"
+        >
+          <div
+            style={{
+              width: 0,
+              height: 0,
+              borderTop: `${Math.round(8 * fontScale)}px solid #22c55e`,
+              borderRight: `${Math.round(8 * fontScale)}px solid transparent`,
+            }}
+          />
+        </div>
+      )}
+      {/* GoTo indicator */}
+      {cell?.goTo && !isHidden && (
+        <div
+          className="absolute bottom-0 left-0 z-10"
+          title="Ir a tabla (clic derecho)"
+        >
+          <div
+            style={{
+              width: 0,
+              height: 0,
+              borderLeft: `${Math.round(8 * fontScale)}px solid #3b82f6`,
+              borderTop: `${Math.round(8 * fontScale)}px solid transparent`,
+            }}
+          />
+        </div>
+      )}
       {/* Visual indicator for adding mode */}
       {isAddingToFormula && !isHidden && (
         <div className="absolute top-0 right-0 w-2 h-2 bg-green-500 rounded-full opacity-75"></div>
@@ -371,6 +411,10 @@ export default React.memo(SpreadSheetCell, (prevProps, nextProps) => {
     prevProps.cell?.textColor === nextProps.cell?.textColor &&
     prevProps.cell?.backgroundColor === nextProps.cell?.backgroundColor &&
     prevProps.cell?.border === nextProps.cell?.border &&
+    prevProps.cell?.borderTop === nextProps.cell?.borderTop &&
+    prevProps.cell?.borderRight === nextProps.cell?.borderRight &&
+    prevProps.cell?.borderBottom === nextProps.cell?.borderBottom &&
+    prevProps.cell?.borderLeft === nextProps.cell?.borderLeft &&
     prevProps.isSelected === nextProps.isSelected &&
     prevProps.isHidden === nextProps.isHidden &&
     prevProps.isAddingToFormula === nextProps.isAddingToFormula &&
@@ -387,7 +431,10 @@ export default React.memo(SpreadSheetCell, (prevProps, nextProps) => {
       nextProps.cell?.conditionalFormat?.max &&
     prevProps.cell?.conditionalFormat?.color ===
       nextProps.cell?.conditionalFormat?.color &&
-    prevProps.cell?.note === nextProps.cell?.note
+    prevProps.cell?.note === nextProps.cell?.note &&
+    prevProps.cell?.goTo?.conditionCells?.join() ===
+      nextProps.cell?.goTo?.conditionCells?.join() &&
+    prevProps.isNamedRangeStart === nextProps.isNamedRangeStart
   );
 });
 

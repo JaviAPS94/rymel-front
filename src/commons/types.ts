@@ -240,6 +240,19 @@ export type CellStyle = {
   freezeRow?: number;
   freezeColumn?: number;
   mergedCells?: MergedCell[];
+  namedRanges?: TemplateNamedRange[];
+};
+
+export type TemplateNamedRange = {
+  id: string;
+  name: string;
+  tags: string[];
+  startCell: string;
+  endCell: string;
+};
+
+export type TemplateGoToConfig = {
+  conditionCells: string[];
 };
 
 interface Cell {
@@ -248,6 +261,7 @@ interface Cell {
   computed: number | string;
   elementKey?: string;
   options?: string[]; // Dropdown options for select functionality
+  goTo?: TemplateGoToConfig; // GoTo navigation config
 }
 
 export type CellGrid = { [key: string]: Cell };

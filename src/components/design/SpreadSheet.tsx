@@ -23,7 +23,8 @@ import SheetTabs from "./SheetTabs";
 import CrossTabSelector from "./CrossTabSelector";
 import FunctionLibraryModal from "./FunctionLibraryModal";
 import TemplateLibraryModal from "./TemplateLibraryModal";
-import { CustomFunction, Sheet } from "./spreadsheet-types";
+import { CustomFunction, NamedRange, Sheet } from "./spreadsheet-types";
+import { useDepGraph } from "../../hooks/useDepGraph";
 
 const ROWS = 250;
 const COLS = 50; // Rendered columns (supports Excel-style naming A-ZZ in formulas)
@@ -89,6 +90,7 @@ const SpreadSheet = ({
   const [cellTextColor, setCellTextColor] = useState<string>("");
   const [cellBackgroundColor, setCellBackgroundColor] = useState<string>("");
   const [cellBorder, setCellBorder] = useState<string>("");
+  const [borderColor, setBorderColor] = useState<string>("#000000");
   const [cellBold, setCellBold] = useState<boolean>(false);
   const [cellDecimals, setCellDecimals] = useState<number | undefined>(
     undefined,
@@ -96,6 +98,8 @@ const SpreadSheet = ({
   const [condFmtMin, setCondFmtMin] = useState<string>("");
   const [condFmtMax, setCondFmtMax] = useState<string>("");
   const [condFmtColor, setCondFmtColor] = useState<string>("#ff0000");
+  // GoTo navigation highlight animation
+  const [goToHighlight, setGoToHighlight] = useState<string | null>(null);
 
   const [activeSheetId, setActiveSheetId] = useState<string>(
     sheetsInitialData && sheetsInitialData.length > 0
@@ -128,6 +132,10 @@ const SpreadSheet = ({
         textColor?: string;
         backgroundColor?: string;
         border?: string;
+        borderTop?: string;
+        borderRight?: string;
+        borderBottom?: string;
+        borderLeft?: string;
       }
     >
   >(new Map());
@@ -311,6 +319,10 @@ const SpreadSheet = ({
         textColor: string;
         backgroundColor: string;
         border: string;
+        borderTop: string;
+        borderRight: string;
+        borderBottom: string;
+        borderLeft: string;
       }>,
     ) => {
       // Save current state to history before making changes (immediate for style changes)
@@ -330,6 +342,64 @@ const SpreadSheet = ({
             ...sheet,
             cells: updatedCells,
           };
+        }),
+      );
+    },
+    [activeSheetId, selectedCells, setSheets, saveToHistoryImmediate],
+  );
+
+  // Handler to apply outside borders only to the outer edges of the selection
+  const applyOutsideBorders = useCallback(
+    (borderStyle: string) => {
+      saveToHistoryImmediate();
+
+      // Parse selected cells to find the bounding box
+      const coords: { col: number; row: number; ref: string }[] = [];
+      selectedCells.forEach((cellRef) => {
+        const match = cellRef.match(/^([A-Z]+)(\d+)$/);
+        if (!match) return;
+        coords.push({
+          col: getColumnIndex(match[1]),
+          row: parseInt(match[2], 10),
+          ref: cellRef,
+        });
+      });
+
+      if (coords.length === 0) return;
+
+      const minCol = Math.min(...coords.map((c) => c.col));
+      const maxCol = Math.max(...coords.map((c) => c.col));
+      const minRow = Math.min(...coords.map((c) => c.row));
+      const maxRow = Math.max(...coords.map((c) => c.row));
+
+      setSheets((prevSheets) =>
+        prevSheets.map((sheet) => {
+          if (sheet.id !== activeSheetId) return sheet;
+          const updatedCells = { ...sheet.cells };
+
+          selectedCells.forEach((cellRef) => {
+            const match = cellRef.match(/^([A-Z]+)(\d+)$/);
+            if (!match) return;
+            const col = getColumnIndex(match[1]);
+            const row = parseInt(match[2], 10);
+
+            const isTop = row === minRow;
+            const isBottom = row === maxRow;
+            const isLeft = col === minCol;
+            const isRight = col === maxCol;
+
+            // Clear all individual borders and shorthand first, then set only outer edges
+            updatedCells[cellRef] = {
+              ...updatedCells[cellRef],
+              border: undefined,
+              borderTop: isTop ? borderStyle : undefined,
+              borderBottom: isBottom ? borderStyle : undefined,
+              borderLeft: isLeft ? borderStyle : undefined,
+              borderRight: isRight ? borderStyle : undefined,
+            };
+          });
+
+          return { ...sheet, cells: updatedCells };
         }),
       );
     },
@@ -485,18 +555,91 @@ const SpreadSheet = ({
 
       <div className="flex items-center gap-1">
         <span className="text-xs text-gray-500">Borde:</span>
-        <select
-          value={cellBorder || ""}
-          title="Borde"
-          onChange={(e) => updateCellStyle({ border: e.target.value })}
-          className="px-1.5 py-0.5 border rounded text-xs cursor-pointer"
+        {/* All borders */}
+        <button
+          type="button"
+          title="Todos los bordes"
+          onClick={() => {
+            const style = `1px solid ${borderColor}`;
+            updateCellStyle({
+              border: style,
+              borderTop: "",
+              borderRight: "",
+              borderBottom: "",
+              borderLeft: "",
+            });
+          }}
+          className="w-7 h-7 flex items-center justify-center border rounded hover:bg-gray-100"
         >
-          <option value="">Sin borde</option>
-          <option value="1px solid #000">Negro</option>
-          <option value="1px solid #888">Gris</option>
-          <option value="2px solid #007bff">Azul</option>
-          <option value="2px solid #e11d48">Rojo</option>
-        </select>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke={borderColor}
+            strokeWidth="1.2"
+          >
+            <rect x="1" y="1" width="14" height="14" />
+            <line x1="8" y1="1" x2="8" y2="15" />
+            <line x1="1" y1="8" x2="15" y2="8" />
+          </svg>
+        </button>
+        {/* Outside borders */}
+        <button
+          type="button"
+          title="Bordes exteriores"
+          onClick={() => {
+            const style = `1px solid ${borderColor}`;
+            applyOutsideBorders(style);
+          }}
+          className="w-7 h-7 flex items-center justify-center border rounded hover:bg-gray-100"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke={borderColor}
+            strokeWidth="1.8"
+          >
+            <rect x="1" y="1" width="14" height="14" />
+          </svg>
+        </button>
+        {/* No border */}
+        <button
+          type="button"
+          title="Sin borde"
+          onClick={() => {
+            updateCellStyle({
+              border: "",
+              borderTop: "",
+              borderRight: "",
+              borderBottom: "",
+              borderLeft: "",
+            });
+          }}
+          className="w-7 h-7 flex items-center justify-center border rounded hover:bg-gray-100"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="#999"
+            strokeWidth="1"
+            strokeDasharray="2 2"
+          >
+            <rect x="1" y="1" width="14" height="14" />
+          </svg>
+        </button>
+        {/* Border color picker */}
+        <input
+          type="color"
+          value={borderColor}
+          title="Color de borde"
+          onChange={(e) => setBorderColor(e.target.value)}
+          className="w-6 h-6 p-0 border rounded cursor-pointer"
+        />
       </div>
 
       {/* Conditional formatting: highlight when value is outside [min, max] */}
@@ -599,6 +742,29 @@ const SpreadSheet = ({
     value: string;
   }>({ visible: false, cellRef: "", value: "" });
 
+  // GoTo / Named Range modal states
+  const [goToConfigModal, setGoToConfigModal] = useState<{
+    visible: boolean;
+    cellRef: string;
+    conditionCells: string; // comma-separated cell refs
+  }>({ visible: false, cellRef: "", conditionCells: "" });
+
+  const [namedRangeModal, setNamedRangeModal] = useState<{
+    visible: boolean;
+    editId: string | null; // null = create new, string = edit existing
+    name: string;
+    tags: string; // comma-separated tags
+    startCell: string;
+    endCell: string;
+  }>({
+    visible: false,
+    editId: null,
+    name: "",
+    tags: "",
+    startCell: "",
+    endCell: "",
+  });
+
   // Template state
 
   // Track if initial template has been loaded
@@ -638,6 +804,25 @@ const SpreadSheet = ({
   const currentSheet = sheets.find((sheet) => sheet.id === activeSheetId);
   const cells = useMemo(() => currentSheet?.cells || {}, [currentSheet?.cells]);
   const columnWidths = currentSheet?.columnWidths || {};
+
+  // Compute set of cells that are the start of a named range (for visual indicator)
+  const namedRangeStartCells = useMemo(() => {
+    const startCells = new Set<string>();
+    (currentSheet?.namedRanges || []).forEach((r) => {
+      startCells.add(r.startCell);
+    });
+    return startCells;
+  }, [currentSheet?.namedRanges]);
+
+  // Dependency graph for incremental recalculation
+  const { buildGraph, updateCellInGraph, getRecalcOrder } = useDepGraph();
+
+  // Rebuild the dependency graph whenever the active sheet changes
+  useEffect(() => {
+    if (currentSheet?.cells) {
+      buildGraph(currentSheet.cells);
+    }
+  }, [activeSheetId]); // Only rebuild when switching sheets, not on every cell change
   const rowHeights = currentSheet?.rowHeights || {};
 
   // Calculate statistics for selected cells
@@ -1556,7 +1741,20 @@ const SpreadSheet = ({
 
           // Check if argument is a cell reference (including cross-sheet)
           if (/^([A-Z]+\d+|.+![A-Z]+\d+)$/.test(arg)) {
-            const cellValue = getCellValueFromAnySheet(arg, currentSheets);
+            let cellValue: number | string;
+            if (!arg.includes("!") && _cellGrid[arg]) {
+              const c = _cellGrid[arg];
+              cellValue =
+                typeof c.computed === "number"
+                  ? c.computed
+                  : c.computed !== undefined &&
+                      c.computed !== "" &&
+                      !isNaN(Number(c.computed))
+                    ? Number(c.computed)
+                    : 0;
+            } else {
+              cellValue = getCellValueFromAnySheet(arg, currentSheets);
+            }
             value = typeof cellValue === "number" ? cellValue : 0;
           } else {
             value = Number.parseFloat(arg);
@@ -1610,6 +1808,20 @@ const SpreadSheet = ({
       if (!expression) {
         return "#ERROR";
       }
+
+      // Helper: resolve cell value from cellGrid (same-sheet, up-to-date) or sheets (cross-sheet)
+      const resolveCellValue = (ref: string): number | string => {
+        if (!ref.includes("!")) {
+          const cell = cellGrid[ref];
+          if (cell && cell.computed !== undefined && cell.computed !== "") {
+            if (typeof cell.computed === "number") return cell.computed;
+            const num = Number(cell.computed);
+            if (!isNaN(num)) return num;
+          }
+          return 0;
+        }
+        return getCellValueFromAnySheet(ref, currentSheets);
+      };
 
       try {
         for (const func of customFunctions) {
@@ -1677,7 +1889,7 @@ const SpreadSheet = ({
               }
             } else {
               // Single cell reference (may be cross-sheet)
-              const cellValue = getCellValueFromAnySheet(ref, currentSheets);
+              const cellValue = resolveCellValue(ref);
               if (typeof cellValue === "number") {
                 sum += cellValue;
               }
@@ -1716,7 +1928,7 @@ const SpreadSheet = ({
               }
             } else {
               // Single cell reference (may be cross-sheet)
-              const cellValue = getCellValueFromAnySheet(ref, currentSheets);
+              const cellValue = resolveCellValue(ref);
               if (typeof cellValue === "number") {
                 sum += cellValue;
                 count++;
@@ -1812,10 +2024,7 @@ const SpreadSheet = ({
             /\$?([A-Za-z0-9]+:[A-Za-z0-9]+!|[A-Za-z0-9]+!)?\$?[A-Z]+\$?\d+/g,
             (match: string) => {
               const cleanMatch = match.replace(/\$/g, "");
-              const cellValue = getCellValueFromAnySheet(
-                cleanMatch,
-                currentSheets,
-              );
+              const cellValue = resolveCellValue(cleanMatch);
               if (typeof cellValue === "number") {
                 return cellValue.toString();
               }
@@ -2033,10 +2242,7 @@ const SpreadSheet = ({
             /\$?([A-Za-z0-9]+:[A-Za-z0-9]+!|[A-Za-z0-9]+!)?\$?[A-Z]+\$?\d+/g,
             (match: string) => {
               const cleanMatch = match.replace(/\$/g, "");
-              const cellValue = getCellValueFromAnySheet(
-                cleanMatch,
-                currentSheets,
-              );
+              const cellValue = resolveCellValue(cleanMatch);
               if (typeof cellValue === "number") {
                 return cellValue.toString();
               }
@@ -2192,7 +2398,7 @@ const SpreadSheet = ({
           // Check if it's a cell reference (with or without $ symbols): C21, $C$21, $C21, C$21
           if (/^\$?[A-Z]+\$?\d+$/.test(lookupValueParam)) {
             const cleanRef = lookupValueParam.replace(/\$/g, "");
-            searchValue = getCellValueFromAnySheet(cleanRef, currentSheets);
+            searchValue = resolveCellValue(cleanRef);
           } else if (!isNaN(Number.parseFloat(lookupValueParam))) {
             searchValue = Number.parseFloat(lookupValueParam);
           } else {
@@ -2397,10 +2603,7 @@ const SpreadSheet = ({
                 } else if (/^\$?[A-Z]+\$?\d+$/.test(indexParam)) {
                   // It's a cell reference (with or without $ symbols): C21, $C$21, etc.
                   const cleanRef = indexParam.replace(/\$/g, "");
-                  const cellValue = getCellValueFromAnySheet(
-                    cleanRef,
-                    currentSheets,
-                  );
+                  const cellValue = resolveCellValue(cleanRef);
                   index =
                     typeof cellValue === "number" ? Math.floor(cellValue) : 0;
                 } else {
@@ -2416,10 +2619,7 @@ const SpreadSheet = ({
                   // Check if it's a cell reference (with or without $ symbols): K25, $K25, etc.
                   if (/^\$?[A-Z]+\$?\d+$/.test(selectedParam)) {
                     const cleanRef = selectedParam.replace(/\$/g, "");
-                    const cellValue = getCellValueFromAnySheet(
-                      cleanRef,
-                      currentSheets,
-                    );
+                    const cellValue = resolveCellValue(cleanRef);
                     result =
                       typeof cellValue === "number"
                         ? cellValue.toString()
@@ -2457,10 +2657,7 @@ const SpreadSheet = ({
           /\$?([A-Za-z0-9]+:[A-Za-z0-9]+!|[A-Za-z0-9]+!)?\$?[A-Z]+\$?\d+/g,
           (match) => {
             const cleanMatch = match.replace(/\$/g, "");
-            const cellValue = getCellValueFromAnySheet(
-              cleanMatch,
-              currentSheets,
-            );
+            const cellValue = resolveCellValue(cleanMatch);
             if (typeof cellValue === "number") {
               return cellValue.toString();
             }
@@ -2717,8 +2914,42 @@ const SpreadSheet = ({
           const newCells = { ...sheet.cells };
           const updatedComputedValues: Record<string, string | number> = {};
 
-          // Process all cells to recalculate formulas
+          // Build dependency graph for this sheet and get topological order
+          buildGraph(newCells);
+          const formulaCells = Object.keys(newCells).filter((ref) =>
+            newCells[ref]?.formula?.startsWith("="),
+          );
+          const { order, circular } = getRecalcOrder(formulaCells);
+
+          // Mark circular references
+          circular.forEach((ref) => {
+            updatedComputedValues[ref] = "#CIRCULAR";
+            newCells[ref] = { ...newCells[ref], computed: "#CIRCULAR" };
+          });
+
+          // Process non-formula cells first (plain values)
           for (const ref of Object.keys(newCells)) {
+            if (!newCells[ref]?.formula?.startsWith("=")) {
+              try {
+                const result = await evaluateFormula(
+                  newCells[ref].formula,
+                  newCells,
+                  normalizedSheets,
+                );
+                updatedComputedValues[ref] = result !== undefined ? result : "";
+                newCells[ref] = {
+                  ...newCells[ref],
+                  computed: updatedComputedValues[ref],
+                };
+              } catch {
+                // Plain values shouldn't error
+              }
+            }
+          }
+
+          // Process formula cells in topological order
+          for (const ref of order) {
+            if (!newCells[ref]?.formula?.startsWith("=")) continue;
             try {
               const result = await evaluateFormula(
                 newCells[ref].formula,
@@ -2726,8 +2957,6 @@ const SpreadSheet = ({
                 normalizedSheets,
               );
               updatedComputedValues[ref] = result !== undefined ? result : "";
-
-              // Update the cell grid with the new computed value for next cell calculations
               newCells[ref] = {
                 ...newCells[ref],
                 computed: updatedComputedValues[ref],
@@ -2735,10 +2964,7 @@ const SpreadSheet = ({
             } catch (error) {
               console.error(`Error calculating cell ${ref}:`, error);
               updatedComputedValues[ref] = "#ERROR";
-              newCells[ref] = {
-                ...newCells[ref],
-                computed: "#ERROR",
-              };
+              newCells[ref] = { ...newCells[ref], computed: "#ERROR" };
             }
           }
 
@@ -2747,6 +2973,14 @@ const SpreadSheet = ({
 
         // Update all sheets with recalculated formulas
         setSheets(updatedSheets);
+
+        // Rebuild graph for the active sheet so edits work immediately
+        const activeSheet = updatedSheets.find(
+          (s) => s.id === normalizedSheets[0]?.id,
+        );
+        if (activeSheet) {
+          buildGraph(activeSheet.cells);
+        }
       };
 
       // Run the recalculation after a short delay to ensure the component is properly mounted
@@ -2754,55 +2988,61 @@ const SpreadSheet = ({
         recalculateAllSheetsFormulas();
       }, 100);
     }
-  }, [sheetsInitialData, evaluateFormula, initialSheetsLoaded]);
+  }, [
+    sheetsInitialData,
+    evaluateFormula,
+    initialSheetsLoaded,
+    buildGraph,
+    getRecalcOrder,
+  ]);
 
-  // Helper function to find all cells that reference a given cell
-  const findDependentCells = useCallback(
-    (targetCell: string, cells: CellGrid): string[] => {
-      const dependents: string[] = [];
+  /**
+   * Incremental recalculation helper.
+   * Given a set of dirty cells, uses the dependency graph to find all
+   * affected cells and recalculates them in topological order.
+   */
+  const recalcDirtyCells = useCallback(
+    async (
+      dirtyCells: string[],
+      cellGrid: CellGrid,
+      allSheets: Sheet[],
+    ): Promise<Record<string, string | number>> => {
+      const { order, circular } = getRecalcOrder(dirtyCells);
+      const updatedValues: Record<string, string | number> = {};
 
-      Object.keys(cells).forEach((cellRef) => {
-        const cell = cells[cellRef];
-        if (cell?.formula && cell.formula.startsWith("=")) {
-          // Check if this cell's formula references the target cell
-          const cellRefRegex = new RegExp(`\\b${targetCell}\\b`, "g");
-          if (cellRefRegex.test(cell.formula)) {
-            dependents.push(cellRef);
-          }
-        }
+      // Mark circular references
+      circular.forEach((ref) => {
+        updatedValues[ref] = "#CIRCULAR";
+        cellGrid[ref] = { ...cellGrid[ref], computed: "#CIRCULAR" };
       });
 
-      return dependents;
-    },
-    [],
-  );
+      // Recalculate in topological order (dependencies first)
+      for (const ref of order) {
+        const cellToCalc = cellGrid[ref];
+        if (!cellToCalc) continue;
 
-  // Helper function to get all cells that need to be recalculated (including nested dependencies)
-  const getDependencyChain = useCallback(
-    (changedCell: string, cells: CellGrid): string[] => {
-      const toRecalculate = new Set<string>();
-      const queue = [changedCell];
-      const processed = new Set<string>();
+        // Skip non-formula cells unless they are the originally dirty cell
+        if (!cellToCalc.formula?.startsWith("=") && !dirtyCells.includes(ref))
+          continue;
 
-      while (queue.length > 0) {
-        const currentCell = queue.shift()!;
-        if (processed.has(currentCell)) continue;
-
-        processed.add(currentCell);
-        toRecalculate.add(currentCell);
-
-        // Find cells that depend on the current cell
-        const dependents = findDependentCells(currentCell, cells);
-        dependents.forEach((dependent) => {
-          if (!processed.has(dependent)) {
-            queue.push(dependent);
-          }
-        });
+        try {
+          const result = await evaluateFormula(
+            cellToCalc.formula,
+            cellGrid,
+            allSheets,
+          );
+          updatedValues[ref] = result !== undefined ? result : "";
+          cellGrid[ref] = { ...cellGrid[ref], computed: updatedValues[ref] };
+        } catch (error) {
+          console.error(`Error calculating cell ${ref}:`, error);
+          updatedValues[ref] = "#ERROR";
+          cellGrid[ref] = { ...cellGrid[ref], computed: "#ERROR" };
+        }
       }
 
-      return Array.from(toRecalculate);
+      return updatedValues;
     },
-    [findDependentCells],
+    [evaluateFormula, getRecalcOrder],
   );
 
   // Update cell value in current sheet (optimized for typing performance)
@@ -2823,6 +3063,9 @@ const SpreadSheet = ({
 
       // Fast path: if value doesn't start with '=', it's not a formula
       const isFormula = value.trim().startsWith("=");
+
+      // Incrementally update the dependency graph for this cell
+      updateCellInGraph(cellRef, value);
 
       // Get current state
       setSheets((prevSheets) => {
@@ -2849,56 +3092,21 @@ const SpreadSheet = ({
           computed: computedValue,
         };
 
-        // Only evaluate formulas if this is actually a formula
-        if (isFormula) {
-          // Get all cells that need to be recalculated
-          const cellsToRecalculate = getDependencyChain(cellRef, newCells);
+        // Schedule async incremental recalculation for this cell + all dependents
+        Promise.resolve().then(async () => {
+          const updatedComputedValues = await recalcDirtyCells(
+            [cellRef],
+            { ...newCells },
+            prevSheets,
+          );
 
-          // Sort cells: process the changed cell first, then dependents
-          const sortedCells = [
-            cellRef,
-            ...cellsToRecalculate.filter((ref) => ref !== cellRef),
-          ];
-
-          // Schedule async recalculation without blocking the initial update
-          Promise.resolve().then(async () => {
-            const updatedComputedValues: Record<string, string | number> = {};
-
-            // Process each cell that needs recalculation
-            for (const ref of sortedCells) {
-              const cellToCalc = newCells[ref];
-              if (!cellToCalc) continue;
-
-              try {
-                const result = await evaluateFormula(
-                  cellToCalc.formula,
-                  newCells,
-                  prevSheets,
-                );
-                updatedComputedValues[ref] = result !== undefined ? result : "";
-
-                // Update the temp cell grid with the new computed value for next cell calculations
-                newCells[ref] = {
-                  ...newCells[ref],
-                  computed: updatedComputedValues[ref],
-                };
-              } catch (error) {
-                console.error(`Error calculating cell ${ref}:`, error);
-                updatedComputedValues[ref] = "#ERROR";
-                newCells[ref] = {
-                  ...newCells[ref],
-                  computed: "#ERROR",
-                };
-              }
-            }
-
+          if (Object.keys(updatedComputedValues).length > 0) {
             // Apply all the computed values at once in a single state update
             setSheets((latestSheets) =>
               latestSheets.map((sheet) => {
                 if (sheet.id === activeSheetId) {
                   const updatedCellsWithComputed = { ...sheet.cells };
 
-                  // Update computed values only for cells that were recalculated
                   Object.keys(updatedComputedValues).forEach((ref) => {
                     if (updatedCellsWithComputed[ref]) {
                       updatedCellsWithComputed[ref] = {
@@ -2913,10 +3121,10 @@ const SpreadSheet = ({
                 return sheet;
               }),
             );
-          });
-        }
+          }
+        });
 
-        // Return updated sheets with new cell values (computed values will be updated asynchronously for formulas)
+        // Return updated sheets with new cell values (computed values will be updated asynchronously)
         return prevSheets.map((sheet) => {
           if (sheet.id === activeSheetId) {
             return { ...sheet, cells: newCells };
@@ -2928,7 +3136,8 @@ const SpreadSheet = ({
     [
       evaluateFormula,
       activeSheetId,
-      getDependencyChain,
+      recalcDirtyCells,
+      updateCellInGraph,
       saveToHistoryDebounced,
       saveToHistoryImmediate,
     ],
@@ -2939,6 +3148,9 @@ const SpreadSheet = ({
     async (cellRef: string, value: string) => {
       // Save current state to history before making changes (immediate for dropdown)
       saveToHistoryImmediate();
+
+      // Update dep graph (dropdown values don't have formulas but dependents may need recalc)
+      updateCellInGraph(cellRef, value);
 
       // Update the cell value while preserving options and other properties
       setSheets((prevSheets) => {
@@ -2958,56 +3170,33 @@ const SpreadSheet = ({
           computed: value,
         };
 
-        // Get cells to recalculate
-        const cellsToRecalculate = getDependencyChain(cellRef, newCells);
-
-        // Schedule async recalculation without blocking
+        // Schedule async incremental recalculation
         Promise.resolve().then(async () => {
-          const updatedComputedValues: Record<string, string | number> = {};
-
-          for (const ref of cellsToRecalculate) {
-            const cellToCalc = newCells[ref];
-            if (!cellToCalc) continue;
-
-            try {
-              const result = await evaluateFormula(
-                cellToCalc.formula,
-                newCells,
-                prevSheets,
-              );
-              updatedComputedValues[ref] = result !== undefined ? result : "";
-              newCells[ref] = {
-                ...newCells[ref],
-                computed: updatedComputedValues[ref],
-              };
-            } catch (error) {
-              console.error(`Error calculating cell ${ref}:`, error);
-              updatedComputedValues[ref] = "#ERROR";
-              newCells[ref] = {
-                ...newCells[ref],
-                computed: "#ERROR",
-              };
-            }
-          }
-
-          // Apply all the computed values at once in a single state update
-          setSheets((latestSheets) =>
-            latestSheets.map((sheet) => {
-              if (sheet.id === activeSheetId) {
-                const updatedCellsWithComputed = { ...sheet.cells };
-                Object.keys(updatedComputedValues).forEach((ref) => {
-                  if (updatedCellsWithComputed[ref]) {
-                    updatedCellsWithComputed[ref] = {
-                      ...updatedCellsWithComputed[ref],
-                      computed: updatedComputedValues[ref],
-                    };
-                  }
-                });
-                return { ...sheet, cells: updatedCellsWithComputed };
-              }
-              return sheet;
-            }),
+          const updatedComputedValues = await recalcDirtyCells(
+            [cellRef],
+            { ...newCells },
+            prevSheets,
           );
+
+          if (Object.keys(updatedComputedValues).length > 0) {
+            setSheets((latestSheets) =>
+              latestSheets.map((sheet) => {
+                if (sheet.id === activeSheetId) {
+                  const updatedCellsWithComputed = { ...sheet.cells };
+                  Object.keys(updatedComputedValues).forEach((ref) => {
+                    if (updatedCellsWithComputed[ref]) {
+                      updatedCellsWithComputed[ref] = {
+                        ...updatedCellsWithComputed[ref],
+                        computed: updatedComputedValues[ref],
+                      };
+                    }
+                  });
+                  return { ...sheet, cells: updatedCellsWithComputed };
+                }
+                return sheet;
+              }),
+            );
+          }
         });
 
         return prevSheets.map((sheet) => {
@@ -3021,7 +3210,8 @@ const SpreadSheet = ({
     [
       evaluateFormula,
       activeSheetId,
-      getDependencyChain,
+      recalcDirtyCells,
+      updateCellInGraph,
       saveToHistoryImmediate,
     ],
   );
@@ -3069,6 +3259,10 @@ const SpreadSheet = ({
         textColor?: string;
         backgroundColor?: string;
         border?: string;
+        borderTop?: string;
+        borderRight?: string;
+        borderBottom?: string;
+        borderLeft?: string;
       }
     >();
 
@@ -3095,6 +3289,10 @@ const SpreadSheet = ({
           textColor: cell?.textColor,
           backgroundColor: cell?.backgroundColor,
           border: cell?.border,
+          borderTop: cell?.borderTop,
+          borderRight: cell?.borderRight,
+          borderBottom: cell?.borderBottom,
+          borderLeft: cell?.borderLeft,
         });
       }
     });
@@ -3201,47 +3399,61 @@ const SpreadSheet = ({
         });
       });
 
-      // Recalculate formulas after paste
+      // Recalculate formulas after paste using dep graph
       setTimeout(async () => {
+        // Update dep graph for all pasted cells
+        const pastedRefs = newCellsData.map((d) => d.cellRef);
+
         setSheets((prevSheets) => {
-          return prevSheets.map((sheet) => {
-            if (sheet.id !== activeSheetId) return sheet;
+          const currentSheet = prevSheets.find((s) => s.id === activeSheetId);
+          if (!currentSheet) return prevSheets;
 
-            const updatedCells = { ...sheet.cells };
+          const updatedCells = { ...currentSheet.cells };
 
-            Promise.all(
-              newCellsData.map(async ({ cellRef }) => {
-                const cell = updatedCells[cellRef];
-                if (cell) {
-                  const computed = await evaluateFormula(
-                    cell.formula,
-                    updatedCells,
-                    prevSheets,
-                  );
-                  updatedCells[cellRef] = {
-                    ...cell,
-                    computed: computed ?? "",
-                  };
-                }
-              }),
-            );
-
-            return {
-              ...sheet,
-              cells: updatedCells,
-            };
+          // Update the dep graph for each pasted cell
+          pastedRefs.forEach((ref) => {
+            updateCellInGraph(ref, updatedCells[ref]?.formula || "");
           });
+
+          // Rebuild graph to capture all new dependencies from pasted formulas
+          buildGraph(updatedCells);
+
+          return prevSheets;
         });
 
-        // Recalculate dependent cells
-        for (const { cellRef } of newCellsData) {
-          const dependencyChain = getDependencyChain(cellRef, cells);
-          for (const depCell of dependencyChain) {
-            if (depCell !== cellRef) {
-              await updateCell(depCell, cells[depCell]?.formula || "");
-            }
-          }
-        }
+        // Now recalculate all affected cells
+        setSheets((prevSheets) => {
+          const currentSheet = prevSheets.find((s) => s.id === activeSheetId);
+          if (!currentSheet) return prevSheets;
+
+          const updatedCells = { ...currentSheet.cells };
+
+          recalcDirtyCells(pastedRefs, updatedCells, prevSheets).then(
+            (updatedComputedValues) => {
+              if (Object.keys(updatedComputedValues).length > 0) {
+                setSheets((latestSheets) =>
+                  latestSheets.map((sheet) => {
+                    if (sheet.id === activeSheetId) {
+                      const finalCells = { ...sheet.cells };
+                      Object.keys(updatedComputedValues).forEach((ref) => {
+                        if (finalCells[ref]) {
+                          finalCells[ref] = {
+                            ...finalCells[ref],
+                            computed: updatedComputedValues[ref],
+                          };
+                        }
+                      });
+                      return { ...sheet, cells: finalCells };
+                    }
+                    return sheet;
+                  }),
+                );
+              }
+            },
+          );
+
+          return prevSheets;
+        });
       }, 50);
 
       console.log(`Pasted ${newCellsData.length} cell(s) from clipboard`);
@@ -3335,6 +3547,10 @@ const SpreadSheet = ({
           textColor: cellData.textColor,
           backgroundColor: cellData.backgroundColor,
           border: cellData.border,
+          borderTop: cellData.borderTop,
+          borderRight: cellData.borderRight,
+          borderBottom: cellData.borderBottom,
+          borderLeft: cellData.borderLeft,
         },
       });
     });
@@ -3363,47 +3579,57 @@ const SpreadSheet = ({
       });
     });
 
-    // Recalculate formulas after paste
+    // Recalculate formulas after paste using dep graph
     setTimeout(async () => {
+      const pastedRefs = newCellsData.map((d) => d.cellRef);
+
       setSheets((prevSheets) => {
-        return prevSheets.map((sheet) => {
-          if (sheet.id !== activeSheetId) return sheet;
+        const currentSheet = prevSheets.find((s) => s.id === activeSheetId);
+        if (!currentSheet) return prevSheets;
 
-          const updatedCells = { ...sheet.cells };
+        const updatedCells = { ...currentSheet.cells };
 
-          Promise.all(
-            newCellsData.map(async ({ cellRef }) => {
-              const cell = updatedCells[cellRef];
-              if (cell) {
-                const computed = await evaluateFormula(
-                  cell.formula,
-                  updatedCells,
-                  prevSheets,
-                );
-                updatedCells[cellRef] = {
-                  ...cell,
-                  computed: computed ?? "",
-                };
-              }
-            }),
-          );
-
-          return {
-            ...sheet,
-            cells: updatedCells,
-          };
+        // Update dep graph for pasted cells and rebuild
+        pastedRefs.forEach((ref) => {
+          updateCellInGraph(ref, updatedCells[ref]?.formula || "");
         });
+        buildGraph(updatedCells);
+
+        return prevSheets;
       });
 
-      // Recalculate dependent cells
-      for (const { cellRef } of newCellsData) {
-        const dependencyChain = getDependencyChain(cellRef, cells);
-        for (const depCell of dependencyChain) {
-          if (depCell !== cellRef) {
-            await updateCell(depCell, cells[depCell]?.formula || "");
-          }
-        }
-      }
+      setSheets((prevSheets) => {
+        const currentSheet = prevSheets.find((s) => s.id === activeSheetId);
+        if (!currentSheet) return prevSheets;
+
+        const updatedCells = { ...currentSheet.cells };
+
+        recalcDirtyCells(pastedRefs, updatedCells, prevSheets).then(
+          (updatedComputedValues) => {
+            if (Object.keys(updatedComputedValues).length > 0) {
+              setSheets((latestSheets) =>
+                latestSheets.map((sheet) => {
+                  if (sheet.id === activeSheetId) {
+                    const finalCells = { ...sheet.cells };
+                    Object.keys(updatedComputedValues).forEach((ref) => {
+                      if (finalCells[ref]) {
+                        finalCells[ref] = {
+                          ...finalCells[ref],
+                          computed: updatedComputedValues[ref],
+                        };
+                      }
+                    });
+                    return { ...sheet, cells: finalCells };
+                  }
+                  return sheet;
+                }),
+              );
+            }
+          },
+        );
+
+        return prevSheets;
+      });
     }, 50);
 
     console.log(
@@ -3416,8 +3642,9 @@ const SpreadSheet = ({
     activeSheetId,
     cells,
     evaluateFormula,
-    getDependencyChain,
-    updateCell,
+    recalcDirtyCells,
+    updateCellInGraph,
+    buildGraph,
     saveToHistoryImmediate,
   ]);
 
@@ -3662,7 +3889,7 @@ const SpreadSheet = ({
 
   // Handle navigation after editing
   const handleNavigateAfterEdit = useCallback(
-    (direction: "down" | "right") => {
+    (direction: "up" | "down" | "left" | "right") => {
       navigateCell(direction);
     },
     [navigateCell],
@@ -3790,6 +4017,7 @@ const SpreadSheet = ({
       newSheet.cells = { ...(template.cells || {}) };
       newSheet.columnWidths = { ...(template.cellsStyles?.columnWidths || {}) };
       newSheet.rowHeights = { ...(template.cellsStyles?.rowHeights || {}) };
+      newSheet.namedRanges = template.cellsStyles?.namedRanges || [];
     }
 
     setSheets((prev) => [...prev, newSheet]);
@@ -3883,6 +4111,122 @@ const SpreadSheet = ({
     // If in formula building mode, keep the formula and selection state
     // so users can navigate to other sheets to select cells
   };
+
+  // --- GoTo Navigation ---
+  // Navigate to the named range that matches the condition cell values for the given cell's goTo config
+  const navigateGoTo = useCallback(
+    (cellRef: string) => {
+      const cell = cells[cellRef];
+      if (!cell?.goTo) return;
+
+      // Read values from condition cells (from current sheet)
+      const conditionValues = cell.goTo.conditionCells.map((ref) => {
+        const c = cells[ref];
+        const val = c?.computed ?? c?.value ?? "";
+        return String(val).trim().toLowerCase();
+      });
+
+      // Search all sheets for a named range whose tags match ALL condition values
+      for (const sheet of sheets) {
+        const ranges = sheet.namedRanges || [];
+        for (const range of ranges) {
+          const rangeTags = range.tags.map((t) => t.trim().toLowerCase());
+          const allMatch = conditionValues.every((v) => rangeTags.includes(v));
+          if (allMatch && conditionValues.length > 0) {
+            const targetCell = range.startCell;
+            const isCrossSheet = sheet.id !== activeSheetId;
+
+            if (isCrossSheet) {
+              // Switch sheet first — this resets selection, so we override after
+              setActiveSheetId(sheet.id);
+            }
+
+            // Set selection to target cell (must happen after setActiveSheetId)
+            setSelectedCell(targetCell);
+            selectionAnchorRef.current = targetCell;
+            setSelectedCells(new Set([targetCell]));
+            setFormulaInput("");
+            setIsAddingToFormula(false);
+            setRangeSelectionStart(null);
+
+            // For cross-sheet, use a longer delay so the new sheet grid has time to mount
+            const delay = isCrossSheet ? 300 : 100;
+            setTimeout(() => {
+              if (scrollToCellRef.current) {
+                scrollToCellRef.current(targetCell);
+              }
+              // Trigger highlight animation after scroll
+              setTimeout(() => {
+                setGoToHighlight(targetCell);
+                setTimeout(() => setGoToHighlight(null), 1500);
+              }, 350);
+            }, delay);
+            return;
+          }
+        }
+      }
+      // No match found - alert user
+      alert(
+        `No se encontró una tabla que coincida con las condiciones: ${conditionValues.join(", ")}`,
+      );
+    },
+    [cells, sheets, activeSheetId],
+  );
+
+  // Save GoTo config to a cell
+  const saveGoToConfig = useCallback(
+    (cellRef: string, conditionCells: string[]) => {
+      setSheets((prevSheets) =>
+        prevSheets.map((sheet) => {
+          if (sheet.id !== activeSheetId) return sheet;
+          const updatedCells = { ...sheet.cells };
+          updatedCells[cellRef] = {
+            ...updatedCells[cellRef],
+            goTo: conditionCells.length > 0 ? { conditionCells } : undefined,
+          };
+          return { ...sheet, cells: updatedCells };
+        }),
+      );
+    },
+    [activeSheetId, setSheets],
+  );
+
+  // Add/update a named range on the active sheet
+  const saveNamedRange = useCallback(
+    (range: NamedRange) => {
+      setSheets((prevSheets) =>
+        prevSheets.map((sheet) => {
+          if (sheet.id !== activeSheetId) return sheet;
+          const existing = sheet.namedRanges || [];
+          const idx = existing.findIndex((r) => r.id === range.id);
+          const updated =
+            idx >= 0
+              ? existing.map((r) => (r.id === range.id ? range : r))
+              : [...existing, range];
+          return { ...sheet, namedRanges: updated };
+        }),
+      );
+    },
+    [activeSheetId, setSheets],
+  );
+
+  // Delete a named range from the active sheet
+  const deleteNamedRange = useCallback(
+    (rangeId: string) => {
+      setSheets((prevSheets) =>
+        prevSheets.map((sheet) => {
+          if (sheet.id !== activeSheetId) return sheet;
+          return {
+            ...sheet,
+            namedRanges: (sheet.namedRanges || []).filter(
+              (r) => r.id !== rangeId,
+            ),
+          };
+        }),
+      );
+    },
+    [activeSheetId, setSheets],
+  );
 
   // Delete sheet
   const deleteSheet = (sheetId: string) => {
@@ -3981,10 +4325,11 @@ const SpreadSheet = ({
             freezeRow: templateSheet.cellsStyles.freezeRow || 0,
             freezeColumn: templateSheet.cellsStyles.freezeColumn || 0,
             mergedCells: templateSheet.cellsStyles.mergedCells || [],
+            namedRanges: templateSheet.cellsStyles.namedRanges || [],
           };
         });
 
-        // Recalculate all formulas for all sheets
+        // Recalculate all formulas for all sheets using dep graph
         const recalculateAllSheetsFormulas = async () => {
           const updatedSheets: Sheet[] = [];
 
@@ -3992,8 +4337,43 @@ const SpreadSheet = ({
             const newCells = { ...sheet.cells };
             const updatedComputedValues: Record<string, string | number> = {};
 
-            // Process all cells to recalculate formulas
+            // Build dependency graph and get topological order
+            buildGraph(newCells);
+            const formulaCells = Object.keys(newCells).filter((ref) =>
+              newCells[ref]?.formula?.startsWith("="),
+            );
+            const { order, circular } = getRecalcOrder(formulaCells);
+
+            // Mark circular references
+            circular.forEach((ref) => {
+              updatedComputedValues[ref] = "#CIRCULAR";
+              newCells[ref] = { ...newCells[ref], computed: "#CIRCULAR" };
+            });
+
+            // Process non-formula cells first
             for (const ref of Object.keys(newCells)) {
+              if (!newCells[ref]?.formula?.startsWith("=")) {
+                try {
+                  const result = await evaluateFormula(
+                    newCells[ref].formula,
+                    newCells,
+                    newSheets,
+                  );
+                  updatedComputedValues[ref] =
+                    result !== undefined ? result : "";
+                  newCells[ref] = {
+                    ...newCells[ref],
+                    computed: updatedComputedValues[ref],
+                  };
+                } catch {
+                  // Plain values shouldn't error
+                }
+              }
+            }
+
+            // Process formula cells in topological order
+            for (const ref of order) {
+              if (!newCells[ref]?.formula?.startsWith("=")) continue;
               try {
                 const result = await evaluateFormula(
                   newCells[ref].formula,
@@ -4001,8 +4381,6 @@ const SpreadSheet = ({
                   newSheets,
                 );
                 updatedComputedValues[ref] = result !== undefined ? result : "";
-
-                // Update the cell grid with the new computed value for next cell calculations
                 newCells[ref] = {
                   ...newCells[ref],
                   computed: updatedComputedValues[ref],
@@ -4010,10 +4388,7 @@ const SpreadSheet = ({
               } catch (error) {
                 console.error(`Error calculating cell ${ref}:`, error);
                 updatedComputedValues[ref] = "#ERROR";
-                newCells[ref] = {
-                  ...newCells[ref],
-                  computed: "#ERROR",
-                };
+                newCells[ref] = { ...newCells[ref], computed: "#ERROR" };
               }
             }
 
@@ -4026,6 +4401,8 @@ const SpreadSheet = ({
           // Set active sheet to the first sheet
           if (updatedSheets[0]?.id) {
             setActiveSheetId(updatedSheets[0].id);
+            // Rebuild graph for the active (first) sheet so edits work immediately
+            buildGraph(updatedSheets[0].cells);
           }
         };
 
@@ -4099,12 +4476,13 @@ const SpreadSheet = ({
               freezeRow: template.cellsStyles?.freezeRow || 0,
               freezeColumn: template.cellsStyles?.freezeColumn || 0,
               mergedCells: template.cellsStyles?.mergedCells || [],
+              namedRanges: template.cellsStyles?.namedRanges || [],
             };
           }
           return sheet;
         });
 
-        // After loading template, recalculate all formulas
+        // After loading template, recalculate all formulas using dep graph
         const recalculateAllTemplateFormulas = async () => {
           const currentSheet = updatedSheets.find(
             (sheet) => sheet.id === activeSheetId,
@@ -4114,8 +4492,42 @@ const SpreadSheet = ({
           const newCells = { ...currentSheet.cells };
           const updatedComputedValues: Record<string, string | number> = {};
 
-          // Process all cells to recalculate formulas
+          // Build dependency graph and get topological order
+          buildGraph(newCells);
+          const formulaCells = Object.keys(newCells).filter((ref) =>
+            newCells[ref]?.formula?.startsWith("="),
+          );
+          const { order, circular } = getRecalcOrder(formulaCells);
+
+          // Mark circular references
+          circular.forEach((ref) => {
+            updatedComputedValues[ref] = "#CIRCULAR";
+            newCells[ref] = { ...newCells[ref], computed: "#CIRCULAR" };
+          });
+
+          // Process non-formula cells first
           for (const ref of Object.keys(newCells)) {
+            if (!newCells[ref]?.formula?.startsWith("=")) {
+              try {
+                const result = await evaluateFormula(
+                  newCells[ref].formula,
+                  newCells,
+                  updatedSheets,
+                );
+                updatedComputedValues[ref] = result !== undefined ? result : "";
+                newCells[ref] = {
+                  ...newCells[ref],
+                  computed: updatedComputedValues[ref],
+                };
+              } catch {
+                // Plain values shouldn't error
+              }
+            }
+          }
+
+          // Process formula cells in topological order
+          for (const ref of order) {
+            if (!newCells[ref]?.formula?.startsWith("=")) continue;
             try {
               const result = await evaluateFormula(
                 newCells[ref].formula,
@@ -4123,8 +4535,6 @@ const SpreadSheet = ({
                 updatedSheets,
               );
               updatedComputedValues[ref] = result !== undefined ? result : "";
-
-              // Update the cell grid with the new computed value for next cell calculations
               newCells[ref] = {
                 ...newCells[ref],
                 computed: updatedComputedValues[ref],
@@ -4132,10 +4542,7 @@ const SpreadSheet = ({
             } catch (error) {
               console.error(`Error calculating cell ${ref}:`, error);
               updatedComputedValues[ref] = "#ERROR";
-              newCells[ref] = {
-                ...newCells[ref],
-                computed: "#ERROR",
-              };
+              newCells[ref] = { ...newCells[ref], computed: "#ERROR" };
             }
           }
 
@@ -4145,7 +4552,6 @@ const SpreadSheet = ({
               if (sheet.id === activeSheetId) {
                 const updatedCellsWithComputed = { ...sheet.cells };
 
-                // Update computed values for all cells
                 Object.keys(updatedComputedValues).forEach((ref) => {
                   if (updatedCellsWithComputed[ref]) {
                     updatedCellsWithComputed[ref] = {
@@ -4160,6 +4566,9 @@ const SpreadSheet = ({
               return sheet;
             }),
           );
+
+          // Rebuild graph for the active sheet so edits work immediately
+          buildGraph(newCells);
         };
 
         // Run the recalculation immediately after loading template
@@ -4173,7 +4582,14 @@ const SpreadSheet = ({
       setSelectedCells(new Set(["A1"]));
       setFormulaInput("");
     },
-    [activeSheetId, evaluateFormula, element.values, instanceId],
+    [
+      activeSheetId,
+      evaluateFormula,
+      element.values,
+      instanceId,
+      buildGraph,
+      getRecalcOrder,
+    ],
   );
 
   useEffect(() => {
@@ -4262,6 +4678,20 @@ const SpreadSheet = ({
       />
 
       {/* Spreadsheet Grid */}
+      <style>{`
+        @keyframes goToHighlightPulse {
+          0% { box-shadow: inset 0 0 0 3px #3b82f6, 0 0 0 0 rgba(59,130,246,0.7); }
+          25% { box-shadow: inset 0 0 0 3px #3b82f6, 0 0 0 12px rgba(59,130,246,0); }
+          50% { box-shadow: inset 0 0 0 3px #3b82f6, 0 0 0 0 rgba(59,130,246,0.5); }
+          75% { box-shadow: inset 0 0 0 3px #3b82f6, 0 0 0 8px rgba(59,130,246,0); }
+          100% { box-shadow: inset 0 0 0 0px transparent, 0 0 0 0 transparent; }
+        }
+        .goto-highlight-cell {
+          animation: goToHighlightPulse 1.5s ease-out forwards;
+          z-index: 35 !important;
+          position: relative;
+        }
+      `}</style>
       <SpreadSheetGrid
         cells={cells}
         selectedCell={selectedCell}
@@ -4289,6 +4719,8 @@ const SpreadSheet = ({
         onNavigateAfterEdit={handleNavigateAfterEdit}
         onGridReady={handleGridReady}
         zoom={zoom}
+        namedRangeStartCells={namedRangeStartCells}
+        goToHighlightCell={goToHighlight}
       />
 
       {/* Context Menu */}
@@ -4525,6 +4957,139 @@ const SpreadSheet = ({
                         🗑️ Eliminar nota
                       </button>
                     )}
+                    <div className="border-t my-1"></div>
+                    {/* GoTo: navigate to linked table */}
+                    {currentSheet?.cells[contextMenu.cellRef!]?.goTo && (
+                      <button
+                        className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm text-blue-600 font-medium"
+                        onClick={() => {
+                          navigateGoTo(contextMenu.cellRef!);
+                          setContextMenu({
+                            visible: false,
+                            x: 0,
+                            y: 0,
+                            type: null,
+                            index: -1,
+                          });
+                        }}
+                      >
+                        🔗 Ir a tabla
+                      </button>
+                    )}
+                    {/* Configure GoTo on this cell */}
+                    <button
+                      className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
+                      onClick={() => {
+                        const existing =
+                          currentSheet?.cells[contextMenu.cellRef!]?.goTo;
+                        setGoToConfigModal({
+                          visible: true,
+                          cellRef: contextMenu.cellRef!,
+                          conditionCells: existing
+                            ? existing.conditionCells.join(", ")
+                            : "",
+                        });
+                        setContextMenu({
+                          visible: false,
+                          x: 0,
+                          y: 0,
+                          type: null,
+                          index: -1,
+                        });
+                      }}
+                    >
+                      🎯{" "}
+                      {currentSheet?.cells[contextMenu.cellRef!]?.goTo
+                        ? "Editar Ir a..."
+                        : "Configurar Ir a..."}
+                    </button>
+                    {currentSheet?.cells[contextMenu.cellRef!]?.goTo && (
+                      <button
+                        className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm text-red-600"
+                        onClick={() => {
+                          saveGoToConfig(contextMenu.cellRef!, []);
+                          setContextMenu({
+                            visible: false,
+                            x: 0,
+                            y: 0,
+                            type: null,
+                            index: -1,
+                          });
+                        }}
+                      >
+                        🗑️ Quitar Ir a
+                      </button>
+                    )}
+                    <div className="border-t my-1"></div>
+                    {/* Named Range: label selection as a table */}
+                    <button
+                      className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
+                      onClick={() => {
+                        // Pre-fill with selection range
+                        const coords: { col: number; row: number }[] = [];
+                        selectedCells.forEach((ref) => {
+                          const pos = parseCellRef(ref);
+                          if (pos) coords.push(pos);
+                        });
+                        let startCell = contextMenu.cellRef!;
+                        let endCell = contextMenu.cellRef!;
+                        if (coords.length > 1) {
+                          const minCol = Math.min(...coords.map((c) => c.col));
+                          const maxCol = Math.max(...coords.map((c) => c.col));
+                          const minRow = Math.min(...coords.map((c) => c.row));
+                          const maxRow = Math.max(...coords.map((c) => c.row));
+                          startCell = `${getColumnLabel(minCol)}${minRow + 1}`;
+                          endCell = `${getColumnLabel(maxCol)}${maxRow + 1}`;
+                        }
+                        setNamedRangeModal({
+                          visible: true,
+                          editId: null,
+                          name: "",
+                          tags: "",
+                          startCell,
+                          endCell,
+                        });
+                        setContextMenu({
+                          visible: false,
+                          x: 0,
+                          y: 0,
+                          type: null,
+                          index: -1,
+                        });
+                      }}
+                    >
+                      📋 Etiquetar rango como tabla
+                    </button>
+                    {(currentSheet?.namedRanges || []).length > 0 && (
+                      <button
+                        className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
+                        onClick={() => {
+                          // Show a simple list - open modal with first range for editing
+                          const ranges = currentSheet?.namedRanges || [];
+                          if (ranges.length > 0) {
+                            const r = ranges[0];
+                            setNamedRangeModal({
+                              visible: true,
+                              editId: r.id,
+                              name: r.name,
+                              tags: r.tags.join(", "),
+                              startCell: r.startCell,
+                              endCell: r.endCell,
+                            });
+                          }
+                          setContextMenu({
+                            visible: false,
+                            x: 0,
+                            y: 0,
+                            type: null,
+                            index: -1,
+                          });
+                        }}
+                      >
+                        📑 Ver tablas etiquetadas (
+                        {(currentSheet?.namedRanges || []).length})
+                      </button>
+                    )}
                   </>
                 );
               })()}
@@ -4617,6 +5182,347 @@ const SpreadSheet = ({
       )}
 
       {/* Sheet Tabs */}
+      {/* GoTo Config Modal */}
+      {goToConfigModal.visible && (
+        <>
+          <div
+            className="fixed inset-0 bg-black bg-opacity-30 z-50"
+            onClick={() =>
+              setGoToConfigModal({
+                visible: false,
+                cellRef: "",
+                conditionCells: "",
+              })
+            }
+          />
+          <div
+            className="fixed z-50 bg-white border border-gray-300 shadow-xl rounded-lg p-4 w-96"
+            style={{
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+            }}
+          >
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-sm font-semibold text-gray-700">
+                🎯 Configurar "Ir a" - {goToConfigModal.cellRef}
+              </h3>
+              <button
+                className="text-gray-400 hover:text-gray-600"
+                onClick={() =>
+                  setGoToConfigModal({
+                    visible: false,
+                    cellRef: "",
+                    conditionCells: "",
+                  })
+                }
+              >
+                ✕
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 mb-2">
+              Ingresa las celdas cuyo valor determina a qué tabla navegar.
+              Separadas por coma (ej: A1, A2).
+            </p>
+            <input
+              className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              value={goToConfigModal.conditionCells}
+              onChange={(e) =>
+                setGoToConfigModal((prev) => ({
+                  ...prev,
+                  conditionCells: e.target.value,
+                }))
+              }
+              placeholder="A1, A2"
+              autoFocus
+            />
+            <div className="flex justify-end gap-2 mt-3">
+              <button
+                className="px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-100"
+                onClick={() =>
+                  setGoToConfigModal({
+                    visible: false,
+                    cellRef: "",
+                    conditionCells: "",
+                  })
+                }
+              >
+                Cancelar
+              </button>
+              <button
+                className="px-3 py-1 text-sm rounded bg-blue-500 text-white hover:bg-blue-600"
+                onClick={() => {
+                  const refs = goToConfigModal.conditionCells
+                    .split(",")
+                    .map((s) => s.trim().toUpperCase())
+                    .filter((s) => /^[A-Z]+\d+$/.test(s));
+                  saveGoToConfig(goToConfigModal.cellRef, refs);
+                  setGoToConfigModal({
+                    visible: false,
+                    cellRef: "",
+                    conditionCells: "",
+                  });
+                }}
+              >
+                Guardar
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Named Range Modal */}
+      {namedRangeModal.visible && (
+        <>
+          <div
+            className="fixed inset-0 bg-black bg-opacity-30 z-50"
+            onClick={() =>
+              setNamedRangeModal({
+                visible: false,
+                editId: null,
+                name: "",
+                tags: "",
+                startCell: "",
+                endCell: "",
+              })
+            }
+          />
+          <div
+            className="fixed z-50 bg-white border border-gray-300 shadow-xl rounded-lg p-4 w-[28rem]"
+            style={{
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+            }}
+          >
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-sm font-semibold text-gray-700">
+                📋 {namedRangeModal.editId ? "Editar" : "Nueva"} tabla
+                etiquetada
+              </h3>
+              <button
+                className="text-gray-400 hover:text-gray-600"
+                onClick={() =>
+                  setNamedRangeModal({
+                    visible: false,
+                    editId: null,
+                    name: "",
+                    tags: "",
+                    startCell: "",
+                    endCell: "",
+                  })
+                }
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <div>
+                <label className="text-xs text-gray-500 block mb-1">
+                  Nombre
+                </label>
+                <input
+                  className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  value={namedRangeModal.name}
+                  onChange={(e) =>
+                    setNamedRangeModal((prev) => ({
+                      ...prev,
+                      name: e.target.value,
+                    }))
+                  }
+                  placeholder="Tabla Aluminio-Cobre"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 block mb-1">
+                  Etiquetas (separadas por coma) — deben coincidir con los
+                  valores de las celdas condición
+                </label>
+                <input
+                  className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  value={namedRangeModal.tags}
+                  onChange={(e) =>
+                    setNamedRangeModal((prev) => ({
+                      ...prev,
+                      tags: e.target.value,
+                    }))
+                  }
+                  placeholder="aluminio, cobre"
+                />
+              </div>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="text-xs text-gray-500 block mb-1">
+                    Celda inicio
+                  </label>
+                  <input
+                    className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    value={namedRangeModal.startCell}
+                    onChange={(e) =>
+                      setNamedRangeModal((prev) => ({
+                        ...prev,
+                        startCell: e.target.value.toUpperCase(),
+                      }))
+                    }
+                    placeholder="A10"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="text-xs text-gray-500 block mb-1">
+                    Celda fin
+                  </label>
+                  <input
+                    className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    value={namedRangeModal.endCell}
+                    onChange={(e) =>
+                      setNamedRangeModal((prev) => ({
+                        ...prev,
+                        endCell: e.target.value.toUpperCase(),
+                      }))
+                    }
+                    placeholder="F20"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* List of existing named ranges on this sheet */}
+            {(currentSheet?.namedRanges || []).length > 0 && (
+              <div className="mt-3 border-t pt-2">
+                <p className="text-xs text-gray-500 mb-1 font-medium">
+                  Tablas etiquetadas en esta hoja:
+                </p>
+                <div className="max-h-32 overflow-y-auto space-y-1">
+                  {(currentSheet?.namedRanges || []).map((r) => (
+                    <div
+                      key={r.id}
+                      className="flex items-center justify-between text-xs bg-gray-50 rounded px-2 py-1"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <span className="font-medium text-gray-700">
+                          {r.name}
+                        </span>
+                        <span className="text-gray-400 ml-1">
+                          [{r.tags.join(", ")}]
+                        </span>
+                        <span className="text-gray-400 ml-1">
+                          {r.startCell}:{r.endCell}
+                        </span>
+                      </div>
+                      <div className="flex gap-1 ml-2">
+                        <button
+                          className="text-blue-500 hover:text-blue-700"
+                          title="Editar"
+                          onClick={() =>
+                            setNamedRangeModal({
+                              visible: true,
+                              editId: r.id,
+                              name: r.name,
+                              tags: r.tags.join(", "),
+                              startCell: r.startCell,
+                              endCell: r.endCell,
+                            })
+                          }
+                        >
+                          ✎
+                        </button>
+                        <button
+                          className="text-blue-500 hover:text-blue-700"
+                          title="Ir a"
+                          onClick={() => {
+                            // Navigate directly to this range
+                            setSelectedCell(r.startCell);
+                            selectionAnchorRef.current = r.startCell;
+                            setSelectedCells(new Set([r.startCell]));
+                            setTimeout(() => {
+                              if (scrollToCellRef.current) {
+                                scrollToCellRef.current(r.startCell);
+                              }
+                            }, 50);
+                            setNamedRangeModal({
+                              visible: false,
+                              editId: null,
+                              name: "",
+                              tags: "",
+                              startCell: "",
+                              endCell: "",
+                            });
+                          }}
+                        >
+                          →
+                        </button>
+                        <button
+                          className="text-red-500 hover:text-red-700"
+                          title="Eliminar"
+                          onClick={() => deleteNamedRange(r.id)}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 mt-3">
+              <button
+                className="px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-100"
+                onClick={() =>
+                  setNamedRangeModal({
+                    visible: false,
+                    editId: null,
+                    name: "",
+                    tags: "",
+                    startCell: "",
+                    endCell: "",
+                  })
+                }
+              >
+                Cancelar
+              </button>
+              <button
+                className="px-3 py-1 text-sm rounded bg-blue-500 text-white hover:bg-blue-600"
+                onClick={() => {
+                  const tags = namedRangeModal.tags
+                    .split(",")
+                    .map((s) => s.trim())
+                    .filter(Boolean);
+                  if (
+                    !namedRangeModal.name.trim() ||
+                    tags.length === 0 ||
+                    !namedRangeModal.startCell ||
+                    !namedRangeModal.endCell
+                  ) {
+                    return;
+                  }
+                  const range: NamedRange = {
+                    id: namedRangeModal.editId || `nr-${Date.now()}`,
+                    name: namedRangeModal.name.trim(),
+                    tags,
+                    startCell: namedRangeModal.startCell,
+                    endCell: namedRangeModal.endCell,
+                  };
+                  saveNamedRange(range);
+                  setNamedRangeModal({
+                    visible: false,
+                    editId: null,
+                    name: "",
+                    tags: "",
+                    startCell: "",
+                    endCell: "",
+                  });
+                }}
+              >
+                Guardar
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
       <SheetTabs
         sheets={sheets}
         activeSheetId={activeSheetId}

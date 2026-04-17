@@ -8,7 +8,11 @@ export interface Cell {
   bold?: boolean;
   textColor?: string;
   backgroundColor?: string;
-  border?: string; // e.g., '1px solid #000'
+  border?: string; // e.g., '1px solid #000' — shorthand for all sides
+  borderTop?: string;
+  borderRight?: string;
+  borderBottom?: string;
+  borderLeft?: string;
   options?: string[]; // Dropdown options for select functionality
   decimals?: number; // Number of decimal places to display (undefined = auto)
   conditionalFormat?: {
@@ -17,6 +21,22 @@ export interface Cell {
     color: string;
   };
   note?: string; // Cell note/comment (like Excel notes)
+  goTo?: GoToConfig; // Navigation config for lookup tables
+}
+
+// GoTo configuration: links a cell to a named range based on condition cell values
+export interface GoToConfig {
+  conditionCells: string[]; // Cell refs whose values determine the target (e.g., ["A1", "A2"])
+  // Each condition cell value is matched against the tags of named ranges
+}
+
+// A labeled region in a sheet that can be navigated to
+export interface NamedRange {
+  id: string;
+  name: string; // Display name (e.g., "Tabla Aluminio-Cobre")
+  tags: string[]; // Condition tags to match against (e.g., ["aluminio", "cobre"])
+  startCell: string; // Top-left cell of the range (e.g., "A10")
+  endCell: string; // Bottom-right cell of the range (e.g., "F20")
 }
 
 export interface GraphicShape {
@@ -60,6 +80,7 @@ export interface Sheet {
   freezeRow: number; // Freeze rows up to (not including) this index, 0 means no freeze
   freezeColumn: number; // Freeze columns up to (not including) this index, 0 means no freeze
   mergedCells: MergedCell[]; // Track merged cell ranges
+  namedRanges?: NamedRange[]; // Labeled table regions for GoTo navigation
 }
 
 export interface CustomFunction {

@@ -6,7 +6,7 @@ type AlertState = {
   type: "success" | "error" | "warning" | "info";
 };
 
-export function useAlert() {
+export const useAlert = () => {
   const [alert, setAlert] = useState<AlertState>({
     visible: false,
     message: "",

@@ -617,7 +617,11 @@ const ElementsDesignPage = () => {
       userHiddenColumns: new Set(
         Array.isArray(sheet.userHiddenColumns) ? sheet.userHiddenColumns : [],
       ),
+      hiddenCells: new Set(
+        Array.isArray(sheet.hiddenCells) ? sheet.hiddenCells : [],
+      ),
       mergedCells: sheet.mergedCells || [],
+      namedRanges: sheet.namedRanges || [],
     });
 
     if (designBase?.subDesigns) {
@@ -645,6 +649,7 @@ const ElementsDesignPage = () => {
         freezeRow: 0,
         freezeColumn: 0,
         mergedCells: [],
+        namedRanges: [],
       },
     ];
   }, [designBase, designData]);
@@ -668,7 +673,11 @@ const ElementsDesignPage = () => {
       userHiddenColumns: new Set(
         Array.isArray(sheet.userHiddenColumns) ? sheet.userHiddenColumns : [],
       ),
+      hiddenCells: new Set(
+        Array.isArray(sheet.hiddenCells) ? sheet.hiddenCells : [],
+      ),
       mergedCells: sheet.mergedCells || [],
+      namedRanges: sheet.namedRanges || [],
     });
 
     if (designBase?.cost?.subCosts) {
@@ -696,6 +705,7 @@ const ElementsDesignPage = () => {
         freezeRow: 0,
         freezeColumn: 0,
         mergedCells: [],
+        namedRanges: [],
       },
     ];
   }, [designBase, designData]);
@@ -718,6 +728,7 @@ const ElementsDesignPage = () => {
             freezeRow: 0,
             freezeColumn: 0,
             mergedCells: [],
+            namedRanges: [],
           },
         ],
   );
@@ -740,6 +751,7 @@ const ElementsDesignPage = () => {
             freezeRow: 0,
             freezeColumn: 0,
             mergedCells: [],
+            namedRanges: [],
           },
         ],
   );
@@ -753,6 +765,7 @@ const ElementsDesignPage = () => {
         templateHiddenColumns: Array.from(sheet.templateHiddenColumns || []),
         userHiddenRows: Array.from(sheet.userHiddenRows || []),
         userHiddenColumns: Array.from(sheet.userHiddenColumns || []),
+        hiddenCells: Array.from(sheet.hiddenCells || []),
       };
 
       const data: SubDesignData = {
@@ -786,6 +799,7 @@ const ElementsDesignPage = () => {
             ),
             userHiddenRows: Array.from(sheet.userHiddenRows || []),
             userHiddenColumns: Array.from(sheet.userHiddenColumns || []),
+            hiddenCells: Array.from(sheet.hiddenCells || []),
           };
 
           const data: SubDesignData = {
