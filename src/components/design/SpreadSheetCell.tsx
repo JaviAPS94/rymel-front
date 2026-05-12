@@ -50,19 +50,45 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
   const inputRef = React.useRef<HTMLInputElement>(null);
 
   // Check if this cell should display a graphic
-  const cellValue = cell?.value || "";
-  const isGraphicCell =
-    typeof cellValue === "string" && cellValue.startsWith("DRAW:");
+  // Supports both literal "DRAW:..." and formula "=DRAW:..." (computed becomes "DRAW:...")
+  const rawValue = cell?.value || "";
+  const drawFormula: string | null =
+    typeof rawValue === "string" && rawValue.startsWith("DRAW:")
+      ? rawValue
+      : typeof cell?.computed === "string" && cell.computed.startsWith("DRAW:")
+        ? cell.computed
+        : null;
+  const isGraphicCell = drawFormula !== null;
+  const cellValue = drawFormula ?? rawValue;
 
-  let graphicView: "FRONTAL" | "SUPERIOR" | null = null;
+  let graphicView: "FRONTAL" | "SUPERIOR" | "BOBINADO" | null = null;
   let graphicComponents: Array<"NUCLEO" | "BOBINA" | "TANQUE"> = [];
   let dimensionCells = {};
+  let bobinadoCells:
+    | { diameter?: string; superiorWidths?: string[]; inferiorWidths?: string[] }
+    | undefined;
 
   if (isGraphicCell) {
     const parts = cellValue.split(":");
     if (parts.length >= 3) {
       const view = parts[1].toUpperCase();
-      if (view === "FRONTAL" || view === "SUPERIOR") {
+      if (view === "BOBINADO") {
+        graphicView = "BOBINADO";
+        // Format: DRAW:BOBINADO:innerDiamCell:supWidths:infWidths:supOutputs:infOutputs:outerDiamCell:rectWidthCell:rectEspesorCell:rectGapCell
+        const splitPart = (idx: number) =>
+          parts[idx]?.split(",").map((s) => s.trim()).filter((s) => s) || [];
+        bobinadoCells = {
+          diameter: parts[2]?.trim() || undefined,
+          superiorWidths: splitPart(3),
+          inferiorWidths: splitPart(4),
+          superiorOutputs: splitPart(5),
+          inferiorOutputs: splitPart(6),
+          outerDiameter: parts[7]?.trim() || undefined,
+          rectWidth: parts[8]?.trim() || undefined,
+          rectEspesor: parts[9]?.trim() || undefined,
+          rectGap: parts[10]?.trim() || undefined,
+        };
+      } else if (view === "FRONTAL" || view === "SUPERIOR") {
         graphicView = view as "FRONTAL" | "SUPERIOR";
 
         // Parse components (comma-separated)
@@ -319,13 +345,16 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
             color: cell?.textColor || undefined,
           }}
         />
-      ) : graphicView && graphicComponents.length > 0 ? (
+      ) : graphicView &&
+        (graphicComponents.length > 0 || graphicView === "BOBINADO") ? (
         // Render inline graphic
         <InlineCellGraphic
           view={graphicView}
           components={graphicComponents}
           cells={cells}
           dimensionCells={dimensionCells}
+          bobinadoCells={bobinadoCells}
+          onCellValueChange={onCellValueChange}
           width={columnWidth}
           height={rowHeight}
         />

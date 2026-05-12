@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { CellGrid } from "./spreadsheet-types";
 
 interface InlineCellGraphicProps {
-  view: "FRONTAL" | "SUPERIOR";
+  view: "FRONTAL" | "SUPERIOR" | "BOBINADO";
   components: Array<"NUCLEO" | "BOBINA" | "TANQUE">;
   cells: CellGrid;
   dimensionCells?: {
@@ -10,6 +10,18 @@ interface InlineCellGraphicProps {
     bobina?: { profundidad?: string };
     tanque?: { alto?: string; diametro?: string };
   };
+  bobinadoCells?: {
+    diameter?: string;
+    superiorWidths?: string[];
+    inferiorWidths?: string[];
+    superiorOutputs?: string[];
+    inferiorOutputs?: string[];
+    outerDiameter?: string;
+    rectWidth?: string;
+    rectEspesor?: string;
+    rectGap?: string;
+  };
+  onCellValueChange?: (cellRef: string, value: string) => void;
   width: number;
   height: number;
 }
@@ -26,10 +38,14 @@ const InlineCellGraphic: React.FC<InlineCellGraphicProps> = ({
   components,
   cells,
   dimensionCells = {},
+  bobinadoCells,
+  onCellValueChange,
   width,
   height,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  // Track last written expansion values to avoid infinite update loops
+  const lastWrittenRef = useRef<string>("");
 
   // Helper to get cell value
   const getCellValue = (cellRef?: string, defaultVal?: number): number => {
@@ -109,7 +125,84 @@ const InlineCellGraphic: React.FC<InlineCellGraphicProps> = ({
     }
 
     // Draw based on view and components
-    if (view === "FRONTAL") {
+    if (view === "BOBINADO") {
+      const diameter = getCellValue(bobinadoCells?.diameter, 600);
+      const superiorWidths = (bobinadoCells?.superiorWidths || []).map((ref) =>
+        getCellValue(ref, 0),
+      );
+      const inferiorWidths = (bobinadoCells?.inferiorWidths || []).map((ref) =>
+        getCellValue(ref, 0),
+      );
+      const outerDiameter = getCellValue(bobinadoCells?.outerDiameter, 0);
+      const rectWidth = getCellValue(bobinadoCells?.rectWidth, 0);
+      const rectEspesor = getCellValue(bobinadoCells?.rectEspesor, 0);
+      const rectGap = getCellValue(bobinadoCells?.rectGap, 0);
+
+      // Calculate the bottom of rect2 — this is the upper cut boundary for superior staircase
+      let yBottomRect2Mm = Infinity;
+      if (outerDiameter > diameter && rectWidth > 0 && rectEspesor > 0) {
+        const halfW = rectWidth / 2;
+        const disc = (outerDiameter / 2) * (outerDiameter / 2) - halfW * halfW;
+        if (disc >= 0) {
+          const yTopCorner = Math.sqrt(disc);
+          yBottomRect2Mm = yTopCorner - rectGap - rectEspesor;
+        }
+      }
+
+      drawBobinado(
+        ctx,
+        diameter,
+        superiorWidths.filter((v) => v > 0),
+        inferiorWidths.filter((v) => v > 0),
+        availableWidth,
+        availableHeight,
+        paddingLeft,
+        paddingTop,
+        outerDiameter > diameter ? outerDiameter : 0,
+        rectWidth,
+        rectEspesor,
+        rectGap,
+        yBottomRect2Mm,
+      );
+
+      // Write computed expansion values to output cells
+      if (onCellValueChange) {
+        const supPlacements = computeStaircasePlacements(
+          superiorWidths,
+          diameter,
+          yBottomRect2Mm,
+        );
+        const infPlacements = computeStaircasePlacements(
+          inferiorWidths,
+          diameter,
+          Infinity,
+        );
+        const supExpansions = supPlacements.map((p) => (p ? p.exp : 0));
+        const infExpansions = infPlacements.map((p) => (p ? p.exp : 0));
+        const supOutputs = bobinadoCells?.superiorOutputs || [];
+        const infOutputs = bobinadoCells?.inferiorOutputs || [];
+
+        const newValues: Record<string, string> = {};
+        supExpansions.forEach((exp, i) => {
+          if (supOutputs[i]) {
+            newValues[supOutputs[i].toUpperCase()] = exp > 0 ? exp.toFixed(1) : "";
+          }
+        });
+        infExpansions.forEach((exp, i) => {
+          if (infOutputs[i]) {
+            newValues[infOutputs[i].toUpperCase()] = exp > 0 ? exp.toFixed(1) : "";
+          }
+        });
+
+        const newValuesStr = JSON.stringify(newValues);
+        if (newValuesStr !== lastWrittenRef.current && Object.keys(newValues).length > 0) {
+          lastWrittenRef.current = newValuesStr;
+          Object.entries(newValues).forEach(([ref, val]) => {
+            onCellValueChange(ref, val);
+          });
+        }
+      }
+    } else if (view === "FRONTAL") {
       if (hasNucleo && !hasBobina && !hasTanque) {
         // Image 1: FRONTAL NUCLEO only
         drawFrontalNucleo(
@@ -169,7 +262,7 @@ const InlineCellGraphic: React.FC<InlineCellGraphicProps> = ({
         );
       }
     }
-  }, [view, components, cells, dimensionCells, width, height]);
+  }, [view, components, cells, dimensionCells, bobinadoCells, onCellValueChange, width, height]);
 
   return (
     <canvas
@@ -782,6 +875,259 @@ function drawDimensionArrows(
   ctx.fillStyle = "#000000";
   ctx.fillText(heightValue.toFixed(2), 0, 0);
   ctx.restore();
+}
+
+// Compute staircase placements for a list of widths against an inner circle.
+// When `yMax` caps the staircase (superior side under the gray-rect cut line),
+// the largest unplaced width whose natural touch point is above the cut is
+// fitted into the residual space [yRef, yMax] with its top capped at yMax.
+type StaircasePlacement = {
+  exp: number;
+  yBottomMm: number;
+  yTopMm: number;
+  widthMm: number;
+};
+
+function computeStaircasePlacements(
+  widths: number[],
+  innerDiameter: number,
+  yMax: number,
+): Array<StaircasePlacement | null> {
+  const R = innerDiameter / 2;
+  const placements: Array<StaircasePlacement | null> = widths.map(() => null);
+  if (innerDiameter <= 0) return placements;
+
+  let yRef = 0;
+  for (let i = 0; i < widths.length; i++) {
+    const w = widths[i];
+    if (w <= 0 || w > innerDiameter) continue;
+    const disc = R * R - (w / 2) * (w / 2);
+    if (disc < 0) continue;
+    const yTouch = Math.sqrt(disc);
+    if (yTouch <= yRef) continue;
+    if (yTouch > yMax) continue;
+    placements[i] = {
+      exp: yTouch - yRef,
+      yBottomMm: yRef,
+      yTopMm: yTouch,
+      widthMm: w,
+    };
+    yRef = yTouch;
+  }
+
+  // Fit the largest unplaced width that was skipped due to the cut into the
+  // residual space, capping its top at yMax.
+  if (yMax < Infinity && yRef < yMax) {
+    let bestIdx = -1;
+    let bestW = -1;
+    for (let i = 0; i < widths.length; i++) {
+      if (placements[i]) continue;
+      const w = widths[i];
+      if (w <= 0 || w > innerDiameter) continue;
+      const disc = R * R - (w / 2) * (w / 2);
+      if (disc < 0) continue;
+      const yTouch = Math.sqrt(disc);
+      if (yTouch <= yMax) continue; // skipped for a reason other than the cut
+      if (w > bestW) {
+        bestW = w;
+        bestIdx = i;
+      }
+    }
+    if (bestIdx >= 0) {
+      placements[bestIdx] = {
+        exp: yMax - yRef,
+        yBottomMm: yRef,
+        yTopMm: yMax,
+        widthMm: bestW,
+      };
+    }
+  }
+
+  return placements;
+}
+
+// BOBINADO: circle with staircase rectangles from two winding tables (Superior + Inferior)
+// Optional outer circle with two gray rectangles at the top.
+function drawBobinado(
+  ctx: CanvasRenderingContext2D,
+  innerDiameter: number,
+  superiorWidths: number[],
+  inferiorWidths: number[],
+  availableWidth: number,
+  availableHeight: number,
+  paddingLeft: number,
+  paddingTop: number,
+  outerDiameter: number = 0,
+  rectWidth: number = 0,
+  rectEspesor: number = 0,
+  rectGap: number = 0,
+  yBottomRect2Mm: number = Infinity, // upper cut boundary for superior staircase
+) {
+  if (innerDiameter <= 0) return;
+
+  const R_inner = innerDiameter / 2;
+  const hasOuter = outerDiameter > innerDiameter;
+  const R_outer = hasOuter ? outerDiameter / 2 : R_inner;
+
+  const maxDiam = hasOuter ? outerDiameter : innerDiameter;
+  const scale = Math.min(availableWidth / maxDiam, availableHeight / maxDiam);
+  const scaledRInner = R_inner * scale;
+  const scaledROuter = R_outer * scale;
+  const centerX = paddingLeft + availableWidth / 2;
+  const centerY = paddingTop + availableHeight / 2;
+
+  // Background grid
+  drawAxisGrid(
+    ctx,
+    centerX - scaledROuter,
+    centerY - scaledROuter,
+    scaledROuter * 2,
+    scaledROuter * 2,
+    maxDiam,
+    maxDiam,
+    scale,
+  );
+
+  // --- Staircase layers (reference INNER circle; superior limited to yBottomRect2Mm) ---
+  const drawLayers = (widths: number[], isInferior: boolean) => {
+    const yMax = isInferior ? Infinity : yBottomRect2Mm;
+    const placements = computeStaircasePlacements(widths, innerDiameter, yMax);
+    for (const p of placements) {
+      if (!p) continue;
+      const halfW = p.widthMm / 2;
+      const rx = centerX - halfW * scale;
+      const rw = p.widthMm * scale;
+      const rh = p.exp * scale;
+      const ry = isInferior
+        ? centerY + p.yBottomMm * scale
+        : centerY - p.yTopMm * scale;
+      ctx.strokeStyle = "#1e3a8a";
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(rx, ry, rw, rh);
+      if (rh > 8) {
+        ctx.fillStyle = "#374151";
+        ctx.font = "9px Arial";
+        ctx.textAlign = "left";
+        ctx.fillText(p.exp.toFixed(1), centerX + halfW * scale + 4, ry + rh / 2 + 3);
+      }
+    }
+  };
+
+  drawLayers(superiorWidths, false);
+  drawLayers(inferiorWidths, true);
+
+  // --- Inner circle: full circle OR lower arc only when cut boundary is active ---
+  ctx.strokeStyle = "#B8860B";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  if (yBottomRect2Mm < Infinity && yBottomRect2Mm > 0 && yBottomRect2Mm < R_inner) {
+    // Draw only the arc below the cut line.
+    // In canvas coords (y down), a point at height yBottomRect2Mm above center satisfies:
+    //   sin(θ) = -yBottomRect2Mm / R_inner
+    // θ1 = asin(sinCut) → upper-right intersection (negative angle)
+    // θ2 = π - θ1        → upper-left  intersection (> π)
+    // Clockwise arc from θ1 → θ2 traces right→bottom→left (the lower portion).
+    const sinCut = -yBottomRect2Mm / R_inner;
+    const theta1 = Math.asin(sinCut);   // upper-right, in (-π/2, 0)
+    const theta2 = Math.PI - theta1;    // upper-left,  in (π, 3π/2)
+    ctx.arc(centerX, centerY, scaledRInner, theta1, theta2, false); // clockwise
+  } else {
+    ctx.arc(centerX, centerY, scaledRInner, 0, Math.PI * 2);
+  }
+  ctx.stroke();
+
+  // --- Horizontal cut line connecting the two arc endpoints ---
+  if (yBottomRect2Mm < Infinity && yBottomRect2Mm > 0 && yBottomRect2Mm < R_inner) {
+    const xCutHalf = Math.sqrt(R_inner * R_inner - yBottomRect2Mm * yBottomRect2Mm);
+    const cutY = centerY - yBottomRect2Mm * scale;
+    ctx.strokeStyle = "#B8860B";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(centerX - xCutHalf * scale, cutY);
+    ctx.lineTo(centerX + xCutHalf * scale, cutY);
+    ctx.stroke();
+  }
+
+  // --- Outer circle + gray rectangles (optional) ---
+  if (hasOuter) {
+    // Outer circle (lighter golden)
+    ctx.strokeStyle = "#DAA520";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, scaledROuter, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Two gray rectangles at the top if dimensions are provided
+    if (rectWidth > 0 && rectEspesor > 0) {
+      const halfW = rectWidth / 2;
+      const disc = R_outer * R_outer - halfW * halfW;
+      if (disc >= 0) {
+        const yTopCorner = Math.sqrt(disc); // y (mm) where top corners touch outer circle
+        const rx = centerX - halfW * scale;
+        const rw = rectWidth * scale;
+        const rh = rectEspesor * scale;
+
+        // Rect 1: top corners at outer circle boundary
+        const ry1 = centerY - yTopCorner * scale;
+        ctx.fillStyle = "rgba(150, 150, 150, 0.75)";
+        ctx.strokeStyle = "#555555";
+        ctx.lineWidth = 1.5;
+        ctx.fillRect(rx, ry1, rw, rh);
+        ctx.strokeRect(rx, ry1, rw, rh);
+
+        // Rect 2: gap measured downward from the top-corner of rect 1
+        const yTopRect2 = yTopCorner - rectGap;
+        if (yTopRect2 > 0) {
+          const ry2 = centerY - yTopRect2 * scale;
+          ctx.fillStyle = "rgba(150, 150, 150, 0.75)";
+          ctx.strokeStyle = "#555555";
+          ctx.lineWidth = 1.5;
+          ctx.fillRect(rx, ry2, rw, rh);
+          ctx.strokeRect(rx, ry2, rw, rh);
+        }
+      }
+    }
+  }
+
+  // --- Center cross-hair ---
+  ctx.strokeStyle = "#9ca3af";
+  ctx.lineWidth = 0.5;
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath();
+  ctx.moveTo(centerX - scaledROuter, centerY);
+  ctx.lineTo(centerX + scaledROuter, centerY);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(centerX, centerY - scaledROuter);
+  ctx.lineTo(centerX, centerY + scaledROuter);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // --- Diameter annotation (shows the outer diameter if present, else inner) ---
+  const annotR = hasOuter ? scaledROuter : scaledRInner;
+  const annotDiam = hasOuter ? outerDiameter : innerDiameter;
+  const dimY = centerY + annotR + 20;
+  ctx.strokeStyle = "#6B46C1";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(centerX - annotR * 0.8, dimY);
+  ctx.lineTo(centerX + annotR * 0.8, dimY);
+  ctx.stroke();
+  ctx.fillStyle = "#6B46C1";
+  ctx.beginPath();
+  ctx.moveTo(centerX - annotR * 0.8, dimY);
+  ctx.lineTo(centerX - annotR * 0.8 + 5, dimY - 3);
+  ctx.lineTo(centerX - annotR * 0.8 + 5, dimY + 3);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(centerX + annotR * 0.8, dimY);
+  ctx.lineTo(centerX + annotR * 0.8 - 5, dimY - 3);
+  ctx.lineTo(centerX + annotR * 0.8 - 5, dimY + 3);
+  ctx.fill();
+  ctx.fillStyle = "#000000";
+  ctx.font = "12px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText(`Ø ${annotDiam.toFixed(1)} mm`, centerX, dimY + 16);
 }
 
 export default InlineCellGraphic;

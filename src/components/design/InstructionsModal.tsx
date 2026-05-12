@@ -123,6 +123,13 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({
           example: "DRAW:SUPERIOR:TANQUE,NUCLEO,BOBINA:,H54:S55:,AD55",
         },
         {
+          label: "DRAW:BOBINADO",
+          description:
+            "Sección transversal de bobinado. Partes (separadas por :): 1=diámetro interior, 2=anchos Superior, 3=anchos Inferior, 4=salidas Superior, 5=salidas Inferior, 6=diámetro exterior, 7=ancho rectángulos grises, 8=espesor rectángulos grises, 9=separación entre rectángulos. Partes 4-9 opcionales.",
+          example:
+            "DRAW:BOBINADO:D56:D59,...:M59,...:E59,...:N59,...:D57:D58:D53:D54  (D57=Ø exterior, D58=ancho rect, D53=espesor, D54=separación)",
+        },
+        {
           label: "Referencias de Dimensiones",
           description:
             "Formato: DRAW:VISTA:COMPONENTES:nucleoAlto,nucleoAncho:bobinaProfundidad:tanqueAlto,tanqueDiametro",

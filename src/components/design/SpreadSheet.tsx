@@ -1809,6 +1809,11 @@ const SpreadSheet = ({
         return "#ERROR";
       }
 
+      // Passthrough: DRAW: graphic formulas are not math expressions
+      if (expression.startsWith("DRAW:")) {
+        return expression;
+      }
+
       // Helper: resolve cell value from cellGrid (same-sheet, up-to-date) or sheets (cross-sheet)
       const resolveCellValue = (ref: string): number | string => {
         if (!ref.includes("!")) {
