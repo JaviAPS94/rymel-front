@@ -14,7 +14,10 @@ import {
   ElementResponse,
   Template,
 } from "../../commons/types";
-import { useEvaluateFunctionMutation } from "../../store";
+import {
+  useEvaluateFunctionMutation,
+  useGetSemiFinishedQuery,
+} from "../../store";
 
 // Import new components
 import FormulaBar from "./FormulaBar";
@@ -23,7 +26,14 @@ import SheetTabs from "./SheetTabs";
 import CrossTabSelector from "./CrossTabSelector";
 import FunctionLibraryModal from "./FunctionLibraryModal";
 import TemplateLibraryModal from "./TemplateLibraryModal";
-import { CustomFunction, NamedRange, Sheet } from "./spreadsheet-types";
+import {
+  CustomFunction,
+  NamedRange,
+  SemiFinishedZone,
+  Sheet,
+  getSemiFinishedColor,
+} from "./spreadsheet-types";
+import Select, { Option } from "../core/Select";
 import { useDepGraph } from "../../hooks/useDepGraph";
 
 const ROWS = 250;
@@ -765,6 +775,35 @@ const SpreadSheet = ({
     endCell: "",
   });
 
+  // Semi-finished zone modal state
+  const [semiFinishedZoneModal, setSemiFinishedZoneModal] = useState<{
+    visible: boolean;
+    editId: string | null;
+    semiFinishedId: number | null;
+    startCell: string;
+    endCell: string;
+  }>({
+    visible: false,
+    editId: null,
+    semiFinishedId: null,
+    startCell: "",
+    endCell: "",
+  });
+
+  // Load semi-finished products for zone assignment
+  const { data: semiFinishedList, isLoading: isLoadingSemiFinished } =
+    useGetSemiFinishedQuery(null);
+
+  // Options shape expected by the project's custom Select
+  const semiFinishedOptions = useMemo<Option<number>[]>(
+    () =>
+      (semiFinishedList || []).map((sf) => ({
+        label: `${sf.name} (${sf.code})`,
+        value: sf.id,
+      })),
+    [semiFinishedList],
+  );
+
   // Template state
 
   // Track if initial template has been loaded
@@ -813,6 +852,52 @@ const SpreadSheet = ({
     });
     return startCells;
   }, [currentSheet?.namedRanges]);
+
+  // Map cellRef -> zone metadata for rendering (color tint + badge).
+  // Recomputed only when the zones array changes. Cell -> 1 zone (no overlap).
+  const cellZoneMap = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        zoneId: string;
+        code: string;
+        name: string;
+        bg: string;
+        border: string;
+        text: string;
+        isStart: boolean;
+      }
+    >();
+    (currentSheet?.semiFinishedZones || []).forEach((zone) => {
+      const start = zone.startCell.match(/^([A-Z]+)(\d+)$/);
+      const end = zone.endCell.match(/^([A-Z]+)(\d+)$/);
+      if (!start || !end) return;
+      const startCol = getColumnIndex(start[1]);
+      const startRow = Number.parseInt(start[2]) - 1;
+      const endCol = getColumnIndex(end[1]);
+      const endRow = Number.parseInt(end[2]) - 1;
+      const minRow = Math.min(startRow, endRow);
+      const maxRow = Math.max(startRow, endRow);
+      const minCol = Math.min(startCol, endCol);
+      const maxCol = Math.max(startCol, endCol);
+      const palette = getSemiFinishedColor(zone.semiFinishedCode);
+      for (let r = minRow; r <= maxRow; r++) {
+        for (let c = minCol; c <= maxCol; c++) {
+          const ref = `${getColumnLabel(c)}${r + 1}`;
+          map.set(ref, {
+            zoneId: zone.id,
+            code: zone.semiFinishedCode,
+            name: zone.semiFinishedName,
+            bg: palette.bg,
+            border: palette.border,
+            text: palette.text,
+            isStart: r === minRow && c === minCol,
+          });
+        }
+      }
+    });
+    return map;
+  }, [currentSheet?.semiFinishedZones]);
 
   // Dependency graph for incremental recalculation
   const { buildGraph, updateCellInGraph, getRecalcOrder } = useDepGraph();
@@ -4023,6 +4108,8 @@ const SpreadSheet = ({
       newSheet.columnWidths = { ...(template.cellsStyles?.columnWidths || {}) };
       newSheet.rowHeights = { ...(template.cellsStyles?.rowHeights || {}) };
       newSheet.namedRanges = template.cellsStyles?.namedRanges || [];
+      newSheet.semiFinishedZones =
+        template.cellsStyles?.semiFinishedZones || [];
     }
 
     setSheets((prev) => [...prev, newSheet]);
@@ -4233,6 +4320,69 @@ const SpreadSheet = ({
     [activeSheetId, setSheets],
   );
 
+  // Save / update a semi-finished zone on the active sheet.
+  // Overlapping cells are reassigned to the new zone (one zone per cell).
+  const saveSemiFinishedZone = useCallback(
+    (zone: SemiFinishedZone) => {
+      setSheets((prevSheets) =>
+        prevSheets.map((sheet) => {
+          if (sheet.id !== activeSheetId) return sheet;
+          const existing = sheet.semiFinishedZones || [];
+          const newStart = parseCellRef(zone.startCell);
+          const newEnd = parseCellRef(zone.endCell);
+          if (!newStart || !newEnd) return sheet;
+          const newMinRow = Math.min(newStart.row, newEnd.row);
+          const newMaxRow = Math.max(newStart.row, newEnd.row);
+          const newMinCol = Math.min(newStart.col, newEnd.col);
+          const newMaxCol = Math.max(newStart.col, newEnd.col);
+
+          const rectsOverlap = (other: SemiFinishedZone) => {
+            if (other.id === zone.id) return false;
+            const os = parseCellRef(other.startCell);
+            const oe = parseCellRef(other.endCell);
+            if (!os || !oe) return false;
+            const oMinRow = Math.min(os.row, oe.row);
+            const oMaxRow = Math.max(os.row, oe.row);
+            const oMinCol = Math.min(os.col, oe.col);
+            const oMaxCol = Math.max(os.col, oe.col);
+            return !(
+              newMaxRow < oMinRow ||
+              newMinRow > oMaxRow ||
+              newMaxCol < oMinCol ||
+              newMinCol > oMaxCol
+            );
+          };
+
+          const withoutOverlaps = existing.filter((z) => !rectsOverlap(z));
+          const idx = withoutOverlaps.findIndex((z) => z.id === zone.id);
+          const updated =
+            idx >= 0
+              ? withoutOverlaps.map((z) => (z.id === zone.id ? zone : z))
+              : [...withoutOverlaps, zone];
+          return { ...sheet, semiFinishedZones: updated };
+        }),
+      );
+    },
+    [activeSheetId, setSheets],
+  );
+
+  const deleteSemiFinishedZone = useCallback(
+    (zoneId: string) => {
+      setSheets((prevSheets) =>
+        prevSheets.map((sheet) => {
+          if (sheet.id !== activeSheetId) return sheet;
+          return {
+            ...sheet,
+            semiFinishedZones: (sheet.semiFinishedZones || []).filter(
+              (z) => z.id !== zoneId,
+            ),
+          };
+        }),
+      );
+    },
+    [activeSheetId, setSheets],
+  );
+
   // Delete sheet
   const deleteSheet = (sheetId: string) => {
     if (sheets.length <= 1) return; // Don't delete the last sheet
@@ -4331,6 +4481,8 @@ const SpreadSheet = ({
             freezeColumn: templateSheet.cellsStyles.freezeColumn || 0,
             mergedCells: templateSheet.cellsStyles.mergedCells || [],
             namedRanges: templateSheet.cellsStyles.namedRanges || [],
+            semiFinishedZones:
+              templateSheet.cellsStyles.semiFinishedZones || [],
           };
         });
 
@@ -4482,6 +4634,8 @@ const SpreadSheet = ({
               freezeColumn: template.cellsStyles?.freezeColumn || 0,
               mergedCells: template.cellsStyles?.mergedCells || [],
               namedRanges: template.cellsStyles?.namedRanges || [],
+              semiFinishedZones:
+                template.cellsStyles?.semiFinishedZones || [],
             };
           }
           return sheet;
@@ -4725,6 +4879,7 @@ const SpreadSheet = ({
         onGridReady={handleGridReady}
         zoom={zoom}
         namedRangeStartCells={namedRangeStartCells}
+        cellZoneMap={cellZoneMap}
         goToHighlightCell={goToHighlight}
       />
 
@@ -4755,8 +4910,35 @@ const SpreadSheet = ({
             }}
           />
           <div
-            className="fixed bg-white border border-gray-300 shadow-lg rounded z-50"
-            style={{ top: contextMenu.y, left: contextMenu.x }}
+            className="fixed bg-white border border-gray-300 shadow-lg rounded z-50 overflow-y-auto"
+            ref={(el) => {
+              if (!el) return;
+              // Flip / clamp so the menu stays inside the viewport
+              const rect = el.getBoundingClientRect();
+              const margin = 8;
+              const vw = window.innerWidth;
+              const vh = window.innerHeight;
+              let nextLeft = contextMenu.x;
+              let nextTop = contextMenu.y;
+              if (rect.right > vw - margin) {
+                nextLeft = Math.max(margin, vw - rect.width - margin);
+              }
+              if (rect.bottom > vh - margin) {
+                nextTop = Math.max(margin, vh - rect.height - margin);
+              }
+              if (
+                Math.round(rect.left) !== Math.round(nextLeft) ||
+                Math.round(rect.top) !== Math.round(nextTop)
+              ) {
+                el.style.left = `${nextLeft}px`;
+                el.style.top = `${nextTop}px`;
+              }
+            }}
+            style={{
+              top: contextMenu.y,
+              left: contextMenu.x,
+              maxHeight: "85vh",
+            }}
           >
             {contextMenu.type === "row" && (
               <>
@@ -5095,6 +5277,101 @@ const SpreadSheet = ({
                         {(currentSheet?.namedRanges || []).length})
                       </button>
                     )}
+                    <div className="border-t my-1"></div>
+                    {/* Semi-finished zone: assign selection to a semi-finished product */}
+                    {(() => {
+                      const existingZone = (
+                        currentSheet?.semiFinishedZones || []
+                      ).find((z) => {
+                        const s = parseCellRef(z.startCell);
+                        const e = parseCellRef(z.endCell);
+                        const cur = parseCellRef(contextMenu.cellRef!);
+                        if (!s || !e || !cur) return false;
+                        const minR = Math.min(s.row, e.row);
+                        const maxR = Math.max(s.row, e.row);
+                        const minC = Math.min(s.col, e.col);
+                        const maxC = Math.max(s.col, e.col);
+                        return (
+                          cur.row >= minR &&
+                          cur.row <= maxR &&
+                          cur.col >= minC &&
+                          cur.col <= maxC
+                        );
+                      });
+                      return (
+                        <>
+                          <button
+                            className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
+                            onClick={() => {
+                              const coords: {
+                                col: number;
+                                row: number;
+                              }[] = [];
+                              selectedCells.forEach((ref) => {
+                                const pos = parseCellRef(ref);
+                                if (pos) coords.push(pos);
+                              });
+                              let startCell = contextMenu.cellRef!;
+                              let endCell = contextMenu.cellRef!;
+                              if (coords.length > 1) {
+                                const minCol = Math.min(
+                                  ...coords.map((c) => c.col),
+                                );
+                                const maxCol = Math.max(
+                                  ...coords.map((c) => c.col),
+                                );
+                                const minRow = Math.min(
+                                  ...coords.map((c) => c.row),
+                                );
+                                const maxRow = Math.max(
+                                  ...coords.map((c) => c.row),
+                                );
+                                startCell = `${getColumnLabel(minCol)}${minRow + 1}`;
+                                endCell = `${getColumnLabel(maxCol)}${maxRow + 1}`;
+                              }
+                              setSemiFinishedZoneModal({
+                                visible: true,
+                                editId: existingZone?.id || null,
+                                semiFinishedId:
+                                  existingZone?.semiFinishedId ?? null,
+                                startCell:
+                                  existingZone?.startCell || startCell,
+                                endCell: existingZone?.endCell || endCell,
+                              });
+                              setContextMenu({
+                                visible: false,
+                                x: 0,
+                                y: 0,
+                                type: null,
+                                index: -1,
+                              });
+                            }}
+                          >
+                            🏷️{" "}
+                            {existingZone
+                              ? `Editar zona (${existingZone.semiFinishedCode})`
+                              : "Asignar zona a semi-terminado"}
+                          </button>
+                          {existingZone && (
+                            <button
+                              className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm text-red-600"
+                              onClick={() => {
+                                deleteSemiFinishedZone(existingZone.id);
+                                setContextMenu({
+                                  visible: false,
+                                  x: 0,
+                                  y: 0,
+                                  type: null,
+                                  index: -1,
+                                });
+                              }}
+                            >
+                              🗑️ Quitar zona
+                            </button>
+                          )}
+                        </>
+                      );
+                    })()}
                   </>
                 );
               })()}
@@ -5516,6 +5793,257 @@ const SpreadSheet = ({
                     editId: null,
                     name: "",
                     tags: "",
+                    startCell: "",
+                    endCell: "",
+                  });
+                }}
+              >
+                Guardar
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Semi-finished Zone Modal */}
+      {semiFinishedZoneModal.visible && (
+        <>
+          <div
+            className="fixed inset-0 bg-black bg-opacity-30 z-50"
+            onClick={() =>
+              setSemiFinishedZoneModal({
+                visible: false,
+                editId: null,
+                semiFinishedId: null,
+                startCell: "",
+                endCell: "",
+              })
+            }
+          />
+          <div
+            className="fixed z-50 bg-white border border-gray-300 shadow-xl rounded-lg p-4 w-[28rem]"
+            style={{
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+            }}
+          >
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-sm font-semibold text-gray-700">
+                🏷️{" "}
+                {semiFinishedZoneModal.editId ? "Editar" : "Nueva"} zona
+                semi-terminado
+              </h3>
+              <button
+                className="text-gray-400 hover:text-gray-600"
+                onClick={() =>
+                  setSemiFinishedZoneModal({
+                    visible: false,
+                    editId: null,
+                    semiFinishedId: null,
+                    startCell: "",
+                    endCell: "",
+                  })
+                }
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <div>
+                <label className="text-xs text-gray-500 block mb-1">
+                  Semi-terminado
+                </label>
+                <Select<number>
+                  options={semiFinishedOptions}
+                  selectedValue={semiFinishedZoneModal.semiFinishedId}
+                  isLoading={isLoadingSemiFinished}
+                  placeholder="Selecciona un semi-terminado..."
+                  onChange={(value) =>
+                    setSemiFinishedZoneModal((prev) => ({
+                      ...prev,
+                      semiFinishedId: value ?? null,
+                    }))
+                  }
+                />
+                {semiFinishedZoneModal.semiFinishedId !== null && (() => {
+                  const sf = (semiFinishedList || []).find(
+                    (s) => s.id === semiFinishedZoneModal.semiFinishedId,
+                  );
+                  if (!sf) return null;
+                  const palette = getSemiFinishedColor(sf.code);
+                  return (
+                    <div
+                      className="mt-2 inline-flex items-center gap-2 px-2 py-1 rounded text-xs"
+                      style={{
+                        backgroundColor: palette.bg,
+                        color: palette.text,
+                        border: `1px solid ${palette.border}`,
+                      }}
+                    >
+                      <span
+                        className="inline-block w-3 h-3 rounded"
+                        style={{ backgroundColor: palette.border }}
+                      />
+                      Color asignado a {sf.code}
+                    </div>
+                  );
+                })()}
+              </div>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="text-xs text-gray-500 block mb-1">
+                    Celda inicio
+                  </label>
+                  <input
+                    className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    value={semiFinishedZoneModal.startCell}
+                    onChange={(e) =>
+                      setSemiFinishedZoneModal((prev) => ({
+                        ...prev,
+                        startCell: e.target.value.toUpperCase(),
+                      }))
+                    }
+                    placeholder="A1"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="text-xs text-gray-500 block mb-1">
+                    Celda fin
+                  </label>
+                  <input
+                    className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    value={semiFinishedZoneModal.endCell}
+                    onChange={(e) =>
+                      setSemiFinishedZoneModal((prev) => ({
+                        ...prev,
+                        endCell: e.target.value.toUpperCase(),
+                      }))
+                    }
+                    placeholder="C5"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {(currentSheet?.semiFinishedZones || []).length > 0 && (
+              <div className="mt-3 border-t pt-2">
+                <p className="text-xs text-gray-500 mb-1 font-medium">
+                  Zonas en esta hoja:
+                </p>
+                <div className="max-h-32 overflow-y-auto space-y-1">
+                  {(currentSheet?.semiFinishedZones || []).map((z) => {
+                    const palette = getSemiFinishedColor(z.semiFinishedCode);
+                    return (
+                      <div
+                        key={z.id}
+                        className="flex items-center justify-between text-xs rounded px-2 py-1"
+                        style={{
+                          backgroundColor: palette.bg,
+                          border: `1px solid ${palette.border}`,
+                        }}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <span
+                            className="font-medium"
+                            style={{ color: palette.text }}
+                          >
+                            {z.semiFinishedName}
+                          </span>
+                          <span
+                            className="ml-1"
+                            style={{ color: palette.text, opacity: 0.7 }}
+                          >
+                            [{z.semiFinishedCode}]
+                          </span>
+                          <span
+                            className="ml-1"
+                            style={{ color: palette.text, opacity: 0.7 }}
+                          >
+                            {z.startCell}:{z.endCell}
+                          </span>
+                        </div>
+                        <div className="flex gap-1 ml-2">
+                          <button
+                            className="text-blue-600 hover:text-blue-800"
+                            title="Editar"
+                            onClick={() =>
+                              setSemiFinishedZoneModal({
+                                visible: true,
+                                editId: z.id,
+                                semiFinishedId: z.semiFinishedId,
+                                startCell: z.startCell,
+                                endCell: z.endCell,
+                              })
+                            }
+                          >
+                            ✎
+                          </button>
+                          <button
+                            className="text-red-600 hover:text-red-800"
+                            title="Eliminar"
+                            onClick={() => deleteSemiFinishedZone(z.id)}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 mt-3">
+              <button
+                className="px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-100"
+                onClick={() =>
+                  setSemiFinishedZoneModal({
+                    visible: false,
+                    editId: null,
+                    semiFinishedId: null,
+                    startCell: "",
+                    endCell: "",
+                  })
+                }
+              >
+                Cancelar
+              </button>
+              <button
+                className="px-3 py-1 text-sm rounded bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={
+                  semiFinishedZoneModal.semiFinishedId === null ||
+                  !semiFinishedZoneModal.startCell ||
+                  !semiFinishedZoneModal.endCell
+                }
+                onClick={() => {
+                  if (
+                    semiFinishedZoneModal.semiFinishedId === null ||
+                    !semiFinishedZoneModal.startCell ||
+                    !semiFinishedZoneModal.endCell
+                  ) {
+                    return;
+                  }
+                  const sf = (semiFinishedList || []).find(
+                    (s) => s.id === semiFinishedZoneModal.semiFinishedId,
+                  );
+                  if (!sf) return;
+                  const zone: SemiFinishedZone = {
+                    id:
+                      semiFinishedZoneModal.editId ||
+                      `sfz-${Date.now()}`,
+                    semiFinishedId: sf.id,
+                    semiFinishedCode: sf.code,
+                    semiFinishedName: sf.name,
+                    startCell: semiFinishedZoneModal.startCell,
+                    endCell: semiFinishedZoneModal.endCell,
+                  };
+                  saveSemiFinishedZone(zone);
+                  setSemiFinishedZoneModal({
+                    visible: false,
+                    editId: null,
+                    semiFinishedId: null,
                     startCell: "",
                     endCell: "",
                   });

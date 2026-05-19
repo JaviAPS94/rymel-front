@@ -23,6 +23,15 @@ interface SpreadSheetCellProps {
   cells: CellGrid; // Add cells prop for graphics
   fontScale?: number; // Zoom scale factor (1.0 = 100%)
   isNamedRangeStart?: boolean; // Whether this cell is the start of a named range
+  zone?: {
+    zoneId: string;
+    code: string;
+    name: string;
+    bg: string;
+    border: string;
+    text: string;
+    isStart: boolean;
+  };
 }
 
 const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
@@ -46,6 +55,7 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
   cells,
   fontScale = 1,
   isNamedRangeStart = false,
+  zone,
 }) => {
   const inputRef = React.useRef<HTMLInputElement>(null);
 
@@ -166,7 +176,9 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
     return belowMin || aboveMax ? cf.color : undefined;
   })();
 
-  // Compute style from cell properties
+  // Compute style from cell properties.
+  // Zone tint is applied only when the user hasn't set a specific background,
+  // so explicit cell colors and conditional formatting keep priority.
   const cellStyle: React.CSSProperties = {
     width: columnWidth,
     height: rowHeight,
@@ -180,6 +192,7 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
     backgroundColor:
       conditionalBgColor ||
       cell?.backgroundColor ||
+      zone?.bg ||
       (isFrozen ? "#ffffff" : undefined),
     boxSizing: "border-box",
     borderTop: "none", // Remove top border to avoid doubling with row above
@@ -390,6 +403,24 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
       {cell?.note && !isHidden && (
         <NoteIndicator note={cell.note} fontScale={fontScale} />
       )}
+      {/* Semi-finished zone badge — rendered once at the zone's top-left cell */}
+      {zone?.isStart && !isHidden && (
+        <div
+          className="absolute top-0 right-0 z-10 px-1 select-none pointer-events-none"
+          style={{
+            fontSize: Math.max(8, Math.round(9 * fontScale)),
+            lineHeight: 1.2,
+            backgroundColor: zone.border,
+            color: "#ffffff",
+            borderBottomLeftRadius: 4,
+            fontWeight: 600,
+            letterSpacing: 0.2,
+          }}
+          title={zone.name}
+        >
+          {zone.code}
+        </div>
+      )}
       {/* Named range start indicator */}
       {isNamedRangeStart && !isHidden && (
         <div
@@ -463,7 +494,11 @@ export default React.memo(SpreadSheetCell, (prevProps, nextProps) => {
     prevProps.cell?.note === nextProps.cell?.note &&
     prevProps.cell?.goTo?.conditionCells?.join() ===
       nextProps.cell?.goTo?.conditionCells?.join() &&
-    prevProps.isNamedRangeStart === nextProps.isNamedRangeStart
+    prevProps.isNamedRangeStart === nextProps.isNamedRangeStart &&
+    prevProps.zone?.zoneId === nextProps.zone?.zoneId &&
+    prevProps.zone?.bg === nextProps.zone?.bg &&
+    prevProps.zone?.code === nextProps.zone?.code &&
+    prevProps.zone?.isStart === nextProps.zone?.isStart
   );
 });
 

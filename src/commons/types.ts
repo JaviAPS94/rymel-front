@@ -241,12 +241,22 @@ export type CellStyle = {
   freezeColumn?: number;
   mergedCells?: MergedCell[];
   namedRanges?: TemplateNamedRange[];
+  semiFinishedZones?: TemplateSemiFinishedZone[];
 };
 
 export type TemplateNamedRange = {
   id: string;
   name: string;
   tags: string[];
+  startCell: string;
+  endCell: string;
+};
+
+export type TemplateSemiFinishedZone = {
+  id: string;
+  semiFinishedId: number;
+  semiFinishedCode: string;
+  semiFinishedName: string;
   startCell: string;
   endCell: string;
 };

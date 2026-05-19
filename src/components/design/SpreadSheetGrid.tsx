@@ -64,6 +64,18 @@ interface SpreadSheetGridProps {
   onGridReady?: (scrollToCell: (cellRef: string) => void) => void;
   zoom?: number;
   namedRangeStartCells?: Set<string>;
+  cellZoneMap?: Map<
+    string,
+    {
+      zoneId: string;
+      code: string;
+      name: string;
+      bg: string;
+      border: string;
+      text: string;
+      isStart: boolean;
+    }
+  >;
   goToHighlightCell?: string | null;
 }
 
@@ -95,6 +107,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
   onGridReady,
   zoom = 100,
   namedRangeStartCells = new Set(),
+  cellZoneMap,
   goToHighlightCell = null,
 }) => {
   // Zoom scale factor
@@ -627,6 +640,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                           onNavigateAfterEdit={onNavigateAfterEdit}
                           fontScale={scale}
                           isNamedRangeStart={namedRangeStartCells.has(cellRef)}
+                          zone={cellZoneMap?.get(cellRef)}
                         />
                       </div>
                     );
@@ -727,6 +741,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                           onNavigateAfterEdit={onNavigateAfterEdit}
                           fontScale={scale}
                           isNamedRangeStart={namedRangeStartCells.has(cellRef)}
+                          zone={cellZoneMap?.get(cellRef)}
                         />
                       </div>
                     );
@@ -868,6 +883,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                           onNavigateAfterEdit={onNavigateAfterEdit}
                           fontScale={scale}
                           isNamedRangeStart={namedRangeStartCells.has(cellRef)}
+                          zone={cellZoneMap?.get(cellRef)}
                         />
                       </div>
                     );
@@ -969,6 +985,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                           onNavigateAfterEdit={onNavigateAfterEdit}
                           fontScale={scale}
                           isNamedRangeStart={namedRangeStartCells.has(cellRef)}
+                          zone={cellZoneMap?.get(cellRef)}
                         />
                       </div>
                     );
