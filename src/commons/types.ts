@@ -242,6 +242,7 @@ export type CellStyle = {
   mergedCells?: MergedCell[];
   namedRanges?: TemplateNamedRange[];
   semiFinishedZones?: TemplateSemiFinishedZone[];
+  itemCatalogTables?: TemplateItemCatalogTable[];
 };
 
 export type TemplateNamedRange = {
@@ -261,6 +262,24 @@ export type TemplateSemiFinishedZone = {
   endCell: string;
 };
 
+export type TemplateItemCatalogTable = {
+  id: string;
+  name: string;
+  tags?: string[];
+  startCell: string;
+  endCell: string;
+  headerRows: number;
+  idColumnOffset: number;
+  descriptionColumnOffset: number;
+  umColumnOffset: number;
+};
+
+export type TemplateCellItemLink = {
+  catalogSheetId: string;
+  catalogTableId: string;
+  itemId: string;
+};
+
 export type TemplateGoToConfig = {
   conditionCells: string[];
 };
@@ -272,6 +291,8 @@ interface Cell {
   elementKey?: string;
   options?: string[]; // Dropdown options for select functionality
   goTo?: TemplateGoToConfig; // GoTo navigation config
+  itemLink?: TemplateCellItemLink;
+  catalogConditionCells?: string[];
 }
 
 export type CellGrid = { [key: string]: Cell };

@@ -22,6 +22,17 @@ export interface Cell {
   };
   note?: string; // Cell note/comment (like Excel notes)
   goTo?: GoToConfig; // Navigation config for lookup tables
+  itemLink?: CellItemLink; // Binds this cell's value to a catalog item (feeds the BOM)
+  catalogConditionCells?: string[]; // Cells whose values are matched against catalog tags to auto-route the picker
+}
+
+// Link from a value cell to a row in an ItemCatalogTable. The itemId is resolved
+// against the catalog at render time so edits to the catalog row (description, UM)
+// propagate to the BOM automatically.
+export interface CellItemLink {
+  catalogSheetId: string;
+  catalogTableId: string;
+  itemId: string;
 }
 
 // GoTo configuration: links a cell to a named range based on condition cell values
@@ -37,6 +48,24 @@ export interface NamedRange {
   tags: string[]; // Condition tags to match against (e.g., ["aluminio", "cobre"])
   startCell: string; // Top-left cell of the range (e.g., "A10")
   endCell: string; // Bottom-right cell of the range (e.g., "F20")
+}
+
+// A region in a sheet that defines a lookup catalog of items. Each row inside
+// the range (after `headerRows`) is one item; the offsets pick which columns
+// hold the Item ID, the human-readable description, and the unit of measure.
+// Linked cells in any sheet point to a row of one of these tables.
+// `tags` keywords are matched against the values of a cell's `catalogConditionCells`
+// to auto-route the picker to the right catalog (mirrors how GoTo + namedRanges work).
+export interface ItemCatalogTable {
+  id: string;
+  name: string;
+  tags?: string[];
+  startCell: string;
+  endCell: string;
+  headerRows: number; // rows to skip from the top of the range before data starts
+  idColumnOffset: number; // 0-indexed offset relative to startCell column
+  descriptionColumnOffset: number;
+  umColumnOffset: number;
 }
 
 // A rectangular zone in a sheet bound to a semi-finished product (e.g., "BOBINA").
@@ -112,6 +141,8 @@ export interface Sheet {
   mergedCells: MergedCell[]; // Track merged cell ranges
   namedRanges?: NamedRange[]; // Labeled table regions for GoTo navigation
   semiFinishedZones?: SemiFinishedZone[]; // Zones tagged with a semi-finished product
+  itemCatalogTables?: ItemCatalogTable[]; // Lookup tables used to resolve item links
+  isBomSummary?: boolean; // Marks the auto-generated BOM summary sheet (refreshes on activation)
 }
 
 export interface CustomFunction {

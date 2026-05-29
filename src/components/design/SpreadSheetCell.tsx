@@ -32,6 +32,21 @@ interface SpreadSheetCellProps {
     text: string;
     isStart: boolean;
   };
+  catalog?: {
+    tableId: string;
+    tableName: string;
+    isStart: boolean;
+    edgeTop: boolean;
+    edgeRight: boolean;
+    edgeBottom: boolean;
+    edgeLeft: boolean;
+  };
+  itemLink?: {
+    itemId: string;
+    description: string;
+    um: string;
+    orphan: boolean;
+  };
 }
 
 const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
@@ -56,6 +71,8 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
   fontScale = 1,
   isNamedRangeStart = false,
   zone,
+  catalog,
+  itemLink,
 }) => {
   const inputRef = React.useRef<HTMLInputElement>(null);
 
@@ -213,6 +230,21 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
   if (cell?.borderRight) cellStyle.borderRight = cell.borderRight;
   if (cell?.borderBottom) cellStyle.borderBottom = cell.borderBottom;
   if (cell?.borderLeft) cellStyle.borderLeft = cell.borderLeft;
+
+  // Item catalog table outline: draw a 2px cyan border on the rectangle edges,
+  // but only on sides the user has not explicitly customized — so cell-level
+  // borders keep priority and only the default thin grid border is replaced.
+  if (catalog) {
+    const catalogStroke = "2px solid #0891b2";
+    if (catalog.edgeTop && !cell?.borderTop && !cell?.border)
+      cellStyle.borderTop = catalogStroke;
+    if (catalog.edgeRight && !cell?.borderRight && !cell?.border)
+      cellStyle.borderRight = catalogStroke;
+    if (catalog.edgeBottom && !cell?.borderBottom && !cell?.border)
+      cellStyle.borderBottom = catalogStroke;
+    if (catalog.edgeLeft && !cell?.borderLeft && !cell?.border)
+      cellStyle.borderLeft = catalogStroke;
+  }
 
   // Selection styling - use box-shadow instead of ring to avoid layout shift
   if (isSelected) {
@@ -421,6 +453,29 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
           {zone.code}
         </div>
       )}
+      {/* Item catalog table label — rendered at the top-left cell of the table */}
+      {catalog?.isStart && !isHidden && (
+        <div
+          className="absolute z-10 px-1 select-none pointer-events-none whitespace-nowrap"
+          style={{
+            top: 0,
+            left: 0,
+            fontSize: Math.max(8, Math.round(9 * fontScale)),
+            lineHeight: 1.2,
+            backgroundColor: "#0891b2",
+            color: "#ffffff",
+            borderBottomRightRadius: 4,
+            fontWeight: 600,
+            letterSpacing: 0.2,
+            maxWidth: "100%",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+          title={catalog.tableName}
+        >
+          {catalog.tableName}
+        </div>
+      )}
       {/* Named range start indicator */}
       {isNamedRangeStart && !isHidden && (
         <div
@@ -451,6 +506,33 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
               borderTop: `${Math.round(8 * fontScale)}px solid transparent`,
             }}
           />
+        </div>
+      )}
+      {/* Item link badge — bottom-right, red when orphaned so stale links surface */}
+      {itemLink && !isHidden && (
+        <div
+          className="absolute bottom-0 right-0 z-10 px-1 select-none whitespace-nowrap"
+          style={{
+            fontSize: Math.max(8, Math.round(8 * fontScale)),
+            lineHeight: 1.2,
+            backgroundColor: itemLink.orphan ? "#dc2626" : "#0891b2",
+            color: "#ffffff",
+            borderTopLeftRadius: 4,
+            fontWeight: 600,
+            letterSpacing: 0.2,
+            maxWidth: "70%",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+          title={
+            itemLink.orphan
+              ? `Vínculo huérfano — item ${itemLink.itemId} no encontrado en el catálogo`
+              : `#${itemLink.itemId} · ${itemLink.description}${
+                  itemLink.um ? ` · ${itemLink.um}` : ""
+                }`
+          }
+        >
+          #{itemLink.itemId}
         </div>
       )}
       {/* Visual indicator for adding mode */}
@@ -498,7 +580,18 @@ export default React.memo(SpreadSheetCell, (prevProps, nextProps) => {
     prevProps.zone?.zoneId === nextProps.zone?.zoneId &&
     prevProps.zone?.bg === nextProps.zone?.bg &&
     prevProps.zone?.code === nextProps.zone?.code &&
-    prevProps.zone?.isStart === nextProps.zone?.isStart
+    prevProps.zone?.isStart === nextProps.zone?.isStart &&
+    prevProps.catalog?.tableId === nextProps.catalog?.tableId &&
+    prevProps.catalog?.tableName === nextProps.catalog?.tableName &&
+    prevProps.catalog?.isStart === nextProps.catalog?.isStart &&
+    prevProps.catalog?.edgeTop === nextProps.catalog?.edgeTop &&
+    prevProps.catalog?.edgeRight === nextProps.catalog?.edgeRight &&
+    prevProps.catalog?.edgeBottom === nextProps.catalog?.edgeBottom &&
+    prevProps.catalog?.edgeLeft === nextProps.catalog?.edgeLeft &&
+    prevProps.itemLink?.itemId === nextProps.itemLink?.itemId &&
+    prevProps.itemLink?.description === nextProps.itemLink?.description &&
+    prevProps.itemLink?.um === nextProps.itemLink?.um &&
+    prevProps.itemLink?.orphan === nextProps.itemLink?.orphan
   );
 });
 

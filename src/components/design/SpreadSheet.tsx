@@ -23,11 +23,15 @@ import {
 import FormulaBar from "./FormulaBar";
 import SpreadSheetGrid from "./SpreadSheetGrid";
 import SheetTabs from "./SheetTabs";
+import ItemPickerModal, { CatalogEntry } from "./ItemPickerModal";
 import CrossTabSelector from "./CrossTabSelector";
 import FunctionLibraryModal from "./FunctionLibraryModal";
 import TemplateLibraryModal from "./TemplateLibraryModal";
 import {
+  Cell,
+  CellItemLink,
   CustomFunction,
+  ItemCatalogTable,
   NamedRange,
   SemiFinishedZone,
   Sheet,
@@ -790,6 +794,59 @@ const SpreadSheet = ({
     endCell: "",
   });
 
+  // Item catalog table modal state
+  const [catalogTableModal, setCatalogTableModal] = useState<{
+    visible: boolean;
+    editId: string | null;
+    name: string;
+    tagsInput: string; // comma-separated, parsed on save
+    startCell: string;
+    endCell: string;
+    headerRows: number;
+    idColumnOffset: number;
+    descriptionColumnOffset: number;
+    umColumnOffset: number;
+  }>({
+    visible: false,
+    editId: null,
+    name: "",
+    tagsInput: "",
+    startCell: "",
+    endCell: "",
+    headerRows: 1,
+    idColumnOffset: 0,
+    descriptionColumnOffset: 1,
+    umColumnOffset: 2,
+  });
+
+  // "Configurar vínculo al catálogo" modal — lets the user pick which cells
+  // act as conditions; their values are matched against catalog tags to
+  // auto-route the ItemPickerModal to the right catalog.
+  const [catalogConditionModal, setCatalogConditionModal] = useState<{
+    visible: boolean;
+    cellRef: string | null;
+    conditionCellsInput: string; // comma-separated
+  }>({
+    visible: false,
+    cellRef: null,
+    conditionCellsInput: "",
+  });
+
+  // ItemPickerModal state. When open, shows the catalogs filtered by the source
+  // cell's catalogConditionCells (matched against catalog tags). `showAll`
+  // bypasses the filter — useful as a fallback when nothing matches.
+  const [itemPickerModal, setItemPickerModal] = useState<{
+    isOpen: boolean;
+    sourceCellRef: string | null;
+    sourceSheetId: string | null;
+    showAll: boolean;
+  }>({
+    isOpen: false,
+    sourceCellRef: null,
+    sourceSheetId: null,
+    showAll: false,
+  });
+
   // Load semi-finished products for zone assignment
   const { data: semiFinishedList, isLoading: isLoadingSemiFinished } =
     useGetSemiFinishedQuery(null);
@@ -898,6 +955,53 @@ const SpreadSheet = ({
     });
     return map;
   }, [currentSheet?.semiFinishedZones]);
+
+  // Map cellRef -> item catalog table metadata for rendering an outlined frame
+  // around each table (top/right/bottom/left borders on the rectangle edges)
+  // and a name badge at the top-left cell. Multiple catalog tables in the same
+  // sheet are not expected to overlap; if they do, the last wins (save guards).
+  const catalogCellMap = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        tableId: string;
+        tableName: string;
+        isStart: boolean;
+        edgeTop: boolean;
+        edgeRight: boolean;
+        edgeBottom: boolean;
+        edgeLeft: boolean;
+      }
+    >();
+    (currentSheet?.itemCatalogTables || []).forEach((table) => {
+      const start = table.startCell.match(/^([A-Z]+)(\d+)$/);
+      const end = table.endCell.match(/^([A-Z]+)(\d+)$/);
+      if (!start || !end) return;
+      const startCol = getColumnIndex(start[1]);
+      const startRow = Number.parseInt(start[2]) - 1;
+      const endCol = getColumnIndex(end[1]);
+      const endRow = Number.parseInt(end[2]) - 1;
+      const minRow = Math.min(startRow, endRow);
+      const maxRow = Math.max(startRow, endRow);
+      const minCol = Math.min(startCol, endCol);
+      const maxCol = Math.max(startCol, endCol);
+      for (let r = minRow; r <= maxRow; r++) {
+        for (let c = minCol; c <= maxCol; c++) {
+          const ref = `${getColumnLabel(c)}${r + 1}`;
+          map.set(ref, {
+            tableId: table.id,
+            tableName: table.name,
+            isStart: r === minRow && c === minCol,
+            edgeTop: r === minRow,
+            edgeRight: c === maxCol,
+            edgeBottom: r === maxRow,
+            edgeLeft: c === minCol,
+          });
+        }
+      }
+    });
+    return map;
+  }, [currentSheet?.itemCatalogTables]);
 
   // Dependency graph for incremental recalculation
   const { buildGraph, updateCellInGraph, getRecalcOrder } = useDepGraph();
@@ -4110,6 +4214,8 @@ const SpreadSheet = ({
       newSheet.namedRanges = template.cellsStyles?.namedRanges || [];
       newSheet.semiFinishedZones =
         template.cellsStyles?.semiFinishedZones || [];
+      newSheet.itemCatalogTables =
+        template.cellsStyles?.itemCatalogTables || [];
     }
 
     setSheets((prev) => [...prev, newSheet]);
@@ -4187,9 +4293,184 @@ const SpreadSheet = ({
     }
   };
 
+  // Generate a normal sheet pre-filled with the BOM layout. After creation
+  // it's just like any other sheet — editable, saveable, no special view.
+  // Layout mirrors image 1:
+  //   A[N]   = SF.id                                (bold)
+  //   B[N]   = "Semielaborado : <name>"             (purple, bold)
+  //   B[N+1] = Item   C[N+1] = Descripción
+  //   D[N+1] = Cantidad  E[N+1] = U.M.              (bold, blue bg)
+  //   Then one row per linked cell. Empty separator row between sections.
+  const buildBomSummaryCells = (): { [key: string]: Cell } => {
+    const cells: { [key: string]: Cell } = {};
+    let row = 0; // 0-indexed
+
+    (semiFinishedList || []).forEach((sf) => {
+      const rows: {
+        itemId: string;
+        description: string;
+        cantidad: string;
+        um: string;
+      }[] = [];
+
+      sheets.forEach((sheet) => {
+        (sheet.semiFinishedZones || []).forEach((zone) => {
+          if (zone.semiFinishedId !== sf.id) return;
+          const start = parseCellRef(zone.startCell);
+          const end = parseCellRef(zone.endCell);
+          if (!start || !end) return;
+          const minRow = Math.min(start.row, end.row);
+          const maxRow = Math.max(start.row, end.row);
+          const minCol = Math.min(start.col, end.col);
+          const maxCol = Math.max(start.col, end.col);
+          for (let r = minRow; r <= maxRow; r++) {
+            for (let c = minCol; c <= maxCol; c++) {
+              const ref = `${getColumnLabel(c)}${r + 1}`;
+              const cell = sheet.cells[ref];
+              const link = cell?.itemLink;
+              if (!link) continue;
+              const cantidad = readCellDisplayValue(cell);
+              const table = catalogResolver.get(link.catalogTableId);
+              let description = "(catálogo borrado)";
+              let um = "";
+              if (table) {
+                const item = table.itemsById.get(link.itemId);
+                if (item) {
+                  description = item.description;
+                  um = item.um;
+                } else {
+                  description = "(item no encontrado)";
+                }
+              }
+              rows.push({
+                itemId: link.itemId,
+                description,
+                cantidad,
+                um,
+              });
+            }
+          }
+        });
+      });
+
+      // Section title row
+      cells[`A${row + 1}`] = {
+        value: String(sf.id),
+        formula: "",
+        computed: String(sf.id),
+        bold: true,
+      };
+      cells[`B${row + 1}`] = {
+        value: `Semielaborado : ${sf.name}`,
+        formula: "",
+        computed: `Semielaborado : ${sf.name}`,
+        bold: true,
+        textColor: "#7c3aed",
+      };
+      row++;
+
+      // Sub-header row
+      const subHeaderStyle = {
+        bold: true,
+        backgroundColor: "#dbeafe",
+      };
+      cells[`B${row + 1}`] = {
+        value: "Item",
+        formula: "",
+        computed: "Item",
+        ...subHeaderStyle,
+      };
+      cells[`C${row + 1}`] = {
+        value: "Descripción",
+        formula: "",
+        computed: "Descripción",
+        ...subHeaderStyle,
+      };
+      cells[`D${row + 1}`] = {
+        value: "Cantidad",
+        formula: "",
+        computed: "Cantidad",
+        ...subHeaderStyle,
+      };
+      cells[`E${row + 1}`] = {
+        value: "U.M.",
+        formula: "",
+        computed: "U.M.",
+        ...subHeaderStyle,
+      };
+      row++;
+
+      // Item rows
+      rows.forEach((r) => {
+        cells[`B${row + 1}`] = {
+          value: r.itemId,
+          formula: "",
+          computed: r.itemId,
+        };
+        cells[`C${row + 1}`] = {
+          value: r.description,
+          formula: "",
+          computed: r.description,
+        };
+        cells[`D${row + 1}`] = {
+          value: r.cantidad,
+          formula: "",
+          computed: r.cantidad,
+        };
+        cells[`E${row + 1}`] = {
+          value: r.um,
+          formula: "",
+          computed: r.um,
+        };
+        row++;
+      });
+
+      // Empty separator row between sections
+      row++;
+    });
+
+    return cells;
+  };
+
+  const createBomSummarySheet = () => {
+    const cells = buildBomSummaryCells();
+
+    const bomSheet: Sheet = {
+      id: `${instanceId}-bom${Date.now()}`,
+      name: "Resumen BOM",
+      cells,
+      // A=ID, B=item, C=descripción (wide), D=cantidad, E=U.M.
+      columnWidths: { 0: 80, 1: 90, 2: 280, 3: 90, 4: 70 },
+      rowHeights: {},
+      templateHiddenRows: new Set<number>(),
+      templateHiddenColumns: new Set<number>(),
+      userHiddenRows: new Set<number>(),
+      userHiddenColumns: new Set<number>(),
+      hiddenCells: new Set<string>(),
+      freezeRow: 0,
+      freezeColumn: 0,
+      mergedCells: [],
+      isBomSummary: true,
+    };
+    setSheets((prev) => [...prev, bomSheet]);
+    setActiveSheetId(bomSheet.id);
+  };
+
   // Switch to sheet
   const switchToSheet = (sheetId: string) => {
     setActiveSheetId(sheetId);
+
+    // Auto-refresh the BOM summary sheet whenever the user switches to it,
+    // so it always reflects the latest values from source sheets.
+    const target = sheets.find((s) => s.id === sheetId);
+    if (target?.isBomSummary) {
+      const freshCells = buildBomSummaryCells();
+      setSheets((prev) =>
+        prev.map((s) =>
+          s.id === sheetId ? { ...s, cells: freshCells } : s
+        )
+      );
+    }
 
     // If not in formula building mode, reset selection
     if (!isFormulaBuildingMode) {
@@ -4383,6 +4664,324 @@ const SpreadSheet = ({
     [activeSheetId, setSheets],
   );
 
+  // Save / update an item catalog table on the active sheet. Overlapping tables
+  // on the same sheet are not allowed; the new one replaces any overlap so the
+  // catalogCellMap stays unambiguous (one cell -> one catalog).
+  const saveItemCatalogTable = useCallback(
+    (table: ItemCatalogTable) => {
+      setSheets((prevSheets) =>
+        prevSheets.map((sheet) => {
+          if (sheet.id !== activeSheetId) return sheet;
+          const existing = sheet.itemCatalogTables || [];
+          const newStart = parseCellRef(table.startCell);
+          const newEnd = parseCellRef(table.endCell);
+          if (!newStart || !newEnd) return sheet;
+          const newMinRow = Math.min(newStart.row, newEnd.row);
+          const newMaxRow = Math.max(newStart.row, newEnd.row);
+          const newMinCol = Math.min(newStart.col, newEnd.col);
+          const newMaxCol = Math.max(newStart.col, newEnd.col);
+
+          const rectsOverlap = (other: ItemCatalogTable) => {
+            if (other.id === table.id) return false;
+            const os = parseCellRef(other.startCell);
+            const oe = parseCellRef(other.endCell);
+            if (!os || !oe) return false;
+            const oMinRow = Math.min(os.row, oe.row);
+            const oMaxRow = Math.max(os.row, oe.row);
+            const oMinCol = Math.min(os.col, oe.col);
+            const oMaxCol = Math.max(os.col, oe.col);
+            return !(
+              newMaxRow < oMinRow ||
+              newMinRow > oMaxRow ||
+              newMaxCol < oMinCol ||
+              newMinCol > oMaxCol
+            );
+          };
+
+          const withoutOverlaps = existing.filter((t) => !rectsOverlap(t));
+          const idx = withoutOverlaps.findIndex((t) => t.id === table.id);
+          const updated =
+            idx >= 0
+              ? withoutOverlaps.map((t) => (t.id === table.id ? table : t))
+              : [...withoutOverlaps, table];
+          return { ...sheet, itemCatalogTables: updated };
+        }),
+      );
+    },
+    [activeSheetId, setSheets],
+  );
+
+  const deleteItemCatalogTable = useCallback(
+    (tableId: string) => {
+      setSheets((prevSheets) =>
+        prevSheets.map((sheet) => {
+          if (sheet.id !== activeSheetId) return sheet;
+          return {
+            ...sheet,
+            itemCatalogTables: (sheet.itemCatalogTables || []).filter(
+              (t) => t.id !== tableId,
+            ),
+          };
+        }),
+      );
+    },
+    [activeSheetId, setSheets],
+  );
+
+  // Write or clear the itemLink on a specific cell of a specific sheet.
+  // Passing null clears the link.
+  const setCellItemLink = useCallback(
+    (sheetId: string, cellRef: string, link: CellItemLink | null) => {
+      setSheets((prev) =>
+        prev.map((s) => {
+          if (s.id !== sheetId) return s;
+          const cells = { ...s.cells };
+          const existing: Cell = cells[cellRef] || {
+            value: "",
+            formula: "",
+            computed: "",
+          };
+          if (link === null) {
+            const { itemLink: _omit, ...rest } = existing;
+            cells[cellRef] = rest as Cell;
+          } else {
+            cells[cellRef] = { ...existing, itemLink: link };
+          }
+          return { ...s, cells };
+        }),
+      );
+    },
+    [setSheets],
+  );
+
+  // Set or clear `catalogConditionCells` on a cell. The list of cellRefs is
+  // matched (by computed value) against catalog tags to auto-route the picker.
+  const setCellCatalogConditionCells = useCallback(
+    (sheetId: string, cellRef: string, conditionCells: string[] | null) => {
+      setSheets((prev) =>
+        prev.map((s) => {
+          if (s.id !== sheetId) return s;
+          const cells = { ...s.cells };
+          const existing: Cell = cells[cellRef] || {
+            value: "",
+            formula: "",
+            computed: "",
+          };
+          if (!conditionCells || conditionCells.length === 0) {
+            const { catalogConditionCells: _omit, ...rest } = existing;
+            cells[cellRef] = rest as Cell;
+          } else {
+            cells[cellRef] = { ...existing, catalogConditionCells: conditionCells };
+          }
+          return { ...s, cells };
+        }),
+      );
+    },
+    [setSheets],
+  );
+
+  // Read the user-visible value of a cell, preferring the computed result.
+  // Used by the picker to extract the item ID from the catalog ID column.
+  const readCellDisplayValue = useCallback((c: Cell | undefined): string => {
+    if (!c) return "";
+    const computed =
+      c.computed !== undefined && c.computed !== null && c.computed !== ""
+        ? c.computed
+        : null;
+    if (computed !== null) return String(computed).trim();
+    return (c.value || "").trim();
+  }, []);
+
+  // Open the picker modal for a specific cell. Filtering by tags happens in
+  // the memo below; here we just record which cell triggered the picker.
+  const openItemPickerForCell = useCallback(
+    (sourceCellRef: string) => {
+      setItemPickerModal({
+        isOpen: true,
+        sourceCellRef,
+        sourceSheetId: activeSheetId,
+        showAll: false,
+      });
+    },
+    [activeSheetId],
+  );
+
+  const closeItemPickerModal = useCallback(() => {
+    setItemPickerModal({
+      isOpen: false,
+      sourceCellRef: null,
+      sourceSheetId: null,
+      showAll: false,
+    });
+  }, []);
+
+  // Workbook-wide resolver: catalogTableId -> { sheetId, table, itemsById }.
+  // Each catalog table is indexed by item ID so itemLink lookups are O(1) and
+  // edits to the catalog row's description / U.M. propagate automatically.
+  const catalogResolver = useMemo(() => {
+    const tables = new Map<
+      string,
+      {
+        sheetId: string;
+        sheetName: string;
+        table: ItemCatalogTable;
+        itemsById: Map<string, { description: string; um: string }>;
+      }
+    >();
+    sheets.forEach((sheet) => {
+      (sheet.itemCatalogTables || []).forEach((table) => {
+        const start = parseCellRef(table.startCell);
+        const end = parseCellRef(table.endCell);
+        if (!start || !end) return;
+        const minRow = Math.min(start.row, end.row);
+        const maxRow = Math.max(start.row, end.row);
+        const minCol = Math.min(start.col, end.col);
+        const itemsById = new Map<
+          string,
+          { description: string; um: string }
+        >();
+        const dataStart = minRow + table.headerRows;
+        for (let r = dataStart; r <= maxRow; r++) {
+          const idRef = `${getColumnLabel(minCol + table.idColumnOffset)}${r + 1}`;
+          const descRef = `${getColumnLabel(minCol + table.descriptionColumnOffset)}${r + 1}`;
+          const umRef = `${getColumnLabel(minCol + table.umColumnOffset)}${r + 1}`;
+          const itemId = readCellDisplayValue(sheet.cells[idRef]);
+          if (!itemId) continue;
+          itemsById.set(itemId, {
+            description: readCellDisplayValue(sheet.cells[descRef]),
+            um: readCellDisplayValue(sheet.cells[umRef]),
+          });
+        }
+        tables.set(table.id, {
+          sheetId: sheet.id,
+          sheetName: sheet.name,
+          table,
+          itemsById,
+        });
+      });
+    });
+    return tables;
+  }, [sheets, readCellDisplayValue]);
+
+  // Map cellRef -> resolved item info for the active sheet only.
+  // orphan=true when the catalog table or the item ID no longer exists, so the
+  // badge can flag stale links instead of silently hiding them.
+  const cellItemLinkMap = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        itemId: string;
+        description: string;
+        um: string;
+        orphan: boolean;
+      }
+    >();
+    if (!currentSheet) return map;
+    for (const ref of Object.keys(currentSheet.cells)) {
+      const link = currentSheet.cells[ref]?.itemLink;
+      if (!link) continue;
+      const table = catalogResolver.get(link.catalogTableId);
+      if (!table) {
+        map.set(ref, {
+          itemId: link.itemId,
+          description: "",
+          um: "",
+          orphan: true,
+        });
+        continue;
+      }
+      const row = table.itemsById.get(link.itemId);
+      if (!row) {
+        map.set(ref, {
+          itemId: link.itemId,
+          description: "",
+          um: "",
+          orphan: true,
+        });
+        continue;
+      }
+      map.set(ref, {
+        itemId: link.itemId,
+        description: row.description,
+        um: row.um,
+        orphan: false,
+      });
+    }
+    return map;
+  }, [currentSheet, catalogResolver]);
+
+  // Build the catalogs list to show in ItemPickerModal. Filtering rule:
+  // 1. Read the source cell's catalogConditionCells; resolve each ref to its
+  //    computed display value (lowercased, trimmed).
+  // 2. Keep catalogs whose `tags` array contains ALL condition values (AND).
+  // 3. If `showAll` is true, or no condition values were configured, or no
+  //    catalog matched, fall back to every catalog in the workbook.
+  const itemPickerCatalogs = useMemo(() => {
+    const allEntries: CatalogEntry[] = [];
+    catalogResolver.forEach((entry) => {
+      const rows: Array<{
+        itemId: string;
+        description: string;
+        um: string;
+      }> = [];
+      entry.itemsById.forEach((row, itemId) => {
+        rows.push({ itemId, description: row.description, um: row.um });
+      });
+      allEntries.push({
+        table: entry.table,
+        sheetId: entry.sheetId,
+        sheetName: entry.sheetName,
+        rows,
+      });
+    });
+
+    if (!itemPickerModal.isOpen) {
+      return { entries: allEntries, filteredByConditions: false };
+    }
+
+    if (itemPickerModal.showAll) {
+      return { entries: allEntries, filteredByConditions: false };
+    }
+
+    const sourceSheet = sheets.find(
+      (s) => s.id === itemPickerModal.sourceSheetId,
+    );
+    const conditionCells =
+      sourceSheet?.cells[itemPickerModal.sourceCellRef ?? ""]
+        ?.catalogConditionCells;
+    if (!conditionCells || conditionCells.length === 0) {
+      return { entries: allEntries, filteredByConditions: false };
+    }
+
+    const requiredTags = conditionCells
+      .map((ref) => readCellDisplayValue(sourceSheet?.cells[ref]).toLowerCase())
+      .filter((v) => v.length > 0);
+    if (requiredTags.length === 0) {
+      return { entries: allEntries, filteredByConditions: false };
+    }
+
+    const filtered = allEntries.filter((e) => {
+      const tags = (e.table.tags || []).map((t) => t.toLowerCase());
+      return requiredTags.every((rt) => tags.includes(rt));
+    });
+
+    if (filtered.length === 0) {
+      // No catalog matched the conditions — be permissive and show all,
+      // marked as "no match" so the modal can surface a hint.
+      return { entries: allEntries, filteredByConditions: false };
+    }
+
+    return { entries: filtered, filteredByConditions: true };
+  }, [
+    catalogResolver,
+    itemPickerModal.isOpen,
+    itemPickerModal.showAll,
+    itemPickerModal.sourceSheetId,
+    itemPickerModal.sourceCellRef,
+    sheets,
+    readCellDisplayValue,
+  ]);
+
   // Delete sheet
   const deleteSheet = (sheetId: string) => {
     if (sheets.length <= 1) return; // Don't delete the last sheet
@@ -4483,6 +5082,8 @@ const SpreadSheet = ({
             namedRanges: templateSheet.cellsStyles.namedRanges || [],
             semiFinishedZones:
               templateSheet.cellsStyles.semiFinishedZones || [],
+            itemCatalogTables:
+              templateSheet.cellsStyles.itemCatalogTables || [],
           };
         });
 
@@ -4636,6 +5237,8 @@ const SpreadSheet = ({
               namedRanges: template.cellsStyles?.namedRanges || [],
               semiFinishedZones:
                 template.cellsStyles?.semiFinishedZones || [],
+              itemCatalogTables:
+                template.cellsStyles?.itemCatalogTables || [],
             };
           }
           return sheet;
@@ -4880,6 +5483,8 @@ const SpreadSheet = ({
         zoom={zoom}
         namedRangeStartCells={namedRangeStartCells}
         cellZoneMap={cellZoneMap}
+        catalogCellMap={catalogCellMap}
+        cellItemLinkMap={cellItemLinkMap}
         goToHighlightCell={goToHighlight}
       />
 
@@ -5372,9 +5977,329 @@ const SpreadSheet = ({
                         </>
                       );
                     })()}
+                    <div className="border-t my-1"></div>
+                    {/* Item catalog table: mark selection as catalog source */}
+                    {(() => {
+                      const existingTable = (
+                        currentSheet?.itemCatalogTables || []
+                      ).find((t) => {
+                        const s = parseCellRef(t.startCell);
+                        const e = parseCellRef(t.endCell);
+                        const cur = parseCellRef(contextMenu.cellRef!);
+                        if (!s || !e || !cur) return false;
+                        const minR = Math.min(s.row, e.row);
+                        const maxR = Math.max(s.row, e.row);
+                        const minC = Math.min(s.col, e.col);
+                        const maxC = Math.max(s.col, e.col);
+                        return (
+                          cur.row >= minR &&
+                          cur.row <= maxR &&
+                          cur.col >= minC &&
+                          cur.col <= maxC
+                        );
+                      });
+                      return (
+                        <>
+                          <button
+                            className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
+                            onClick={() => {
+                              const coords: {
+                                col: number;
+                                row: number;
+                              }[] = [];
+                              selectedCells.forEach((ref) => {
+                                const pos = parseCellRef(ref);
+                                if (pos) coords.push(pos);
+                              });
+                              let startCell = contextMenu.cellRef!;
+                              let endCell = contextMenu.cellRef!;
+                              if (coords.length > 1) {
+                                const minCol = Math.min(
+                                  ...coords.map((c) => c.col),
+                                );
+                                const maxCol = Math.max(
+                                  ...coords.map((c) => c.col),
+                                );
+                                const minRow = Math.min(
+                                  ...coords.map((c) => c.row),
+                                );
+                                const maxRow = Math.max(
+                                  ...coords.map((c) => c.row),
+                                );
+                                startCell = `${getColumnLabel(minCol)}${minRow + 1}`;
+                                endCell = `${getColumnLabel(maxCol)}${maxRow + 1}`;
+                              }
+                              setCatalogTableModal({
+                                visible: true,
+                                editId: existingTable?.id || null,
+                                name: existingTable?.name || "",
+                                tagsInput: (existingTable?.tags || []).join(", "),
+                                startCell:
+                                  existingTable?.startCell || startCell,
+                                endCell: existingTable?.endCell || endCell,
+                                headerRows: existingTable?.headerRows ?? 1,
+                                idColumnOffset:
+                                  existingTable?.idColumnOffset ?? 0,
+                                descriptionColumnOffset:
+                                  existingTable?.descriptionColumnOffset ?? 1,
+                                umColumnOffset:
+                                  existingTable?.umColumnOffset ?? 2,
+                              });
+                              setContextMenu({
+                                visible: false,
+                                x: 0,
+                                y: 0,
+                                type: null,
+                                index: -1,
+                              });
+                            }}
+                          >
+                            📚{" "}
+                            {existingTable
+                              ? `Editar tabla catálogo (${existingTable.name})`
+                              : "Marcar como tabla de catálogo"}
+                          </button>
+                          {existingTable && (
+                            <button
+                              className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm text-red-600"
+                              onClick={() => {
+                                deleteItemCatalogTable(existingTable.id);
+                                setContextMenu({
+                                  visible: false,
+                                  x: 0,
+                                  y: 0,
+                                  type: null,
+                                  index: -1,
+                                });
+                              }}
+                            >
+                              🗑️ Quitar tabla catálogo
+                            </button>
+                          )}
+                        </>
+                      );
+                    })()}
+                    <div className="border-t my-1"></div>
+                    {/* Item link: bind / edit / clear the catalog item for this cell */}
+                    {(() => {
+                      const ref = contextMenu.cellRef!;
+                      const existingLink = currentSheet?.cells[ref]?.itemLink;
+                      return (
+                        <>
+                          <button
+                            className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
+                            onClick={() => {
+                              openItemPickerForCell(ref);
+                              setContextMenu({
+                                visible: false,
+                                x: 0,
+                                y: 0,
+                                type: null,
+                                index: -1,
+                              });
+                            }}
+                          >
+                            🔗{" "}
+                            {existingLink
+                              ? `Cambiar vínculo (#${existingLink.itemId})`
+                              : "Vincular a item del catálogo"}
+                          </button>
+                          {existingLink && (
+                            <button
+                              className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm text-red-600"
+                              onClick={() => {
+                                setCellItemLink(activeSheetId, ref, null);
+                                setContextMenu({
+                                  visible: false,
+                                  x: 0,
+                                  y: 0,
+                                  type: null,
+                                  index: -1,
+                                });
+                              }}
+                            >
+                              ❌ Quitar vínculo
+                            </button>
+                          )}
+                          {/* Configure which condition cells route this cell
+                              to the right catalog (tags match against values). */}
+                          <button
+                            className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm text-gray-600"
+                            onClick={() => {
+                              const existing =
+                                currentSheet?.cells[ref]
+                                  ?.catalogConditionCells || [];
+                              setCatalogConditionModal({
+                                visible: true,
+                                cellRef: ref,
+                                conditionCellsInput: existing.join(", "),
+                              });
+                              setContextMenu({
+                                visible: false,
+                                x: 0,
+                                y: 0,
+                                type: null,
+                                index: -1,
+                              });
+                            }}
+                          >
+                            ⚙️ Configurar vínculo al catálogo
+                            {(currentSheet?.cells[ref]
+                              ?.catalogConditionCells?.length ?? 0) > 0 && (
+                              <span className="text-xs text-cyan-600 ml-1">
+                                (
+                                {
+                                  currentSheet?.cells[ref]
+                                    ?.catalogConditionCells?.length
+                                }
+                                )
+                              </span>
+                            )}
+                          </button>
+                        </>
+                      );
+                    })()}
                   </>
                 );
               })()}
+          </div>
+        </>
+      )}
+
+      {/* Catalog Condition Cells Modal */}
+      {catalogConditionModal.visible && (
+        <>
+          <div
+            className="fixed inset-0 bg-black bg-opacity-30 z-50"
+            onClick={() =>
+              setCatalogConditionModal({
+                visible: false,
+                cellRef: null,
+                conditionCellsInput: "",
+              })
+            }
+          />
+          <div
+            className="fixed z-50 bg-white border border-gray-300 shadow-xl rounded-lg p-4 w-[28rem]"
+            style={{
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+            }}
+          >
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-sm font-semibold text-gray-700">
+                ⚙️ Configurar vínculo al catálogo ·{" "}
+                <span className="font-mono">
+                  {catalogConditionModal.cellRef}
+                </span>
+              </h3>
+              <button
+                className="text-gray-400 hover:text-gray-600"
+                onClick={() =>
+                  setCatalogConditionModal({
+                    visible: false,
+                    cellRef: null,
+                    conditionCellsInput: "",
+                  })
+                }
+              >
+                ✕
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 mb-3">
+              Indica qué celdas se leen como condición. Sus valores se comparan
+              contra los <strong>tags</strong> de los catálogos. Al vincular,
+              el modal abre directamente la tabla cuyos tags coinciden.
+              <br />
+              <span className="text-gray-400">
+                Si no defines condiciones, el modal mostrará todos los
+                catálogos.
+              </span>
+            </p>
+            <label className="text-xs text-gray-500 block mb-1">
+              Celdas de condición{" "}
+              <span className="text-gray-400 font-normal">
+                (separadas por coma, ej: B5, B6)
+              </span>
+            </label>
+            <input
+              className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 font-mono"
+              value={catalogConditionModal.conditionCellsInput}
+              onChange={(e) =>
+                setCatalogConditionModal((prev) => ({
+                  ...prev,
+                  conditionCellsInput: e.target.value.toUpperCase(),
+                }))
+              }
+              placeholder="B5, B6"
+            />
+            {catalogConditionModal.cellRef &&
+              (() => {
+                const refs = catalogConditionModal.conditionCellsInput
+                  .split(",")
+                  .map((s) => s.trim())
+                  .filter((s) => s.length > 0);
+                if (refs.length === 0) return null;
+                return (
+                  <div className="mt-3 text-xs bg-gray-50 border border-gray-200 rounded p-2">
+                    <div className="text-gray-500 font-semibold mb-1">
+                      Valores actuales:
+                    </div>
+                    {refs.map((r) => (
+                      <div key={r} className="font-mono text-gray-700">
+                        {r} ={" "}
+                        <span className="text-cyan-700">
+                          "{readCellDisplayValue(currentSheet?.cells[r])}"
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                className="px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-100"
+                onClick={() => {
+                  if (catalogConditionModal.cellRef) {
+                    setCellCatalogConditionCells(
+                      activeSheetId,
+                      catalogConditionModal.cellRef,
+                      null,
+                    );
+                  }
+                  setCatalogConditionModal({
+                    visible: false,
+                    cellRef: null,
+                    conditionCellsInput: "",
+                  });
+                }}
+              >
+                Quitar configuración
+              </button>
+              <button
+                className="px-3 py-1 text-sm rounded bg-blue-500 text-white hover:bg-blue-600"
+                onClick={() => {
+                  if (!catalogConditionModal.cellRef) return;
+                  const refs = catalogConditionModal.conditionCellsInput
+                    .split(",")
+                    .map((s) => s.trim().toUpperCase())
+                    .filter((s) => /^[A-Z]+\d+$/.test(s));
+                  setCellCatalogConditionCells(
+                    activeSheetId,
+                    catalogConditionModal.cellRef,
+                    refs,
+                  );
+                  setCatalogConditionModal({
+                    visible: false,
+                    cellRef: null,
+                    conditionCellsInput: "",
+                  });
+                }}
+              >
+                Guardar
+              </button>
+            </div>
           </div>
         </>
       )}
@@ -6056,6 +6981,381 @@ const SpreadSheet = ({
         </>
       )}
 
+      {/* Item Catalog Table Modal */}
+      {catalogTableModal.visible &&
+        (() => {
+          const startPos = parseCellRef(catalogTableModal.startCell);
+          const endPos = parseCellRef(catalogTableModal.endCell);
+          const minCol =
+            startPos && endPos
+              ? Math.min(startPos.col, endPos.col)
+              : 0;
+          const maxCol =
+            startPos && endPos
+              ? Math.max(startPos.col, endPos.col)
+              : 0;
+          const colCount = startPos && endPos ? maxCol - minCol + 1 : 0;
+          const rowCount =
+            startPos && endPos
+              ? Math.abs(endPos.row - startPos.row) + 1
+              : 0;
+          // Build the offset options (0..colCount-1) labeled with the
+          // absolute column letter so the user can match the spreadsheet.
+          const columnOptions: Option<number>[] = [];
+          for (let i = 0; i < colCount; i++) {
+            columnOptions.push({
+              label: `Columna ${getColumnLabel(minCol + i)}`,
+              value: i,
+            });
+          }
+          const closeModal = () =>
+            setCatalogTableModal({
+              visible: false,
+              editId: null,
+              name: "",
+              tagsInput: "",
+              startCell: "",
+              endCell: "",
+              headerRows: 1,
+              idColumnOffset: 0,
+              descriptionColumnOffset: 1,
+              umColumnOffset: 2,
+            });
+          const offsetsAreValid =
+            colCount > 0 &&
+            catalogTableModal.idColumnOffset < colCount &&
+            catalogTableModal.descriptionColumnOffset < colCount &&
+            catalogTableModal.umColumnOffset < colCount;
+          const offsetsAreDistinct =
+            new Set([
+              catalogTableModal.idColumnOffset,
+              catalogTableModal.descriptionColumnOffset,
+              catalogTableModal.umColumnOffset,
+            ]).size === 3;
+          const headerRowsValid =
+            catalogTableModal.headerRows >= 0 &&
+            catalogTableModal.headerRows < rowCount;
+          const canSave =
+            !!catalogTableModal.name.trim() &&
+            !!catalogTableModal.startCell &&
+            !!catalogTableModal.endCell &&
+            offsetsAreValid &&
+            offsetsAreDistinct &&
+            headerRowsValid;
+          return (
+            <>
+              <div
+                className="fixed inset-0 bg-black bg-opacity-30 z-50"
+                onClick={closeModal}
+              />
+              <div
+                className="fixed z-50 bg-white border border-gray-300 shadow-xl rounded-lg p-4 w-[30rem]"
+                style={{
+                  top: "50%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
+                }}
+              >
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-sm font-semibold text-gray-700">
+                    📚{" "}
+                    {catalogTableModal.editId ? "Editar" : "Nueva"} tabla
+                    catálogo
+                  </h3>
+                  <button
+                    className="text-gray-400 hover:text-gray-600"
+                    onClick={closeModal}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="space-y-2">
+                  <div>
+                    <label className="text-xs text-gray-500 block mb-1">
+                      Nombre
+                    </label>
+                    <input
+                      className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      value={catalogTableModal.name}
+                      onChange={(e) =>
+                        setCatalogTableModal((prev) => ({
+                          ...prev,
+                          name: e.target.value,
+                        }))
+                      }
+                      placeholder="Ej: Alambres rectangulares aluminio"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 block mb-1">
+                      Tags{" "}
+                      <span className="text-gray-400 font-normal">
+                        (palabras clave separadas por coma — se comparan con
+                        las celdas de condición al vincular)
+                      </span>
+                    </label>
+                    <input
+                      className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      value={catalogTableModal.tagsInput}
+                      onChange={(e) =>
+                        setCatalogTableModal((prev) => ({
+                          ...prev,
+                          tagsInput: e.target.value,
+                        }))
+                      }
+                      placeholder="Ej: aluminio, rectangular"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <label className="text-xs text-gray-500 block mb-1">
+                        Celda inicio
+                      </label>
+                      <input
+                        className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        value={catalogTableModal.startCell}
+                        onChange={(e) =>
+                          setCatalogTableModal((prev) => ({
+                            ...prev,
+                            startCell: e.target.value.toUpperCase(),
+                          }))
+                        }
+                        placeholder="A1"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="text-xs text-gray-500 block mb-1">
+                        Celda fin
+                      </label>
+                      <input
+                        className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        value={catalogTableModal.endCell}
+                        onChange={(e) =>
+                          setCatalogTableModal((prev) => ({
+                            ...prev,
+                            endCell: e.target.value.toUpperCase(),
+                          }))
+                        }
+                        placeholder="G6"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 block mb-1">
+                      Filas de encabezado a omitir
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      value={catalogTableModal.headerRows}
+                      onChange={(e) =>
+                        setCatalogTableModal((prev) => ({
+                          ...prev,
+                          headerRows: Math.max(
+                            0,
+                            Number.parseInt(e.target.value || "0") || 0,
+                          ),
+                        }))
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 block mb-1">
+                      Columna Item ID
+                    </label>
+                    <Select<number>
+                      options={columnOptions}
+                      selectedValue={catalogTableModal.idColumnOffset}
+                      placeholder="Selecciona columna..."
+                      isLoading={false}
+                      onChange={(value) =>
+                        setCatalogTableModal((prev) => ({
+                          ...prev,
+                          idColumnOffset: value ?? 0,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 block mb-1">
+                      Columna Descripción
+                    </label>
+                    <Select<number>
+                      options={columnOptions}
+                      selectedValue={
+                        catalogTableModal.descriptionColumnOffset
+                      }
+                      placeholder="Selecciona columna..."
+                      isLoading={false}
+                      onChange={(value) =>
+                        setCatalogTableModal((prev) => ({
+                          ...prev,
+                          descriptionColumnOffset: value ?? 0,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 block mb-1">
+                      Columna Unidad de Medida
+                    </label>
+                    <Select<number>
+                      options={columnOptions}
+                      selectedValue={catalogTableModal.umColumnOffset}
+                      placeholder="Selecciona columna..."
+                      isLoading={false}
+                      onChange={(value) =>
+                        setCatalogTableModal((prev) => ({
+                          ...prev,
+                          umColumnOffset: value ?? 0,
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+
+                {colCount > 0 && colCount < 3 && (
+                  <p className="text-xs text-red-600 mt-2">
+                    El rango debe tener al menos 3 columnas para mapear Item
+                    ID, Descripción y U.M.
+                  </p>
+                )}
+                {colCount >= 3 && !offsetsAreDistinct && (
+                  <p className="text-xs text-red-600 mt-2">
+                    Las tres columnas (ID, Descripción, U.M.) deben ser
+                    distintas.
+                  </p>
+                )}
+                {!headerRowsValid && rowCount > 0 && (
+                  <p className="text-xs text-red-600 mt-2">
+                    El número de filas de encabezado debe ser menor a la
+                    altura del rango ({rowCount}).
+                  </p>
+                )}
+
+                {(currentSheet?.itemCatalogTables || []).length > 0 && (
+                  <div className="mt-3 border-t pt-2">
+                    <p className="text-xs text-gray-500 mb-1 font-medium">
+                      Tablas en esta hoja:
+                    </p>
+                    <div className="max-h-32 overflow-y-auto space-y-1">
+                      {(currentSheet?.itemCatalogTables || []).map((t) => (
+                        <div
+                          key={t.id}
+                          className="flex items-center justify-between text-xs rounded px-2 py-1 bg-cyan-50 border border-cyan-300"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <span className="font-medium text-cyan-900">
+                              {t.name}
+                            </span>
+                            <span className="ml-1 text-cyan-700 opacity-80">
+                              {t.startCell}:{t.endCell}
+                            </span>
+                          </div>
+                          <div className="flex gap-1 ml-2">
+                            <button
+                              className="text-blue-600 hover:text-blue-800"
+                              title="Editar"
+                              onClick={() =>
+                                setCatalogTableModal({
+                                  visible: true,
+                                  editId: t.id,
+                                  name: t.name,
+                                  tagsInput: (t.tags || []).join(", "),
+                                  startCell: t.startCell,
+                                  endCell: t.endCell,
+                                  headerRows: t.headerRows,
+                                  idColumnOffset: t.idColumnOffset,
+                                  descriptionColumnOffset:
+                                    t.descriptionColumnOffset,
+                                  umColumnOffset: t.umColumnOffset,
+                                })
+                              }
+                            >
+                              ✎
+                            </button>
+                            <button
+                              className="text-red-600 hover:text-red-800"
+                              title="Eliminar"
+                              onClick={() => deleteItemCatalogTable(t.id)}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-2 mt-3">
+                  <button
+                    className="px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-100"
+                    onClick={closeModal}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    className="px-3 py-1 text-sm rounded bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={!canSave}
+                    onClick={() => {
+                      if (!canSave) return;
+                      const parsedTags = catalogTableModal.tagsInput
+                        .split(",")
+                        .map((s) => s.trim().toLowerCase())
+                        .filter((s) => s.length > 0);
+                      const table: ItemCatalogTable = {
+                        id:
+                          catalogTableModal.editId ||
+                          `ict-${Date.now()}`,
+                        name: catalogTableModal.name.trim(),
+                        tags: parsedTags.length > 0 ? parsedTags : undefined,
+                        startCell: catalogTableModal.startCell,
+                        endCell: catalogTableModal.endCell,
+                        headerRows: catalogTableModal.headerRows,
+                        idColumnOffset: catalogTableModal.idColumnOffset,
+                        descriptionColumnOffset:
+                          catalogTableModal.descriptionColumnOffset,
+                        umColumnOffset: catalogTableModal.umColumnOffset,
+                      };
+                      saveItemCatalogTable(table);
+                      closeModal();
+                    }}
+                  >
+                    Guardar
+                  </button>
+                </div>
+              </div>
+            </>
+          );
+        })()}
+
+      <ItemPickerModal
+        isOpen={itemPickerModal.isOpen}
+        onClose={closeItemPickerModal}
+        catalogs={itemPickerCatalogs.entries}
+        filteredByConditions={itemPickerCatalogs.filteredByConditions}
+        targetCellRef={itemPickerModal.sourceCellRef ?? undefined}
+        onShowAll={() =>
+          setItemPickerModal((prev) => ({ ...prev, showAll: true }))
+        }
+        onSelect={(link) => {
+          if (
+            itemPickerModal.sourceSheetId &&
+            itemPickerModal.sourceCellRef
+          ) {
+            setCellItemLink(
+              itemPickerModal.sourceSheetId,
+              itemPickerModal.sourceCellRef,
+              link,
+            );
+          }
+          closeItemPickerModal();
+        }}
+      />
+
       <SheetTabs
         sheets={sheets}
         activeSheetId={activeSheetId}
@@ -6065,6 +7365,7 @@ const SpreadSheet = ({
         onSheetNameKeyPress={handleSheetNameKeyPress}
         onSetEditingSheetName={setEditingSheetName}
         onAddNewSheet={addNewSheet}
+        onAddBomSheet={createBomSummarySheet}
         selectionStats={selectionStats}
         zoom={zoom}
         onZoomChange={setZoom}

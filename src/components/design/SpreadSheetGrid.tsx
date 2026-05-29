@@ -76,6 +76,27 @@ interface SpreadSheetGridProps {
       isStart: boolean;
     }
   >;
+  catalogCellMap?: Map<
+    string,
+    {
+      tableId: string;
+      tableName: string;
+      isStart: boolean;
+      edgeTop: boolean;
+      edgeRight: boolean;
+      edgeBottom: boolean;
+      edgeLeft: boolean;
+    }
+  >;
+  cellItemLinkMap?: Map<
+    string,
+    {
+      itemId: string;
+      description: string;
+      um: string;
+      orphan: boolean;
+    }
+  >;
   goToHighlightCell?: string | null;
 }
 
@@ -108,6 +129,8 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
   zoom = 100,
   namedRangeStartCells = new Set(),
   cellZoneMap,
+  catalogCellMap,
+  cellItemLinkMap,
   goToHighlightCell = null,
 }) => {
   // Zoom scale factor
@@ -641,6 +664,8 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                           fontScale={scale}
                           isNamedRangeStart={namedRangeStartCells.has(cellRef)}
                           zone={cellZoneMap?.get(cellRef)}
+                          catalog={catalogCellMap?.get(cellRef)}
+                          itemLink={cellItemLinkMap?.get(cellRef)}
                         />
                       </div>
                     );
@@ -742,6 +767,8 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                           fontScale={scale}
                           isNamedRangeStart={namedRangeStartCells.has(cellRef)}
                           zone={cellZoneMap?.get(cellRef)}
+                          catalog={catalogCellMap?.get(cellRef)}
+                          itemLink={cellItemLinkMap?.get(cellRef)}
                         />
                       </div>
                     );
@@ -884,6 +911,8 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                           fontScale={scale}
                           isNamedRangeStart={namedRangeStartCells.has(cellRef)}
                           zone={cellZoneMap?.get(cellRef)}
+                          catalog={catalogCellMap?.get(cellRef)}
+                          itemLink={cellItemLinkMap?.get(cellRef)}
                         />
                       </div>
                     );
@@ -986,6 +1015,8 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                           fontScale={scale}
                           isNamedRangeStart={namedRangeStartCells.has(cellRef)}
                           zone={cellZoneMap?.get(cellRef)}
+                          catalog={catalogCellMap?.get(cellRef)}
+                          itemLink={cellItemLinkMap?.get(cellRef)}
                         />
                       </div>
                     );

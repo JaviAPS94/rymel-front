@@ -21,6 +21,7 @@ interface SheetTabsProps {
   onSheetNameKeyPress: (e: React.KeyboardEvent, sheetId: string) => void;
   onSetEditingSheetName: (sheetId: string | null) => void;
   onAddNewSheet: () => void;
+  onAddBomSheet?: () => void;
   selectionStats?: {
     average: number | null;
     count: number;
@@ -39,6 +40,7 @@ const SheetTabs: React.FC<SheetTabsProps> = ({
   onSheetNameKeyPress,
   onSetEditingSheetName,
   onAddNewSheet,
+  onAddBomSheet,
   selectionStats,
   zoom = 100,
   onZoomChange,
@@ -94,6 +96,17 @@ const SheetTabs: React.FC<SheetTabsProps> = ({
           <FaPlus className="inline mr-1 text-blue-600" />
           Agregar Hoja
         </Button>
+
+        {onAddBomSheet && (
+          <Button
+            onClick={onAddBomSheet}
+            className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-200 border-l"
+            title="Generar nueva hoja con el resumen de materiales (BOM)"
+          >
+            <span className="inline mr-1">📋</span>
+            Generar BOM
+          </Button>
+        )}
       </div>
 
       {/* Flexible spacer */}

@@ -3,7 +3,16 @@
     "allow": [
       "Bash(npx tsc *)",
       "Bash(git stash *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(grep -n \"Guardar$\\\\|saveSemiFinishedZone\\\\|/\\\\* Semi-finished Zone Modal \\\\*/\" src/components/design/SpreadSheet.tsx)",
+      "Bash(npx eslint *)",
+      "Bash(grep -n \"^  };$\" src/components/design/SpreadSheet.tsx)",
+      "Bash(awk *)",
+      "Bash(grep -n \"const cellItemLinkMap = useMemo\\\\|// Delete sheet$\" src/components/design/SpreadSheet.tsx)",
+      "Bash(npm run *)",
+      "Bash(grep *)"
     ]
   }
 }
