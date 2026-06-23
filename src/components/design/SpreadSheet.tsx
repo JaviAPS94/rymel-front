@@ -9,6 +9,8 @@ import {
   startTransition,
 } from "react";
 import {
+  BomNode,
+  BomResponse,
   CellGrid,
   DesignSubtype,
   ElementResponse,
@@ -17,6 +19,7 @@ import {
 import {
   useEvaluateFunctionMutation,
   useGetSemiFinishedQuery,
+  useLazyGetBomByCodeQuery,
 } from "../../store";
 
 // Import new components
@@ -850,6 +853,8 @@ const SpreadSheet = ({
   // Load semi-finished products for zone assignment
   const { data: semiFinishedList, isLoading: isLoadingSemiFinished } =
     useGetSemiFinishedQuery(null);
+
+  const [triggerGetBom] = useLazyGetBomByCodeQuery();
 
   // Options shape expected by the project's custom Select
   const semiFinishedOptions = useMemo<Option<number>[]>(
@@ -4293,20 +4298,31 @@ const SpreadSheet = ({
     }
   };
 
-  // Generate a normal sheet pre-filled with the BOM layout. After creation
-  // it's just like any other sheet — editable, saveable, no special view.
-  // Layout mirrors image 1:
-  //   A[N]   = SF.id                                (bold)
-  //   B[N]   = "Semielaborado : <name>"             (purple, bold)
-  //   B[N+1] = Item   C[N+1] = Descripción
-  //   D[N+1] = Cantidad  E[N+1] = U.M.              (bold, blue bg)
-  //   Then one row per linked cell. Empty separator row between sections.
-  const buildBomSummaryCells = (): { [key: string]: Cell } => {
+  // Build BOM summary cells from the tree returned by the BOM API.
+  // Children are rendered before their parent (post-order DFS) so leaf SFs
+  // appear first, and each parent section shows its direct children as
+  // orange reference rows before the regular item rows.
+  const buildBomSummaryCells = (bom: BomResponse): { [key: string]: Cell } => {
     const cells: { [key: string]: Cell } = {};
-    let row = 0; // 0-indexed
+    let row = 0;
 
-    (semiFinishedList || []).forEach((sf) => {
-      const rows: {
+    // Post-order DFS: collect nodes leaf-first so child sections precede parents
+    const collectNodes = (nodes: BomNode[]): BomNode[] => {
+      const result: BomNode[] = [];
+      for (const node of nodes) {
+        result.push(...collectNodes(node.children));
+        result.push(node);
+      }
+      return result;
+    };
+
+    const orderedNodes = collectNodes(bom.nodes);
+
+    orderedNodes.forEach((node) => {
+      const sf = node.semiFinished;
+
+      // Collect item rows from semiFinishedZones (logic unchanged)
+      const itemRows: {
         itemId: string;
         description: string;
         cantidad: string;
@@ -4342,12 +4358,7 @@ const SpreadSheet = ({
                   description = "(item no encontrado)";
                 }
               }
-              rows.push({
-                itemId: link.itemId,
-                description,
-                cantidad,
-                um,
-              });
+              itemRows.push({ itemId: link.itemId, description, cantidad, um });
             }
           }
         });
@@ -4400,8 +4411,39 @@ const SpreadSheet = ({
       };
       row++;
 
-      // Item rows
-      rows.forEach((r) => {
+      // Child SF reference rows shown before regular items with orange background
+      const childSfStyle = { backgroundColor: "#fed7aa" };
+      node.children.forEach((child) => {
+        const childSf = child.semiFinished;
+        cells[`B${row + 1}`] = {
+          value: childSf.code,
+          formula: "",
+          computed: childSf.code,
+          ...childSfStyle,
+        };
+        cells[`C${row + 1}`] = {
+          value: `Semielaborado : ${childSf.name}`,
+          formula: "",
+          computed: `Semielaborado : ${childSf.name}`,
+          ...childSfStyle,
+        };
+        cells[`D${row + 1}`] = {
+          value: "1",
+          formula: "",
+          computed: "1",
+          ...childSfStyle,
+        };
+        cells[`E${row + 1}`] = {
+          value: "UND",
+          formula: "",
+          computed: "UND",
+          ...childSfStyle,
+        };
+        row++;
+      });
+
+      // Regular item rows
+      itemRows.forEach((r) => {
         cells[`B${row + 1}`] = {
           value: r.itemId,
           formula: "",
@@ -4432,8 +4474,13 @@ const SpreadSheet = ({
     return cells;
   };
 
-  const createBomSummarySheet = () => {
-    const cells = buildBomSummaryCells();
+  const createBomSummarySheet = async () => {
+    if (!element.sapReference) return;
+
+    const result = await triggerGetBom(element.sapReference);
+    if (!result.data) return;
+
+    const cells = buildBomSummaryCells(result.data);
 
     const bomSheet: Sheet = {
       id: `${instanceId}-bom${Date.now()}`,
@@ -4463,13 +4510,16 @@ const SpreadSheet = ({
     // Auto-refresh the BOM summary sheet whenever the user switches to it,
     // so it always reflects the latest values from source sheets.
     const target = sheets.find((s) => s.id === sheetId);
-    if (target?.isBomSummary) {
-      const freshCells = buildBomSummaryCells();
-      setSheets((prev) =>
-        prev.map((s) =>
-          s.id === sheetId ? { ...s, cells: freshCells } : s
-        )
-      );
+    if (target?.isBomSummary && element.sapReference) {
+      triggerGetBom(element.sapReference).then((result) => {
+        if (!result.data) return;
+        const freshCells = buildBomSummaryCells(result.data);
+        setSheets((prev) =>
+          prev.map((s) =>
+            s.id === sheetId ? { ...s, cells: freshCells } : s
+          )
+        );
+      });
     }
 
     // If not in formula building mode, reset selection

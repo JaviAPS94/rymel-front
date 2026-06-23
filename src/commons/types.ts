@@ -25,6 +25,33 @@ export type SemiFinishedType = {
   code: string;
 };
 
+export type BomSemiFinished = {
+  id: number;
+  name: string;
+  code: string;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+};
+
+export type BomNode = {
+  id: number;
+  semiFinished: BomSemiFinished;
+  type: "STANDARD" | "REFERENCE" | "CRITICAL";
+  parentId: number | null;
+  children: BomNode[];
+};
+
+export type BomResponse = {
+  id: number;
+  code: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+  nodes: BomNode[];
+};
+
 export type ElementField = {
   id: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
