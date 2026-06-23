@@ -24,6 +24,7 @@ export interface Cell {
   goTo?: GoToConfig; // Navigation config for lookup tables
   itemLink?: CellItemLink; // Binds this cell's value to a catalog item (feeds the BOM)
   catalogConditionCells?: string[]; // Cells whose values are matched against catalog tags to auto-route the picker
+  bomToggleNodeId?: number; // BOM summary: clicking this cell expands/collapses that child SF node
 }
 
 // Link from a value cell to a row in an ItemCatalogTable. The itemId is resolved

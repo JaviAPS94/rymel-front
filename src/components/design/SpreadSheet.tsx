@@ -855,6 +855,8 @@ const SpreadSheet = ({
     useGetSemiFinishedQuery(null);
 
   const [triggerGetBom] = useLazyGetBomByCodeQuery();
+  const [bomExpandedChildNodes, setBomExpandedChildNodes] = useState<Set<number>>(new Set());
+  const bomDataRef = useRef<BomResponse | null>(null);
 
   // Options shape expected by the project's custom Select
   const semiFinishedOptions = useMemo<Option<number>[]>(
@@ -4002,6 +4004,16 @@ const SpreadSheet = ({
       }
     }
 
+    // BOM toggle: clicking the ▶/▼ cell in column A of a child SF row
+    const activeSheet = sheets.find((s) => s.id === activeSheetId);
+    if (activeSheet?.isBomSummary) {
+      const clickedCell = activeSheet.cells[cellRef];
+      if (clickedCell?.bomToggleNodeId !== undefined) {
+        toggleBomNode(clickedCell.bomToggleNodeId);
+        return;
+      }
+    }
+
     if (isFormulaBuildingMode && isAddingToFormula) {
       // Adding cell reference to formula - DON'T change selected cell
       if (rangeSelectionStart && rangeSelectionStart !== cellRef) {
@@ -4301,37 +4313,27 @@ const SpreadSheet = ({
   // Build BOM summary cells from the tree returned by the BOM API.
   // Children are rendered before their parent (post-order DFS) so leaf SFs
   // appear first, and each parent section shows its direct children as
-  // orange reference rows before the regular item rows.
-  const buildBomSummaryCells = (bom: BomResponse): { [key: string]: Cell } => {
+  // collapsible orange reference rows before the regular item rows.
+  // expandedChildNodes controls which child SF nodes show their items inline.
+  const buildBomSummaryCells = (
+    bom: BomResponse,
+    expandedChildNodes: Set<number>,
+  ): { [key: string]: Cell } => {
     const cells: { [key: string]: Cell } = {};
     let row = 0;
 
-    // Post-order DFS: collect nodes leaf-first so child sections precede parents
-    const collectNodes = (nodes: BomNode[]): BomNode[] => {
-      const result: BomNode[] = [];
-      for (const node of nodes) {
-        result.push(...collectNodes(node.children));
-        result.push(node);
-      }
-      return result;
-    };
-
-    const orderedNodes = collectNodes(bom.nodes);
-
-    orderedNodes.forEach((node) => {
-      const sf = node.semiFinished;
-
-      // Collect item rows from semiFinishedZones (logic unchanged)
+    // Collect item rows for a given SF id (logic unchanged from original)
+    const collectItemRows = (sfId: number) => {
       const itemRows: {
         itemId: string;
         description: string;
         cantidad: string;
         um: string;
       }[] = [];
-
       sheets.forEach((sheet) => {
         (sheet.semiFinishedZones || []).forEach((zone) => {
-          if (zone.semiFinishedId !== sf.id) return;
+          if (zone.semiFinishedId !== sfId) return;
+          if (!zone.startCell || !zone.endCell) return;
           const start = parseCellRef(zone.startCell);
           const end = parseCellRef(zone.endCell);
           if (!start || !end) return;
@@ -4363,6 +4365,24 @@ const SpreadSheet = ({
           }
         });
       });
+      return itemRows;
+    };
+
+    // Post-order DFS: collect nodes leaf-first so child sections precede parents
+    const collectNodes = (nodes: BomNode[]): BomNode[] => {
+      const result: BomNode[] = [];
+      for (const node of nodes) {
+        result.push(...collectNodes(node.children));
+        result.push(node);
+      }
+      return result;
+    };
+
+    const orderedNodes = collectNodes(bom.nodes);
+
+    orderedNodes.forEach((node) => {
+      const sf = node.semiFinished;
+      const itemRows = collectItemRows(sf.id);
 
       // Section title row
       cells[`A${row + 1}`] = {
@@ -4411,10 +4431,21 @@ const SpreadSheet = ({
       };
       row++;
 
-      // Child SF reference rows shown before regular items with orange background
+      // Child SF reference rows with toggle indicator in column A.
+      // When expanded, the child's items are shown inline below the toggle row.
       const childSfStyle = { backgroundColor: "#fed7aa" };
+      const childExpandedItemStyle = { backgroundColor: "#fff7ed" };
       node.children.forEach((child) => {
         const childSf = child.semiFinished;
+        const isExpanded = expandedChildNodes.has(child.id);
+
+        cells[`A${row + 1}`] = {
+          value: isExpanded ? "▼" : "▶",
+          formula: "",
+          computed: isExpanded ? "▼" : "▶",
+          bomToggleNodeId: child.id,
+          ...childSfStyle,
+        };
         cells[`B${row + 1}`] = {
           value: childSf.code,
           formula: "",
@@ -4440,9 +4471,39 @@ const SpreadSheet = ({
           ...childSfStyle,
         };
         row++;
+
+        if (isExpanded) {
+          collectItemRows(childSf.id).forEach((r) => {
+            cells[`B${row + 1}`] = {
+              value: r.itemId,
+              formula: "",
+              computed: r.itemId,
+              ...childExpandedItemStyle,
+            };
+            cells[`C${row + 1}`] = {
+              value: r.description,
+              formula: "",
+              computed: r.description,
+              ...childExpandedItemStyle,
+            };
+            cells[`D${row + 1}`] = {
+              value: r.cantidad,
+              formula: "",
+              computed: r.cantidad,
+              ...childExpandedItemStyle,
+            };
+            cells[`E${row + 1}`] = {
+              value: r.um,
+              formula: "",
+              computed: r.um,
+              ...childExpandedItemStyle,
+            };
+            row++;
+          });
+        }
       });
 
-      // Regular item rows
+      // Regular item rows of this node
       itemRows.forEach((r) => {
         cells[`B${row + 1}`] = {
           value: r.itemId,
@@ -4475,12 +4536,37 @@ const SpreadSheet = ({
   };
 
   const createBomSummarySheet = async () => {
-    if (!element.sapReference) return;
+    if (!element.sapReference) {
+      console.error("[BOM] element.sapReference is not set", element);
+      alert("Este elemento no tiene referencia SAP configurada. No se puede generar el BOM.");
+      return;
+    }
 
-    const result = await triggerGetBom(element.sapReference);
-    if (!result.data) return;
+    let result: Awaited<ReturnType<typeof triggerGetBom>>;
+    try {
+      result = await triggerGetBom(element.sapReference);
+    } catch (err) {
+      console.error("[BOM] triggerGetBom threw:", err);
+      alert("Error al consultar la estructura BOM. Revisa la consola para más detalles.");
+      return;
+    }
 
-    const cells = buildBomSummaryCells(result.data);
+    if (!result.data) {
+      console.error("[BOM] No data returned. error:", result.error, "sapReference:", element.sapReference);
+      alert(`No se encontró estructura BOM para la referencia SAP: ${element.sapReference}`);
+      return;
+    }
+
+    let cells: { [key: string]: Cell };
+    try {
+      bomDataRef.current = result.data;
+      setBomExpandedChildNodes(new Set());
+      cells = buildBomSummaryCells(result.data, new Set());
+    } catch (err) {
+      console.error("[BOM] buildBomSummaryCells threw:", err);
+      alert("Error al construir la hoja BOM. Revisa la consola para más detalles.");
+      return;
+    }
 
     const bomSheet: Sheet = {
       id: `${instanceId}-bom${Date.now()}`,
@@ -4503,6 +4589,26 @@ const SpreadSheet = ({
     setActiveSheetId(bomSheet.id);
   };
 
+  // Toggle expand/collapse of a child SF node in the BOM summary sheet.
+  // Rebuilds the sheet cells immediately using the cached BOM data.
+  const toggleBomNode = (nodeId: number) => {
+    const next = new Set(bomExpandedChildNodes);
+    if (next.has(nodeId)) {
+      next.delete(nodeId);
+    } else {
+      next.add(nodeId);
+    }
+    setBomExpandedChildNodes(next);
+    if (bomDataRef.current) {
+      const freshCells = buildBomSummaryCells(bomDataRef.current, next);
+      setSheets((prev) =>
+        prev.map((s) =>
+          s.id === activeSheetId ? { ...s, cells: freshCells } : s,
+        ),
+      );
+    }
+  };
+
   // Switch to sheet
   const switchToSheet = (sheetId: string) => {
     setActiveSheetId(sheetId);
@@ -4513,7 +4619,8 @@ const SpreadSheet = ({
     if (target?.isBomSummary && element.sapReference) {
       triggerGetBom(element.sapReference).then((result) => {
         if (!result.data) return;
-        const freshCells = buildBomSummaryCells(result.data);
+        bomDataRef.current = result.data;
+        const freshCells = buildBomSummaryCells(result.data, bomExpandedChildNodes);
         setSheets((prev) =>
           prev.map((s) =>
             s.id === sheetId ? { ...s, cells: freshCells } : s
