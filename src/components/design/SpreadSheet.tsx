@@ -9,6 +9,7 @@ import {
   startTransition,
 } from "react";
 import {
+  Accessory,
   BomNode,
   BomResponse,
   CellGrid,
@@ -4368,6 +4369,30 @@ const SpreadSheet = ({
       return itemRows;
     };
 
+    // Collect accessory rows for a given SF id from element.values["accesories"]
+    const collectAccessoryRows = (sfId: number) => {
+      const accEntry = element.values.find(
+        (v: Record<string, unknown>) => v["key"] === "accesories",
+      );
+      if (!accEntry || !accEntry["value"]) return [];
+      let accessories: Accessory[] = [];
+      try {
+        const raw = accEntry["value"];
+        const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+        accessories = Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+      return accessories
+        .filter((acc) => acc.semiFinished?.id === sfId)
+        .map((acc) => ({
+          itemId: String(acc.id),
+          description: acc.description,
+          cantidad: "",
+          um: "",
+        }));
+    };
+
     // Post-order DFS: collect nodes leaf-first so child sections precede parents
     const collectNodes = (nodes: BomNode[]): BomNode[] => {
       const result: BomNode[] = [];
@@ -4383,6 +4408,7 @@ const SpreadSheet = ({
     orderedNodes.forEach((node) => {
       const sf = node.semiFinished;
       const itemRows = collectItemRows(sf.id);
+      const accessoryRows = collectAccessoryRows(sf.id);
 
       // Section title row
       cells[`A${row + 1}`] = {
@@ -4473,7 +4499,7 @@ const SpreadSheet = ({
         row++;
 
         if (isExpanded) {
-          collectItemRows(childSf.id).forEach((r) => {
+          [...collectItemRows(childSf.id), ...collectAccessoryRows(childSf.id)].forEach((r) => {
             cells[`B${row + 1}`] = {
               value: r.itemId,
               formula: "",
@@ -4503,8 +4529,8 @@ const SpreadSheet = ({
         }
       });
 
-      // Regular item rows of this node
-      itemRows.forEach((r) => {
+      // Regular item rows of this node (from spreadsheet zones + element accessories)
+      [...itemRows, ...accessoryRows].forEach((r) => {
         cells[`B${row + 1}`] = {
           value: r.itemId,
           formula: "",
