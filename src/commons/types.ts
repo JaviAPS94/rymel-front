@@ -16,6 +16,8 @@ export type Accessory = {
   reference: string;
   description: string;
   unitMeasurement?: string;
+  unitOfMeasurement?: string;
+  value?: number;
   semiFinished?: SemiFinishedType;
 };
 

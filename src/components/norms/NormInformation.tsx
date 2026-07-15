@@ -246,10 +246,11 @@ const NormInformation = ({
     const filteredAccesories = accessoriesData
       .filter((subItem) => ids.includes(subItem.id))
       .map((subItem, index) => {
+        const base = { ...subItem, value: subItem.value ?? 1 };
         if (index === 0) {
-          return { ...subItem, semiFinished: selectedSemiFinished };
+          return { ...base, semiFinished: selectedSemiFinished };
         }
-        return subItem;
+        return base;
       });
     return filteredAccesories;
   };

@@ -4388,8 +4388,8 @@ const SpreadSheet = ({
         .map((acc) => ({
           itemId: String(acc.id),
           description: acc.description,
-          cantidad: "",
-          um: "",
+          cantidad: String(acc.value ?? ""),
+          um: acc.unitOfMeasurement ?? "",
         }));
     };
 

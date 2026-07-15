@@ -36,6 +36,26 @@ const AccesoriesTable = ({
     }));
   };
 
+  const handleValueChange = (id: number, newValue: number) => {
+    setFormData?.((prevData) => ({
+      ...prevData,
+      customFields: prevData.customFields.map((field) =>
+        field.key === "accesories"
+          ? {
+              ...field,
+              value: Array.isArray(field.value)
+                ? field.value.map((accessory) =>
+                    accessory.id === id
+                      ? { ...accessory, value: newValue }
+                      : accessory
+                  )
+                : field.value,
+            }
+          : field
+      ),
+    }));
+  };
+
   return (
     <table className="min-w-full border-collapse border border-gray-300">
       <thead>
@@ -46,6 +66,12 @@ const AccesoriesTable = ({
           </th>
           <th className="border border-gray-300 px-4 py-2 text-left">
             Referencia
+          </th>
+          <th className="border border-gray-300 px-4 py-2 text-left">
+            Unidad de Medida
+          </th>
+          <th className="border border-gray-300 px-4 py-2 text-left">
+            Valor
           </th>
           <th className="border border-gray-300 px-4 py-2 text-left">
             Semi Elaborado
@@ -66,6 +92,25 @@ const AccesoriesTable = ({
             </td>
             <td className="border border-gray-300 px-4 py-2">
               {accessory.reference}
+            </td>
+            <td className="border border-gray-300 px-4 py-2">
+              {accessory.unitOfMeasurement}
+            </td>
+            <td className="border border-gray-300 px-4 py-2">
+              {showDelete ? (
+                <input
+                  type="number"
+                  min={0}
+                  step="any"
+                  value={accessory.value ?? 1}
+                  onChange={(e) =>
+                    handleValueChange(accessory.id, Number(e.target.value))
+                  }
+                  className="w-20 rounded-md border border-gray-300 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              ) : (
+                accessory.value ?? 1
+              )}
             </td>
             <td className="border border-gray-300 px-4 py-2">
               {accessory.semiFinished?.code}

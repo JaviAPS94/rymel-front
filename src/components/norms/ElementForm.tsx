@@ -279,22 +279,21 @@ const ElementForm = ({
     const filteredAccesories = accessoriesData
       .filter((subItem) => ids.includes(subItem.id))
       .map((subItem, index) => {
+        const base = { ...subItem, value: subItem.value ?? 1 };
         if (index === 0) {
-          return { ...subItem, semiFinished: selectedSemiFinished };
+          return { ...base, semiFinished: selectedSemiFinished };
         }
-        return subItem;
+        return base;
       });
     return filteredAccesories;
   };
 
   const handleNextStep = () => {
-    // if (selectedSubItems.length > 0) {
-    //   set
-    //   setAccesoriesError("");
-    // } else {
-    //   setAccesoriesError("Debes seleccionar al menos un accesorio.");
-    // }
-    setStep((prevStep) => prevStep + 1);
+    const nextStep = step + 1;
+    if (nextStep === 2 && mapElementsToCheckList(normData.elements).length === 0) {
+      setAnswerContinueAccesories("no");
+    }
+    setStep(nextStep);
   };
 
   const handleNextStepFieldsUpdate = () => {
