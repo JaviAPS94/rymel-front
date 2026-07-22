@@ -10,6 +10,7 @@ import { subTypeApi } from "./apis/subTypeApi";
 import { accesoryApi } from "./apis/accesoryApi";
 import { semiFinishedApi } from "./apis/semiFinishedApi";
 import { designApi } from "./apis/designApi";
+import { designCodeApi } from "./apis/designCodeApi";
 import { authApi } from "./apis/authApi";
 import { billOfMaterialsApi } from "./apis/billOfMaterialsApi";
 
@@ -59,6 +60,7 @@ export const store = configureStore({
     [accesoryApi.reducerPath]: accesoryApi.reducer,
     [semiFinishedApi.reducerPath]: semiFinishedApi.reducer,
     [designApi.reducerPath]: designApi.reducer,
+    [designCodeApi.reducerPath]: designCodeApi.reducer,
     [authApi.reducerPath]: authApi.reducer,
     [billOfMaterialsApi.reducerPath]: billOfMaterialsApi.reducer,
   },
@@ -73,6 +75,7 @@ export const store = configureStore({
       .concat(accesoryApi.middleware)
       .concat(semiFinishedApi.middleware)
       .concat(designApi.middleware)
+      .concat(designCodeApi.middleware)
       .concat(authApi.middleware)
       .concat(billOfMaterialsApi.middleware),
 });
@@ -117,4 +120,5 @@ export {
   useDeleteByIdMutation,
   useGetDesignByIdQuery,
 } from "./apis/designApi";
+export { useGenerateDesignCodeMutation } from "./apis/designCodeApi";
 export type AppDispatch = typeof store.dispatch;

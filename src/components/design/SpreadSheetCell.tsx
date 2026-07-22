@@ -476,6 +476,28 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
           {catalog.tableName}
         </div>
       )}
+      {/* Design code material tag badge (MO / MD) */}
+      {cell?.materialTag && !isHidden && (
+        <div
+          className="absolute top-0 left-0 z-20 px-1 select-none pointer-events-none"
+          style={{
+            fontSize: Math.max(8, Math.round(9 * fontScale)),
+            lineHeight: 1.2,
+            backgroundColor: cell.materialTag === "MO" ? "#d97706" : "#db2777",
+            color: "#ffffff",
+            borderBottomRightRadius: 4,
+            fontWeight: 700,
+            letterSpacing: 0.2,
+          }}
+          title={
+            cell.materialTag === "MO"
+              ? "Celda etiquetada como MO (código de diseño)"
+              : "Celda etiquetada como Material de Devanado — MD (código de diseño)"
+          }
+        >
+          {cell.materialTag}
+        </div>
+      )}
       {/* Named range start indicator */}
       {isNamedRangeStart && !isHidden && (
         <div
@@ -574,6 +596,7 @@ export default React.memo(SpreadSheetCell, (prevProps, nextProps) => {
     prevProps.cell?.conditionalFormat?.color ===
       nextProps.cell?.conditionalFormat?.color &&
     prevProps.cell?.note === nextProps.cell?.note &&
+    prevProps.cell?.materialTag === nextProps.cell?.materialTag &&
     prevProps.cell?.goTo?.conditionCells?.join() ===
       nextProps.cell?.goTo?.conditionCells?.join() &&
     prevProps.isNamedRangeStart === nextProps.isNamedRangeStart &&

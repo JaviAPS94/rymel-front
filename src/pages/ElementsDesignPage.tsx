@@ -13,6 +13,7 @@ import {
   useLazyGetCountriesQuery,
   useSaveDesignWithSubDesignsMutation,
   useUpdateMutation,
+  useGenerateDesignCodeMutation,
 } from "../store";
 import { Option } from "../components/core/Select";
 import ElementCard from "../components/elements/ElementCard";
@@ -51,6 +52,7 @@ import Stepper from "../components/core/Stepper";
 import Accesories from "../components/norms/Accesories";
 import SemiFinished from "../components/norms/SemiFinished";
 import { Sheet } from "../components/design/spreadsheet-types";
+import { extractMaterialTagValues } from "../components/design/materialTagUtils";
 import { BookOpen, FileText, Plus, Save } from "lucide-react";
 import InstructionsModal from "../components/design/InstructionsModal";
 
@@ -101,6 +103,18 @@ const ElementsDesignPage = () => {
   const [saveDesignWithSubDesigns, saveDesignWithSubDesignsResult] =
     useSaveDesignWithSubDesignsMutation();
   const [updateDesign, updateDesignResult] = useUpdateMutation();
+  const [generateDesignCode, generateDesignCodeResult] =
+    useGenerateDesignCodeMutation();
+  const [designCodePreview, setDesignCodePreview] = useState<{
+    isComplete: boolean;
+    isDuplicate: boolean;
+    baseCode?: string;
+    moMissing: boolean;
+    materialDevanadoMissing: boolean;
+  } | null>(null);
+  const [generatedDesignCode, setGeneratedDesignCode] = useState<string>("");
+  const [designCodeManuallyEdited, setDesignCodeManuallyEdited] =
+    useState(false);
 
   const handleScrollToTop = () => {
     window.scrollTo({
@@ -756,7 +770,60 @@ const ElementsDesignPage = () => {
         ],
   );
 
-  const handleSaveDesignWithSubDesigns = async () => {
+  const { moValue: taggedMoValue, materialDevanadoValue: taggedMdValue } =
+    useMemo(() => extractMaterialTagValues(designSheets), [designSheets]);
+
+  // Al cambiar de elemento principal, se limpia cualquier edición manual previa
+  // para que vuelva a mostrarse la sugerencia automática.
+  useEffect(() => {
+    setDesignCodeManuallyEdited(false);
+  }, [selectedElements[0]?.id]);
+
+  // Genera (o regenera) el código de diseño en vivo, apenas se tiene el elemento
+  // principal, sin esperar a que el usuario etiquete las celdas MO/MD: mientras
+  // falten, el backend devuelve una vista previa con placeholders en ese segmento.
+  useEffect(() => {
+    if (designCodeManuallyEdited) {
+      return;
+    }
+    if (selectedElements.length === 0) {
+      setDesignCodePreview(null);
+      setGeneratedDesignCode("");
+      return;
+    }
+
+    const elementId = selectedElements[0].id;
+    const timeoutId = setTimeout(() => {
+      generateDesignCode({
+        elementId,
+        moValue: taggedMoValue,
+        materialDevanadoValue: taggedMdValue,
+      })
+        .unwrap()
+        .then((result) => {
+          setDesignCodePreview({
+            isComplete: result.isComplete,
+            isDuplicate: result.isDuplicate,
+            baseCode: result.baseCode,
+            moMissing: result.moMissing,
+            materialDevanadoMissing: result.materialDevanadoMissing,
+          });
+          setGeneratedDesignCode(result.code);
+        })
+        .catch(() => {
+          setDesignCodePreview(null);
+        });
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [
+    selectedElements[0]?.id,
+    taggedMoValue,
+    taggedMdValue,
+    designCodeManuallyEdited,
+  ]);
+
+  const handleSaveDesignWithSubDesigns = () => {
     const subDesignData: SubDesignData[] = designSheets.map((sheet) => {
       // Convert Sets to arrays for JSON serialization
       const serializableSheet = {
@@ -780,9 +847,31 @@ const ElementsDesignPage = () => {
       return;
     }
 
+    if (selectedElements.length === 0) {
+      showAlert(
+        "Selecciona al menos un elemento antes de guardar el diseño.",
+        "error",
+      );
+      return;
+    }
+
+    if (!designCodePreview || !designCodePreview.isComplete) {
+      showAlert(
+        "Falta etiquetar una celda como MO y una celda como Material de Devanado (MD) en la hoja del diseño (clic derecho sobre la celda) para completar el código de diseño.",
+        "error",
+      );
+      return;
+    }
+
+    const finalCode = generatedDesignCode.trim();
+    if (!finalCode) {
+      showAlert("El código de diseño no puede estar vacío.", "error");
+      return;
+    }
+
     const designData: DesignWithSubDesigns = {
       name: "Nuevo diseño",
-      code: "DESIGN_" + Date.now(),
+      code: finalCode,
       elements: selectedElements.map((el) => el.id),
       designSubtypeId: selectedSubType,
       subDesigns: subDesignData,
@@ -1013,6 +1102,59 @@ const ElementsDesignPage = () => {
               />
             ))}
           </div>
+          {selectedElements.length > 0 && (
+            <div className="w-full px-4 mb-5">
+              <div className="bg-white rounded-2xl shadow-md border border-slate-200 p-4 flex flex-col sm:flex-row sm:items-start gap-3">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Código de diseño
+                  </label>
+                  <CustomInput
+                    value={generatedDesignCode}
+                    onChange={(value) => {
+                      setGeneratedDesignCode(value);
+                      setDesignCodeManuallyEdited(true);
+                    }}
+                    placeholder={
+                      generateDesignCodeResult.isLoading
+                        ? "Generando código..."
+                        : "Código de diseño"
+                    }
+                  />
+                </div>
+                <div className="flex-1 text-sm pt-6">
+                  {generateDesignCodeResult.isLoading && (
+                    <span className="text-gray-500">Generando código...</span>
+                  )}
+                  {!generateDesignCodeResult.isLoading &&
+                    designCodePreview &&
+                    !designCodePreview.isComplete && (
+                      <span className="text-amber-600">
+                        Falta etiquetar en la hoja del diseño (clic derecho
+                        sobre la celda) una celda como{" "}
+                        {designCodePreview.moMissing && "MO"}
+                        {designCodePreview.moMissing &&
+                          designCodePreview.materialDevanadoMissing &&
+                          " y "}
+                        {designCodePreview.materialDevanadoMissing &&
+                          "Material de Devanado (MD)"}
+                        . El código se completa automáticamente al etiquetarlas.
+                      </span>
+                    )}
+                  {!generateDesignCodeResult.isLoading &&
+                    designCodePreview?.isComplete &&
+                    designCodePreview.isDuplicate && (
+                      <span className="text-red-600">
+                        Ya existe un diseño con el código{" "}
+                        <strong>{designCodePreview.baseCode}</strong>. Se
+                        propone el código alternativo de la izquierda, que
+                        puedes editar.
+                      </span>
+                    )}
+                </div>
+              </div>
+            </div>
+          )}
           <div className="space-y-4 w-full">
             <h2 className="text-3xl font-bold text-center text-rymel-blue">
               Cálculos De Elementos
@@ -1050,11 +1192,13 @@ const ElementsDesignPage = () => {
                   className="text-white rounded-xl h-[2.8rem]"
                   loading={
                     saveDesignWithSubDesignsResult.isLoading ||
-                    updateDesignResult.isLoading
+                    updateDesignResult.isLoading ||
+                    generateDesignCodeResult.isLoading
                   }
                   disabled={
                     saveDesignWithSubDesignsResult.isLoading ||
-                    updateDesignResult.isLoading
+                    updateDesignResult.isLoading ||
+                    generateDesignCodeResult.isLoading
                   }
                   onClick={() => handleSaveDesignWithSubDesigns()}
                 >

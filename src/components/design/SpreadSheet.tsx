@@ -1584,6 +1584,57 @@ const SpreadSheet = ({
     [activeSheetId],
   );
 
+  // Etiqueta una celda como "MO" o "MD" (material de devanado) para el código de diseño.
+  // La etiqueta es exclusiva dentro de todo el diseño (todas las hojas): al asignarla a una
+  // celda nueva, se quita automáticamente de cualquier otra celda que ya la tuviera.
+  const tagCellAsMaterial = useCallback(
+    (cellRef: string, tag: "MO" | "MD") => {
+      setSheets((prevSheets) =>
+        prevSheets.map((sheet) => {
+          const isTargetSheet = sheet.id === activeSheetId;
+          let changed = false;
+          const newCells = { ...sheet.cells };
+
+          for (const [ref, cell] of Object.entries(newCells)) {
+            if (cell.materialTag === tag && !(isTargetSheet && ref === cellRef)) {
+              newCells[ref] = { ...cell, materialTag: undefined };
+              changed = true;
+            }
+          }
+
+          if (isTargetSheet) {
+            const existing =
+              newCells[cellRef] ?? { value: "", formula: "", computed: "" };
+            newCells[cellRef] = { ...existing, materialTag: tag };
+            changed = true;
+          }
+
+          return changed ? { ...sheet, cells: newCells } : sheet;
+        }),
+      );
+      setContextMenu({ visible: false, x: 0, y: 0, type: null, index: -1 });
+    },
+    [activeSheetId],
+  );
+
+  const clearCellMaterialTag = useCallback(
+    (cellRef: string) => {
+      setSheets((prevSheets) =>
+        prevSheets.map((sheet) => {
+          if (sheet.id !== activeSheetId) return sheet;
+          const newCells = { ...sheet.cells };
+          if (newCells[cellRef]) {
+            newCells[cellRef] = { ...newCells[cellRef] };
+            delete newCells[cellRef].materialTag;
+          }
+          return { ...sheet, cells: newCells };
+        }),
+      );
+      setContextMenu({ visible: false, x: 0, y: 0, type: null, index: -1 });
+    },
+    [activeSheetId],
+  );
+
   const freezePanes = useCallback(
     (row: number, column: number) => {
       setSheets((prevSheets) =>
@@ -5932,6 +5983,50 @@ const SpreadSheet = ({
                         🗑️ Eliminar nota
                       </button>
                     )}
+                    <div className="border-t my-1"></div>
+                    {/* Etiquetado de celda para el código de diseño (MO / material de devanado) */}
+                    {(() => {
+                      const currentTag =
+                        currentSheet?.cells[contextMenu.cellRef!]?.materialTag;
+                      return (
+                        <>
+                          <button
+                            className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
+                            disabled={currentTag === "MO"}
+                            onClick={() =>
+                              tagCellAsMaterial(contextMenu.cellRef!, "MO")
+                            }
+                          >
+                            🏷️{" "}
+                            {currentTag === "MO"
+                              ? "Celda etiquetada como MO"
+                              : "Etiquetar celda como MO"}
+                          </button>
+                          <button
+                            className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
+                            disabled={currentTag === "MD"}
+                            onClick={() =>
+                              tagCellAsMaterial(contextMenu.cellRef!, "MD")
+                            }
+                          >
+                            🏷️{" "}
+                            {currentTag === "MD"
+                              ? "Celda etiquetada como Material de Devanado"
+                              : "Etiquetar celda como Material de Devanado (MD)"}
+                          </button>
+                          {currentTag && (
+                            <button
+                              className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm text-red-600"
+                              onClick={() =>
+                                clearCellMaterialTag(contextMenu.cellRef!)
+                              }
+                            >
+                              🗑️ Quitar etiqueta {currentTag}
+                            </button>
+                          )}
+                        </>
+                      );
+                    })()}
                     <div className="border-t my-1"></div>
                     {/* GoTo: navigate to linked table */}
                     {currentSheet?.cells[contextMenu.cellRef!]?.goTo && (

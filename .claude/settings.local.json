@@ -12,7 +12,19 @@
       "Bash(awk *)",
       "Bash(grep -n \"const cellItemLinkMap = useMemo\\\\|// Delete sheet$\" src/components/design/SpreadSheet.tsx)",
       "Bash(npm run *)",
-      "Bash(grep *)"
+      "Bash(grep *)",
+      "Read(//Users/alex.pinaida/Resplados/Code/Rymel/project-back/**)",
+      "Read(//Users/alex.pinaida/Resplados/Code/Rymel/project-admin/**)",
+      "Bash(openspec new *)",
+      "Bash(openspec status *)",
+      "Bash(openspec instructions *)",
+      "Bash(openspec validate *)",
+      "Bash(python3 *)",
+      "Bash(npx jest *)",
+      "Bash(openspec list *)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(git checkout *)",
+      "Bash(npx vite *)"
     ]
   }
 }
