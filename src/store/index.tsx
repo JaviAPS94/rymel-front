@@ -120,5 +120,8 @@ export {
   useDeleteByIdMutation,
   useGetDesignByIdQuery,
 } from "./apis/designApi";
-export { useGenerateDesignCodeMutation } from "./apis/designCodeApi";
+export {
+  useGenerateDesignCodeMutation,
+  useLazyCheckCodeAvailableQuery,
+} from "./apis/designCodeApi";
 export type AppDispatch = typeof store.dispatch;

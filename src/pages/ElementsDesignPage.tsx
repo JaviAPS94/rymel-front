@@ -53,6 +53,8 @@ import Accesories from "../components/norms/Accesories";
 import SemiFinished from "../components/norms/SemiFinished";
 import { Sheet } from "../components/design/spreadsheet-types";
 import { extractMaterialTagValues } from "../components/design/materialTagUtils";
+import DesignCodePanel from "../components/design/DesignCodePanel";
+import { GenerateDesignCodeResponse } from "../store/apis/designCodeApi";
 import { BookOpen, FileText, Plus, Save } from "lucide-react";
 import InstructionsModal from "../components/design/InstructionsModal";
 
@@ -105,16 +107,11 @@ const ElementsDesignPage = () => {
   const [updateDesign, updateDesignResult] = useUpdateMutation();
   const [generateDesignCode, generateDesignCodeResult] =
     useGenerateDesignCodeMutation();
-  const [designCodePreview, setDesignCodePreview] = useState<{
-    isComplete: boolean;
-    isDuplicate: boolean;
-    baseCode?: string;
-    moMissing: boolean;
-    materialDevanadoMissing: boolean;
-  } | null>(null);
-  const [generatedDesignCode, setGeneratedDesignCode] = useState<string>("");
-  const [designCodeManuallyEdited, setDesignCodeManuallyEdited] =
-    useState(false);
+  const [designCodePreview, setDesignCodePreview] =
+    useState<GenerateDesignCodeResponse | null>(null);
+  const [disambiguationToken, setDisambiguationToken] = useState<string>("");
+  // true mientras el usuario ha cambiado el sufijo pero aún no lo ha verificado.
+  const [isDirtyDisambiguation, setIsDirtyDisambiguation] = useState(false);
 
   const handleScrollToTop = () => {
     window.scrollTo({
@@ -773,22 +770,12 @@ const ElementsDesignPage = () => {
   const { moValue: taggedMoValue, materialDevanadoValue: taggedMdValue } =
     useMemo(() => extractMaterialTagValues(designSheets), [designSheets]);
 
-  // Al cambiar de elemento principal, se limpia cualquier edición manual previa
-  // para que vuelva a mostrarse la sugerencia automática.
-  useEffect(() => {
-    setDesignCodeManuallyEdited(false);
-  }, [selectedElements[0]?.id]);
-
   // Genera (o regenera) el código de diseño en vivo, apenas se tiene el elemento
   // principal, sin esperar a que el usuario etiquete las celdas MO/MD: mientras
   // falten, el backend devuelve una vista previa con placeholders en ese segmento.
   useEffect(() => {
-    if (designCodeManuallyEdited) {
-      return;
-    }
     if (selectedElements.length === 0) {
       setDesignCodePreview(null);
-      setGeneratedDesignCode("");
       return;
     }
 
@@ -801,14 +788,7 @@ const ElementsDesignPage = () => {
       })
         .unwrap()
         .then((result) => {
-          setDesignCodePreview({
-            isComplete: result.isComplete,
-            isDuplicate: result.isDuplicate,
-            baseCode: result.baseCode,
-            moMissing: result.moMissing,
-            materialDevanadoMissing: result.materialDevanadoMissing,
-          });
-          setGeneratedDesignCode(result.code);
+          setDesignCodePreview(result);
         })
         .catch(() => {
           setDesignCodePreview(null);
@@ -816,12 +796,45 @@ const ElementsDesignPage = () => {
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [
-    selectedElements[0]?.id,
-    taggedMoValue,
-    taggedMdValue,
-    designCodeManuallyEdited,
-  ]);
+  }, [selectedElements[0]?.id, taggedMoValue, taggedMdValue]);
+
+  // Sincroniza el token de desambiguación con la sugerencia del backend.
+  // Solo aplica cuando el código generado es un duplicado; en los demás casos
+  // se limpia para que no quede un token obsoleto de una generación anterior.
+  useEffect(() => {
+    if (!designCodePreview?.isDuplicate) {
+      setDisambiguationToken("");
+      return;
+    }
+    // El segmento ANIO incluye el token sugerido (ej: "26A"); el año son 2 dígitos.
+    const anioValue =
+      designCodePreview.segments.find((s) => s.key === "ANIO")?.value ?? "";
+    setDisambiguationToken(anioValue.slice(2));
+  }, [designCodePreview]);
+
+  // Código efectivo que se usará al guardar: cuando hay duplicado, se reconstruye
+  // con el token que el usuario haya escrito; de lo contrario, es el código directo.
+  const effectiveDesignCode = useMemo(() => {
+    if (!designCodePreview) return "";
+    if (designCodePreview.isDuplicate) {
+      const anioValue =
+        designCodePreview.segments.find((s) => s.key === "ANIO")?.value ?? "";
+      const baseYear = anioValue.slice(0, 2);
+      const fixedPrefix = (
+        ["FASE", "POTENCIA", "TENSION_PRIMARIA", "TENSION_SECUNDARIA"] as const
+      )
+        .map(
+          (k) => designCodePreview.segments.find((s) => s.key === k)?.value ?? "",
+        )
+        .join("");
+      const yearPrefix = fixedPrefix + baseYear;
+      const restSuffix = (designCodePreview.baseCode ?? "").slice(
+        yearPrefix.length,
+      );
+      return `${yearPrefix}${disambiguationToken}${restSuffix}`;
+    }
+    return designCodePreview.code;
+  }, [designCodePreview, disambiguationToken]);
 
   const handleSaveDesignWithSubDesigns = () => {
     const subDesignData: SubDesignData[] = designSheets.map((sheet) => {
@@ -863,7 +876,15 @@ const ElementsDesignPage = () => {
       return;
     }
 
-    const finalCode = generatedDesignCode.trim();
+    if (designCodePreview.isDuplicate && isDirtyDisambiguation) {
+      showAlert(
+        "Verifica la disponibilidad del sufijo de desambiguación antes de guardar (botón 'Verificar disponibilidad' en el panel del código).",
+        "error",
+      );
+      return;
+    }
+
+    const finalCode = effectiveDesignCode.trim();
     if (!finalCode) {
       showAlert("El código de diseño no puede estar vacío.", "error");
       return;
@@ -920,6 +941,15 @@ const ElementsDesignPage = () => {
       label: "DISEÑO",
       content: (
         <>
+          {selectedElements.length > 0 && (
+            <DesignCodePanel
+              isLoading={generateDesignCodeResult.isLoading}
+              preview={designCodePreview}
+              disambiguationToken={disambiguationToken}
+              onTokenChange={setDisambiguationToken}
+              onEditingChange={setIsDirtyDisambiguation}
+            />
+          )}
           {subTypeWithFunctions &&
             templatesData &&
             showSpreadSheet &&
@@ -1102,59 +1132,6 @@ const ElementsDesignPage = () => {
               />
             ))}
           </div>
-          {selectedElements.length > 0 && (
-            <div className="w-full px-4 mb-5">
-              <div className="bg-white rounded-2xl shadow-md border border-slate-200 p-4 flex flex-col sm:flex-row sm:items-start gap-3">
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Código de diseño
-                  </label>
-                  <CustomInput
-                    value={generatedDesignCode}
-                    onChange={(value) => {
-                      setGeneratedDesignCode(value);
-                      setDesignCodeManuallyEdited(true);
-                    }}
-                    placeholder={
-                      generateDesignCodeResult.isLoading
-                        ? "Generando código..."
-                        : "Código de diseño"
-                    }
-                  />
-                </div>
-                <div className="flex-1 text-sm pt-6">
-                  {generateDesignCodeResult.isLoading && (
-                    <span className="text-gray-500">Generando código...</span>
-                  )}
-                  {!generateDesignCodeResult.isLoading &&
-                    designCodePreview &&
-                    !designCodePreview.isComplete && (
-                      <span className="text-amber-600">
-                        Falta etiquetar en la hoja del diseño (clic derecho
-                        sobre la celda) una celda como{" "}
-                        {designCodePreview.moMissing && "MO"}
-                        {designCodePreview.moMissing &&
-                          designCodePreview.materialDevanadoMissing &&
-                          " y "}
-                        {designCodePreview.materialDevanadoMissing &&
-                          "Material de Devanado (MD)"}
-                        . El código se completa automáticamente al etiquetarlas.
-                      </span>
-                    )}
-                  {!generateDesignCodeResult.isLoading &&
-                    designCodePreview?.isComplete &&
-                    designCodePreview.isDuplicate && (
-                      <span className="text-red-600">
-                        Ya existe un diseño con el código{" "}
-                        <strong>{designCodePreview.baseCode}</strong>. Se
-                        propone el código alternativo de la izquierda, que
-                        puedes editar.
-                      </span>
-                    )}
-                </div>
-              </div>
-            </div>
-          )}
           <div className="space-y-4 w-full">
             <h2 className="text-3xl font-bold text-center text-rymel-blue">
               Cálculos De Elementos

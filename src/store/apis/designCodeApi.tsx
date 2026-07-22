@@ -6,6 +6,24 @@ export type GenerateDesignCodeParams = {
   materialDevanadoValue?: string;
 };
 
+export type DesignCodeSegmentKey =
+  | "FASE"
+  | "POTENCIA"
+  | "TENSION_PRIMARIA"
+  | "TENSION_SECUNDARIA"
+  | "ANIO"
+  | "MO"
+  | "MATERIAL_DEVANADO"
+  | "PAIS"
+  | "SUFIJO_FINAL";
+
+export type DesignCodeSegment = {
+  key: DesignCodeSegmentKey;
+  label: string;
+  value: string;
+  isMissing: boolean;
+};
+
 export type GenerateDesignCodeResponse = {
   code: string;
   isDuplicate: boolean;
@@ -13,6 +31,9 @@ export type GenerateDesignCodeResponse = {
   isComplete: boolean;
   moMissing: boolean;
   materialDevanadoMissing: boolean;
+  segments: DesignCodeSegment[];
+  /** Pattern of the default disambiguation suffix; only present when isDuplicate is true. */
+  suffixPattern?: string;
 };
 
 const designCodeApi = createApi({
@@ -38,8 +59,18 @@ const designCodeApi = createApi({
         body: params,
       }),
     }),
+    checkCodeAvailable: builder.query<{ isAvailable: boolean }, string>({
+      query: (code) => ({
+        url: "/design/code/is-available",
+        method: "GET",
+        params: { code },
+      }),
+    }),
   }),
 });
 
-export const { useGenerateDesignCodeMutation } = designCodeApi;
+export const {
+  useGenerateDesignCodeMutation,
+  useLazyCheckCodeAvailableQuery,
+} = designCodeApi;
 export { designCodeApi };

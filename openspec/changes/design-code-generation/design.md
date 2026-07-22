@@ -71,9 +71,32 @@ El código de diseño ya NO se genera solo al presionar "Guardar". En cambio, se
 
 Para soportar esto, el endpoint de generación (`POST /design/code/generate`) deja de exigir `moValue`/`materialDevanadoValue`: ambos son opcionales en `GenerateDesignCodeDto`. Cuando falta alguno, el backend arma el código igualmente usando un placeholder (`"??"`) en ese segmento y devuelve `isComplete: false` junto con `moMissing`/`materialDevanadoMissing`, **sin** consultar duplicados ni resolver sufijo de desambiguación (no tiene sentido comparar contra la BDD un código que todavía tiene segmentos placeholder). El frontend muestra ese código parcial junto con un mensaje indicando qué falta etiquetar; en cuanto ambas celdas quedan etiquetadas, la siguiente regeneración ya viene con `isComplete: true` (incluyendo la verificación de duplicados y el sufijo si aplica).
 
-El campo de código en el panel es editable en todo momento: si el usuario edita manualmente, se deja de sobreescribir automáticamente con la generación en vivo (flag `designCodeManuallyEdited` en `ElementsDesignPage.tsx`) hasta que cambie el elemento principal. El botón "Guardar" ya no dispara la generación; solo valida que `isComplete` sea `true` y que el código no esté vacío antes de continuar.
+El código generado **no es libremente editable** (ver Decisión 10 — iteración posterior confirmada por el usuario). El botón "Guardar" valida que `isComplete` sea `true` y, si hay duplicado pendiente de resolver, que el sufijo ya haya sido verificado como disponible.
 
 Alternativa descartada: seguir generando solo al guardar (diseño original de este change) — se descartó porque el usuario, al probar el flujo real, encontró que era mejor ver el código —aunque incompleto— desde el principio, ya que la mayoría de los segmentos (fase, potencia, tensiones, año, país, sufijo final) ya están disponibles apenas se conoce el elemento, sin depender de MO/MD.
+
+### 9. Desglose por segmentos en la respuesta del endpoint + UI de "chips" interactivos (confirmado por el usuario, iteración de UI)
+El panel de código de diseño se reubicó dentro del contenido del tab "DISEÑO" (antes vivía fuera de los tabs, visible también en "COSTOS", lo cual no correspondía). Además, se rediseñó la presentación: en lugar de mostrar únicamente el string concatenado, la respuesta del endpoint de generación ahora incluye un arreglo `segments` con el desglose semántico de cada parte del código (`FASE`, `POTENCIA`, `TENSION_PRIMARIA`, `TENSION_SECUNDARIA`, `ANIO`, `MO`, `MATERIAL_DEVANADO`, `PAIS`, `SUFIJO_FINAL`), cada uno con `label`, `value` e `isMissing`.
+
+El frontend (`DesignCodePanel.tsx`, nuevo componente) usa este desglose para renderizar cada segmento como un "chip" individual (valor + etiqueta), con estilos diferenciados: gris para segmentos resueltos desde SAP/reglas, violeta para MO/MD resueltos (provienen de celdas etiquetadas por el usuario), ámbar punteado con pulso para MO/MD faltantes (con tooltip indicando qué celda etiquetar). Se incluye una barra de progreso (`resueltos/total`), badge de estado (generando/incompleto/duplicado/completo), botón de copiar al portapapeles, y el código ensamblado completo mostrado de forma prominente en monoespacio debajo de los chips para que el usuario siempre vea el valor final que quedará registrado.
+
+Alternativas consideradas (presentadas al usuario con mockups): (a) tarjeta con checklist en vivo y (b) banner de estado minimalista. Se descartaron a favor de los chips interactivos por pedido explícito del usuario de una UI "interactiva e innovadora".
+
+### 10. Edición restringida al sufijo de desambiguación + verificación en tiempo real (iteración posterior al flujo de duplicado)
+Tras revisar el flujo de duplicado con el usuario, se decidió que el código generado **no debe ser libremente editable** en ningún estado. Solo cuando el sistema detecta un duplicado (`isDuplicate: true`) se habilita la edición, y únicamente del sufijo de desambiguación (el token que el backend inserta entre el año y el valor MO). El resto del código permanece fijo y se visualiza a ambos lados del input como contexto no editable.
+
+Cambios concretos en backend:
+- El endpoint `POST /design/code/generate` incluye ahora `suffixPattern` en la respuesta cuando `isDuplicate: true`, con el identificador del patrón predeterminado activo (`LETTER_SUFFIX`, `NUMERIC_SUFFIX`, etc.) para que el frontend pueda mostrar al usuario el formato esperado.
+- Nuevo endpoint `GET /design/code/is-available?code=XXX` que devuelve `{ isAvailable: boolean }`, usado por el frontend para verificar en tiempo real si el sufijo ingresado por el usuario genera un código disponible, sin necesidad de intentar guardar.
+
+Cambios concretos en frontend (`DesignCodePanel.tsx`):
+- El chip del segmento `ANIO` se recalcula en tiempo real mientras el usuario escribe el sufijo (sin llamada al servidor), para que los chips reflejen siempre el código que se va a guardar.
+- Se muestra debajo del input el formato esperado del sufijo según `suffixPattern` (ej. "Letra A-Z (ej: A, B, C…)" o "Guion + número (ej: -1, -2…)").
+- Flujo de confirmación del sufijo: mientras el usuario edita aparece el botón "Verificar disponibilidad" (que llama a `GET /design/code/is-available`) y el botón "Descartar cambios" (para volver a la sugerencia del backend); al confirmar un sufijo disponible, el badge pasa a "Completo" (verde) y aparece el botón "Cambiar" para re-editar si se desea; si el sufijo también existe, se muestra un aviso inline.
+- La sugerencia automática del backend (siempre libre, por construcción del algoritmo) se inicializa como verificada, sin requerir acción adicional del usuario si la acepta tal cual.
+- En `ElementsDesignPage.tsx`: se elimina `designCodeManuallyEdited` y `generatedDesignCode`; se introduce `disambiguationToken` (token confirmado), `isDirtyDisambiguation` (flag que bloquea el guardado si el usuario cambió el sufijo sin verificarlo) y `effectiveDesignCode` (memo que reconstruye el código final a partir del token confirmado).
+
+Alternativa descartada: mantener el código completo editable (comportamiento de Decisión 8) — se descartó porque el usuario lo consideró confuso y susceptible a errores tipográficos que corrompieran la nomenclatura; restringir la edición al sufijo mantiene la integridad del código mientras da flexibilidad donde realmente importa.
 
 ## Risks / Trade-offs
 
