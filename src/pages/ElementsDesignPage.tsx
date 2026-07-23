@@ -55,8 +55,9 @@ import { Sheet } from "../components/design/spreadsheet-types";
 import { extractMaterialTagValues } from "../components/design/materialTagUtils";
 import DesignCodePanel from "../components/design/DesignCodePanel";
 import { GenerateDesignCodeResponse } from "../store/apis/designCodeApi";
-import { BookOpen, FileText, Plus, Save } from "lucide-react";
+import { BookOpen, Calculator, ClipboardList, DollarSign, FileText, PenTool, Plus, Save } from "lucide-react";
 import InstructionsModal from "../components/design/InstructionsModal";
+import BomSummaryTab from "../components/design/bom/BomSummaryTab";
 
 const ElementsDesignPage = () => {
   const navigate = useNavigate();
@@ -109,6 +110,7 @@ const ElementsDesignPage = () => {
     useGenerateDesignCodeMutation();
   const [designCodePreview, setDesignCodePreview] =
     useState<GenerateDesignCodeResponse | null>(null);
+  const [designCodeError, setDesignCodeError] = useState<string | null>(null);
   const [disambiguationToken, setDisambiguationToken] = useState<string>("");
   // true mientras el usuario ha cambiado el sufijo pero aún no lo ha verificado.
   const [isDirtyDisambiguation, setIsDirtyDisambiguation] = useState(false);
@@ -776,6 +778,7 @@ const ElementsDesignPage = () => {
   useEffect(() => {
     if (selectedElements.length === 0) {
       setDesignCodePreview(null);
+      setDesignCodeError(null);
       return;
     }
 
@@ -789,9 +792,19 @@ const ElementsDesignPage = () => {
         .unwrap()
         .then((result) => {
           setDesignCodePreview(result);
+          setDesignCodeError(null);
         })
-        .catch(() => {
+        .catch((err) => {
           setDesignCodePreview(null);
+          const backendMessage = (
+            err as { data?: { message?: string | string[] } }
+          )?.data?.message;
+          setDesignCodeError(
+            Array.isArray(backendMessage)
+              ? backendMessage.join(", ")
+              : backendMessage ||
+                  "No se pudo generar el código de diseño para este elemento.",
+          );
         });
     }, 300);
 
@@ -939,12 +952,14 @@ const ElementsDesignPage = () => {
     {
       id: "design",
       label: "DISEÑO",
+      icon: <PenTool className="h-4 w-4" />,
       content: (
         <>
           {selectedElements.length > 0 && (
             <DesignCodePanel
               isLoading={generateDesignCodeResult.isLoading}
               preview={designCodePreview}
+              errorMessage={designCodeError}
               disambiguationToken={disambiguationToken}
               onTokenChange={setDisambiguationToken}
               onEditingChange={setIsDirtyDisambiguation}
@@ -988,6 +1003,7 @@ const ElementsDesignPage = () => {
     {
       id: "cost",
       label: "COSTOS",
+      icon: <DollarSign className="h-4 w-4" />,
       content: (
         <>
           {subTypeWithFunctions &&
@@ -1021,6 +1037,22 @@ const ElementsDesignPage = () => {
             <div className="flex flex-col justify-center items-center py-12">
               <Skeleton count={10} className="w-3/4 h-96 mb-4" />
             </div>
+          )}
+        </>
+      ),
+    },
+    {
+      id: "bom",
+      label: "LISTA DE MATERIALES",
+      icon: <ClipboardList className="h-4 w-4" />,
+      content: (
+        <>
+          {selectedElements.length > 0 && subTypeWithFunctions && (
+            <BomSummaryTab
+              element={selectedElements[0]}
+              sheets={designSheets}
+              subTypeWithFunctions={subTypeWithFunctions}
+            />
           )}
         </>
       ),
@@ -1133,14 +1165,16 @@ const ElementsDesignPage = () => {
             ))}
           </div>
           <div className="space-y-4 w-full">
-            <h2 className="text-3xl font-bold text-center text-rymel-blue">
-              Cálculos De Elementos
-            </h2>
+            <div className="flex items-center justify-center gap-2">
+              <Calculator className="h-6 w-6 text-rymel-blue" />
+              <h2 className="text-3xl font-bold text-center text-rymel-blue">
+                Cálculos De Elementos
+              </h2>
+            </div>
             <div className="inline-flex items-center justify-center w-full">
               <div className="flex items-center gap-1 p-2 bg-white rounded-2xl shadow-xl border border-slate-200">
                 <Button
-                  primary
-                  className="rounded-xl h-[2.8rem]"
+                  className="rounded-xl h-[2.8rem] bg-rymel-blue border-rymel-blue hover:bg-[#241c7a] hover:border-[#241c7a] text-white"
                   onClick={toogleAccessoryModal}
                 >
                   <Plus className="h-4 w-4" />
@@ -1185,7 +1219,11 @@ const ElementsDesignPage = () => {
               </div>
             </div>
           </div>
-          <Tabs items={tabsElements} defaultActiveTab="design" />
+          <Tabs
+            items={tabsElements}
+            defaultActiveTab="design"
+            className="mt-8 px-4"
+          />
         </div>
       </div>
       {showErrorAlert && (

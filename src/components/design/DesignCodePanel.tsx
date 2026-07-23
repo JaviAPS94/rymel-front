@@ -17,6 +17,8 @@ import { useLazyCheckCodeAvailableQuery } from "../../store";
 interface DesignCodePanelProps {
   isLoading: boolean;
   preview: GenerateDesignCodeResponse | null;
+  /** Mensaje de error cuando la generación falló (p.ej. respuesta 400 del backend). */
+  errorMessage?: string | null;
   /** Token de desambiguación confirmado (sugerencia del backend o último verificado). */
   disambiguationToken: string;
   /** Llamado cuando el usuario confirma un token único mediante verificación. */
@@ -57,6 +59,7 @@ const SUFFIX_FORMAT: Record<string, { placeholder: string; hint: string }> = {
 const DesignCodePanel: React.FC<DesignCodePanelProps> = ({
   isLoading,
   preview,
+  errorMessage,
   disambiguationToken,
   onTokenChange,
   onEditingChange,
@@ -193,7 +196,13 @@ const DesignCodePanel: React.FC<DesignCodePanelProps> = ({
           className: "bg-slate-100 text-slate-600",
           icon: <Loader2 className="h-3.5 w-3.5 animate-spin" />,
         }
-      : !preview
+      : errorMessage
+        ? {
+            text: "Error al generar",
+            className: "bg-red-100 text-red-700",
+            icon: <TriangleAlert className="h-3.5 w-3.5" />,
+          }
+        : !preview
         ? {
             text: "Sin datos",
             className: "bg-slate-100 text-slate-500",
@@ -252,22 +261,29 @@ const DesignCodePanel: React.FC<DesignCodePanelProps> = ({
         </div>
       </div>
 
-      {/* Chips de segmentos */}
-      <div className="flex flex-wrap gap-1.5">
-        {displaySegments.length === 0
-          ? Array.from({ length: SKELETON_SEGMENT_COUNT }).map((_, idx) => (
-              <div
-                key={idx}
-                className="w-14 h-11 rounded-lg bg-slate-100 animate-pulse"
-              />
-            ))
-          : displaySegments.map((segment) => (
-              <SegmentChip key={segment.key} segment={segment} />
-            ))}
-      </div>
+      {/* Mensaje de error: reemplaza los chips cuando la generación falló */}
+      {!isLoading && errorMessage ? (
+        <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-xs leading-relaxed">
+          <TriangleAlert className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+          <span>{errorMessage}</span>
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-1.5">
+          {displaySegments.length === 0
+            ? Array.from({ length: SKELETON_SEGMENT_COUNT }).map((_, idx) => (
+                <div
+                  key={idx}
+                  className="w-14 h-11 rounded-lg bg-slate-100 animate-pulse"
+                />
+              ))
+            : displaySegments.map((segment) => (
+                <SegmentChip key={segment.key} segment={segment} />
+              ))}
+        </div>
+      )}
 
       {/* Barra de progreso */}
-      {displaySegments.length > 0 && (
+      {!errorMessage && displaySegments.length > 0 && (
         <div className="flex items-center gap-2">
           <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
             <div

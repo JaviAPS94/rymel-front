@@ -144,7 +144,6 @@ export interface Sheet {
   namedRanges?: NamedRange[]; // Labeled table regions for GoTo navigation
   semiFinishedZones?: SemiFinishedZone[]; // Zones tagged with a semi-finished product
   itemCatalogTables?: ItemCatalogTable[]; // Lookup tables used to resolve item links
-  isBomSummary?: boolean; // Marks the auto-generated BOM summary sheet (refreshes on activation)
 }
 
 export interface CustomFunction {
