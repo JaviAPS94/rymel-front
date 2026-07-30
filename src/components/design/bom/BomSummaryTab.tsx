@@ -52,7 +52,7 @@ const BomSummaryTab = ({ element, sheets, subTypeWithFunctions }: BomSummaryTabP
     if (!element.sapReference) {
       console.error("[BOM] element.sapReference is not set", element);
       setErrorMessage(
-        "Este elemento no tiene referencia SAP configurada. No se puede generar la lista de materiales.",
+        "Este elemento no tiene referencia ERP configurada. No se puede generar la lista de materiales.",
       );
       return;
     }
@@ -71,7 +71,7 @@ const BomSummaryTab = ({ element, sheets, subTypeWithFunctions }: BomSummaryTabP
     if (!result.data) {
       console.error("[BOM] No data returned. error:", result.error, "sapReference:", element.sapReference);
       setErrorMessage(
-        `No se encontró estructura BOM para la referencia SAP: ${element.sapReference}`,
+        `No se encontró estructura BOM para la referencia ERP: ${element.sapReference}`,
       );
       return;
     }
@@ -115,8 +115,8 @@ const BomSummaryTab = ({ element, sheets, subTypeWithFunctions }: BomSummaryTabP
             </h3>
             <p className="text-xs text-slate-400">
               {bomSheets.length > 0
-                ? "Generada a partir de la referencia SAP del elemento. Puedes editarla como cualquier otra hoja."
-                : "Construye el desglose de materiales de este diseño a partir de su referencia SAP."}
+                ? "Generada a partir de la referencia ERP del elemento. Puedes editarla como cualquier otra hoja."
+                : "Construye el desglose de materiales de este diseño a partir de su referencia ERP."}
             </p>
           </div>
         </div>

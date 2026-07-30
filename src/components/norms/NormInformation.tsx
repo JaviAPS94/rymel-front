@@ -399,7 +399,7 @@ const NormInformation = ({
                           </li>
                         ))}
                         <li>
-                          <span className="font-medium">Referencia SAP:</span>{" "}
+                          <span className="font-medium">Referencia ERP:</span>{" "}
                           {element.sapReference}
                         </li>
                       </ul>

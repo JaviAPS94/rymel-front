@@ -997,7 +997,7 @@ const ElementForm = ({
       </div>
 
       <div>
-        <h2 className="text-lg font-bold">Referencia SAP</h2>
+        <h2 className="text-lg font-bold">Referencia ERP</h2>
         <EditableInput
           initialValue={generateValue()}
           name="sapReference"

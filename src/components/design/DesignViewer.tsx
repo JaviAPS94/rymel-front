@@ -338,7 +338,7 @@ export default function DesignViewer({
                         <div className="space-y-1 text-sm">
                           <div className="flex justify-between">
                             <span className="text-gray-600">
-                              Referencia SAP:
+                              Referencia ERP:
                             </span>
                             <span className="font-mono text-xs">
                               {designElement.element.sapReference}

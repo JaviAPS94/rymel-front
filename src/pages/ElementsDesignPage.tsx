@@ -883,7 +883,7 @@ const ElementsDesignPage = () => {
 
     if (!designCodePreview || !designCodePreview.isComplete) {
       showAlert(
-        "Falta etiquetar una celda como MO y una celda como Material de Devanado (MD) en la hoja del diseño (clic derecho sobre la celda) para completar el código de diseño.",
+        "Falta etiquetar una celda como Material del Núcleo (MO) y una celda como Material de Devanado (MD) en la hoja del diseño (clic derecho sobre la celda) para completar el código de diseño.",
         "error",
       );
       return;

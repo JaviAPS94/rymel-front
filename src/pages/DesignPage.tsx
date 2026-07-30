@@ -251,7 +251,7 @@ const DesignPage = () => {
                 type="text"
                 value={sapReference}
                 onChange={setSapReference}
-                placeholder="Referencia SAP"
+                placeholder="Referencia ERP"
               />
               <Select
                 options={subTypes?.map(

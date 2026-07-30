@@ -315,7 +315,7 @@ const DesignCodePanel: React.FC<DesignCodePanelProps> = ({
           <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-xs leading-relaxed">
             El código <strong className="font-mono">{preview.baseCode}</strong>{" "}
             ya existe. Edita el sufijo de desambiguación (entre el año y el
-            valor MO):
+            valor de Material del Núcleo):
           </div>
 
           {/* Split input: [prefijo fijo] [sufijo editable] [resto fijo] */}

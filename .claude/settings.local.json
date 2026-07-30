@@ -24,7 +24,27 @@
       "Bash(openspec list *)",
       "Bash(echo \"EXIT:$?\")",
       "Bash(git checkout *)",
-      "Bash(npx vite *)"
+      "Bash(npx vite *)",
+      "Bash(git *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:5183/)",
+      "Read(//tmp/**)",
+      "Bash(curl -s \"http://localhost:5183/src/components/design/bom/BomSummaryTab.tsx\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:5183/src/components/design/bom/BomSummaryTab.tsx\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:5183/src/pages/ElementsDesignPage.tsx\")",
+      "Bash(kill %1)",
+      "Bash(jobs)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:5184/src/components/design/bom/BomSummaryTab.tsx\")",
+      "Bash(curl -s \"http://localhost:5184/src/components/design/bom/BomSummaryTab.tsx\")",
+      "Bash(pkill -f \"vite --port 51\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:5185/src/components/design/bom/BomSummaryTab.tsx\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:5185/src/components/design/SpreadSheet.tsx\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:5186/src/components/design/DesignCodePanel.tsx\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:5186/src/pages/ElementsDesignPage.tsx\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:5187/\")",
+      "Bash(docker exec sqlserver *)",
+      "Bash(docker cp *)",
+      "Bash(pkill -f \"vite --port 5183\")",
+      "Bash(npx ts-node *)"
     ]
   }
 }

@@ -5650,8 +5650,8 @@ const SpreadSheet = ({
                           >
                             🏷️{" "}
                             {currentTag === "MO"
-                              ? "Celda etiquetada como MO"
-                              : "Etiquetar celda como MO"}
+                              ? "Celda etiquetada como Material del Núcleo"
+                              : "Etiquetar celda como Material del Núcleo (MO)"}
                           </button>
                           <button
                             className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"

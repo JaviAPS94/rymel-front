@@ -491,7 +491,7 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
           }}
           title={
             cell.materialTag === "MO"
-              ? "Celda etiquetada como MO (código de diseño)"
+              ? "Celda etiquetada como Material del Núcleo — MO (código de diseño)"
               : "Celda etiquetada como Material de Devanado — MD (código de diseño)"
           }
         >

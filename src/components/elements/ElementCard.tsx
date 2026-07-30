@@ -70,7 +70,7 @@ const ElementCard: React.FC<ElementCardProps> = ({
           )}
         </div>
         <p>
-          <b>Referencia SAP:</b> {element.sapReference}
+          <b>Referencia ERP:</b> {element.sapReference}
         </p>
         <p>
           <b>Nombre Norma:</b> {element.norm.name}
