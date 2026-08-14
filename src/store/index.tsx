@@ -112,6 +112,7 @@ export {
   useGetDesignSubtypesByTypeIdQuery,
   useLazyGetDesignSubtypeWithFunctionsByIdQuery,
   useEvaluateFunctionMutation,
+  useGetRecalculationNoticeQuery,
   useLazyGetTemplatesByDesignSubtypeIdQuery,
   useSaveDesignWithSubDesignsMutation,
   useGetDesignsByFiltersPaginatedMutation,

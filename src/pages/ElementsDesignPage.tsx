@@ -28,6 +28,7 @@ import {
   SubDesignData,
 } from "../commons/types";
 import SpreadSheet from "../components/design/SpreadSheet";
+import RecalculationNotice from "../components/design/RecalculationNotice";
 import { useErrorAlert } from "../hooks/useAlertError";
 import Alert from "../components/core/Alert";
 import Button from "../components/core/Button";
@@ -965,6 +966,7 @@ const ElementsDesignPage = () => {
               onEditingChange={setIsDirtyDisambiguation}
             />
           )}
+          <RecalculationNotice subDesignId={designBase?.subDesigns?.[0]?.id} />
           {subTypeWithFunctions &&
             templatesData &&
             showSpreadSheet &&
@@ -1006,6 +1008,7 @@ const ElementsDesignPage = () => {
       icon: <DollarSign className="h-4 w-4" />,
       content: (
         <>
+          <RecalculationNotice subDesignId={designBase?.subDesigns?.[1]?.id} />
           {subTypeWithFunctions &&
             costTemplatesData &&
             showSpreadSheet &&
