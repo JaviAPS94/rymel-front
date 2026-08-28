@@ -368,6 +368,38 @@ export type ResultData = {
   result: number;
 };
 
+/** Celda que cambió de valor en un recálculo. */
+export type RecalculatedCell = {
+  ref: string;
+  formula: string;
+  before: unknown;
+  after: unknown;
+};
+
+/** Fórmula responsable de un recálculo, con la versión que se aplicó. */
+export type ResponsibleFunction = {
+  id: number;
+  name: string;
+  code: string;
+  version: number;
+};
+
+/**
+ * Aviso sobre los valores de una hoja.
+ *
+ * `isStale` significa que se calculó con una versión de fórmula que ya no es
+ * la vigente y **nadie ha tocado sus números**; `changedCells` significa que
+ * sí se recalculó y estos son los valores que cambiaron.
+ */
+export type RecalculationNotice = {
+  subDesignId: number;
+  isStale: boolean;
+  recalculatedAt?: string;
+  recalculationId?: number;
+  changedCells: RecalculatedCell[];
+  functions: ResponsibleFunction[];
+};
+
 export type DesignFunctionEvaluationResponse = {
   results: ResultData[];
 };

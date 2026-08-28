@@ -6,6 +6,7 @@ import {
   useRef,
   useEffect,
   useMemo,
+  useReducer,
   startTransition,
 } from "react";
 import {
@@ -38,7 +39,31 @@ import {
   getSemiFinishedColor,
 } from "./spreadsheet-types";
 import Select, { Option } from "../core/Select";
-import { useDepGraph } from "../../hooks/useDepGraph";
+import {
+  buildGraph as buildFormulaGraph,
+  buildRangeRef,
+  consumesCellClick,
+  createDepGraph,
+  formulaBuilderReducer,
+  getRecalcOrder as getFormulaRecalcOrder,
+  initialFormulaBuilderState,
+  insertIntoFormula,
+  qualifyCellRef,
+  updateCellInGraph as updateFormulaCellInGraph,
+  type CustomFunctionCall,
+  type CustomFunctionDefinition,
+  type CustomFunctionResult,
+  type DepGraph,
+} from "@rymel/formula-engine";
+import {
+  evaluateFormulaWith,
+  recalculateCells,
+  type EvaluableCells,
+} from "./formula-evaluation";
+import {
+  runtimeSheetsFromTemplate,
+  type ElementValue,
+} from "./template-loading";
 
 const ROWS = 250;
 const COLS = 50; // Rendered columns (supports Excel-style naming A-ZZ in formulas)
@@ -710,18 +735,72 @@ const SpreadSheet = ({
     </div>
   );
 
-  const [formulaInput, setFormulaInput] = useState<string>("");
   const formulaInputValueRef = useRef<string>(""); // Track immediate value without causing re-renders
-  const [isFormulaBuildingMode, setIsFormulaBuildingMode] =
-    useState<boolean>(false);
-  const [isAddingToFormula, setIsAddingToFormula] = useState<boolean>(false);
-  const [formulaCursorPosition, setFormulaCursorPosition] = useState<number>(0);
-  const [rangeSelectionStart, setRangeSelectionStart] = useState<string | null>(
-    null,
+  /**
+   * La construcción de fórmulas vive en `@rymel/formula-engine`.
+   *
+   * Antes estaba escrita aquí: cuándo calificar una referencia, cómo se forma
+   * un rango, qué apaga cada acción. El editor de plantillas del admin necesita
+   * exactamente lo mismo, y con dos copias la misma acción acaba produciendo
+   * dos fórmulas distintas en cada aplicación. Lo que queda local es la atadura
+   * con React —el paquete no puede depender de React sin dejar de correr en el
+   * servidor—, no las reglas.
+   */
+  const [builder, dispatchBuilder] = useReducer(
+    formulaBuilderReducer,
+    undefined,
+    initialFormulaBuilderState,
   );
+  const formulaInput = builder.draft;
+  const isFormulaBuildingMode = builder.isActive;
+  const isAddingToFormula = builder.isPicking;
+  const formulaCursorPosition = builder.cursor;
+  const rangeSelectionStart = builder.rangeStart;
+
+  /** Hoja a la que pertenece la fórmula: decide qué referencias hay que calificar. */
+  const activeSheetName = useMemo(
+    () => sheets.find((sheet) => sheet.id === activeSheetId)?.name ?? "",
+    [sheets, activeSheetId],
+  );
+
+  /**
+   * Empieza a editar el contenido de una celda.
+   *
+   * Un solo punto de entrada porque el estado del modo fórmula se deduce del
+   * texto —empieza por `=` o no—, y deducirlo suelto en cada sitio es como se
+   * quedaba encendido después de borrar el `=`.
+   */
+  const startFormula = useCallback(
+    (draft: string) => {
+      formulaInputValueRef.current = draft;
+      dispatchBuilder({
+        type: "start",
+        draft,
+        sheet: activeSheetName,
+        instance: instanceId,
+      });
+    },
+    [activeSheetName, instanceId],
+  );
+
   // Cross-tab reference selection state
   const [targetInstanceId, setTargetInstanceId] = useState<string>(instanceId);
   const [targetSheetId, setTargetSheetId] = useState<string>(activeSheetId);
+
+  /**
+   * Nombre de la hoja apuntada por el selector de instancia/hoja.
+   *
+   * Se busca en `allSheets` y no en `sheets` porque el destino puede estar en
+   * otra instancia del diseño, que es de donde salen las referencias
+   * `costos:Hoja1!A1`.
+   */
+  const targetSheetName = useMemo(
+    () =>
+      allSheets
+        .find((instance) => instance.instanceId === targetInstanceId)
+        ?.sheets.find((sheet) => sheet.id === targetSheetId)?.name,
+    [allSheets, targetInstanceId, targetSheetId],
+  );
   const [isFormulaInputFocused, setIsFormulaInputFocused] =
     useState<boolean>(false);
   const [editingSheetName, setEditingSheetName] = useState<string | null>(null);
@@ -1009,7 +1088,32 @@ const SpreadSheet = ({
   }, [currentSheet?.itemCatalogTables]);
 
   // Dependency graph for incremental recalculation
-  const { buildGraph, updateCellInGraph, getRecalcOrder } = useDepGraph();
+  /**
+   * Grafo de dependencias, respaldado por el motor compartido.
+   *
+   * El hook anterior guardaba el grafo en un `useRef` interno; las funciones
+   * del motor son puras y reciben el grafo. Se conserva aquí la misma
+   * interfaz —el grafo vive en un ref y las tres funciones lo usan— para que
+   * los diecisiete puntos que ya lo usaban no cambien.
+   */
+  const graphRef = useRef<DepGraph>(createDepGraph());
+
+  const buildGraph = useCallback((cells: CellGrid) => {
+    graphRef.current = buildFormulaGraph(cells);
+  }, []);
+
+  const updateCellInGraph = useCallback(
+    (cellRef: string, newFormula: string) => {
+      updateFormulaCellInGraph(graphRef.current, cellRef, newFormula);
+    },
+    [],
+  );
+
+  const getRecalcOrder = useCallback(
+    (dirtyCells: string[]): { order: string[]; circular: Set<string> } =>
+      getFormulaRecalcOrder(graphRef.current, dirtyCells),
+    [],
+  );
 
   // Rebuild the dependency graph whenever the active sheet changes
   useEffect(() => {
@@ -1244,12 +1348,7 @@ const SpreadSheet = ({
       startTransition(() => {
         const cell = cells[cellRef];
         const cellFormula = cell?.formula || "";
-        formulaInputValueRef.current = cellFormula;
-        setFormulaInput(cellFormula);
-        setFormulaCursorPosition(cellFormula.length);
-        setIsFormulaBuildingMode(cellFormula.startsWith("="));
-        setRangeSelectionStart(null);
-        setIsAddingToFormula(false);
+        startFormula(cellFormula);
         // Exit inline editing when selecting a new cell
         setEditingCell(null);
       });
@@ -1926,17 +2025,28 @@ const SpreadSheet = ({
   // Update cursor position from input
   const updateCursorPosition = () => {
     if (formulaInputRef.current) {
-      setFormulaCursorPosition(formulaInputRef.current.selectionStart || 0);
+      dispatchBuilder({
+        type: "cursor",
+        cursor: formulaInputRef.current.selectionStart || 0,
+      });
     }
   };
 
-  // Set cursor position in input
-  const setCursorPosition = (position: number) => {
-    if (formulaInputRef.current) {
-      formulaInputRef.current.setSelectionRange(position, position);
-      formulaInputRef.current.focus();
-      setFormulaCursorPosition(position);
-    }
+  /**
+   * Devuelve el foco a la barra con el cursor detrás de lo insertado.
+   *
+   * Va tras el repintado porque el input todavía tiene el texto anterior: sin
+   * esperar, el cursor acabaría en un sitio que ya no existe.
+   */
+  const restoreFormulaCursor = (position: number) => {
+    setTimeout(() => {
+      const input = formulaInputRef.current;
+      if (!input) return;
+      input.focus();
+      const at = Math.min(position, input.value.length);
+      input.setSelectionRange(at, at);
+      dispatchBuilder({ type: "cursor", cursor: at });
+    }, 0);
   };
 
   // Function library state
@@ -1949,7 +2059,9 @@ const SpreadSheet = ({
             id: func.id,
             name: func.name,
             code: func.code,
-            formula: func.expression,
+            // La expresión ya no viaja al navegador: está cifrada y lo único
+            // que se hacía con ella era buscar dentro de un bloque hexadecimal.
+            formula: "",
             variables: func.variables.split(",").map((v) => v.trim()),
             description: func.description || "",
           };
@@ -1957,1138 +2069,88 @@ const SpreadSheet = ({
     [subTypeWithFunctions.designFunctions],
   );
 
-  // Evaluate custom function
-  const evaluateCustomFunction = useCallback(
-    async (
-      funcName: string,
-      args: string[],
-      _cellGrid: CellGrid,
-      currentSheets: typeof sheets,
-    ): Promise<number | string> => {
-      const func = customFunctions.find((f) => f.code === funcName);
-      if (!func) return "#FUNCTION_NOT_FOUND";
+  // --- Evaluación de fórmulas: motor compartido ---------------------------
 
-      if (args.length === 0) {
-        return "#MISSING_ARGS";
-      }
-
-      try {
-        // Parse arguments and replace with actual values
-        const values: { [key: string]: number } = {};
-
-        for (let i = 0; i < func.variables.length && i < args.length; i++) {
-          const arg = args[i].trim();
-          if (!arg) {
-            return "#MISSING_ARGUMENT";
-          }
-
-          let value: number;
-
-          // Check if argument is a cell reference (including cross-sheet)
-          if (/^([A-Z]+\d+|.+![A-Z]+\d+)$/.test(arg)) {
-            let cellValue: number | string;
-            if (!arg.includes("!") && _cellGrid[arg]) {
-              const c = _cellGrid[arg];
-              cellValue =
-                typeof c.computed === "number"
-                  ? c.computed
-                  : c.computed !== undefined &&
-                      c.computed !== "" &&
-                      !isNaN(Number(c.computed))
-                    ? Number(c.computed)
-                    : 0;
-            } else {
-              cellValue = getCellValueFromAnySheet(arg, currentSheets);
-            }
-            value = typeof cellValue === "number" ? cellValue : 0;
-          } else {
-            value = Number.parseFloat(arg);
-            if (isNaN(value)) return "#INVALID_ARGUMENT";
-          }
-
-          values[func.variables[i]] = value;
-        }
-
-        if (Object.keys(values).length !== func.variables.length) {
-          return "#MISSING_ARGS";
-        }
-
-        const resultData = await evaluateFunction({
-          functions: [
-            {
-              designFunctionId: Number(func.id),
-              parameters: values,
-            },
-          ],
-        }).unwrap();
-
-        const resultValue = resultData.results[0]?.result;
-
-        return Number(resultValue);
-      } catch {
-        return "#ERROR";
-      }
-    },
-    [customFunctions, evaluateFunction, getCellValueFromAnySheet],
+  /**
+   * Definiciones de las fórmulas de diseño en el formato del motor.
+   *
+   * El motor no sabe evaluarlas —la expresión está cifrada y solo el motor
+   * cifrado puede resolverla— pero sí necesita reconocerlas para saber que
+   * `CUBIC(...)` es una invocación y no una función matemática.
+   */
+  const customFunctionDefinitions = useMemo<CustomFunctionDefinition[]>(
+    () =>
+      customFunctions.map((func) => ({
+        id: func.id,
+        code: func.code,
+        variables: func.variables,
+      })),
+    [customFunctions],
   );
 
-  // Evaluate formula
+  /**
+   * Puerto de resolución de funciones personalizadas.
+   *
+   * Resuelve **un lote completo en una sola petición**. Antes se hacía una
+   * llamada por celda, aunque el endpoint siempre aceptó un arreglo: una hoja
+   * con cuarenta celdas que invocan la misma fórmula hacía cuarenta viajes.
+   */
+  const resolveCustomFunctions = useCallback(
+    async (calls: CustomFunctionCall[]): Promise<CustomFunctionResult[]> => {
+      if (calls.length === 0) return [];
+
+      try {
+        const data = await evaluateFunction({
+          functions: calls.map((call) => ({
+            designFunctionId: Number(call.definition.id),
+            parameters: call.parameters,
+          })),
+        }).unwrap();
+
+        return calls.map((_, index) => {
+          const result = data.results[index];
+          return result === undefined
+            ? { error: "sin resultado para la invocación" }
+            : { value: Number(result.result) };
+        });
+      } catch {
+        // Un fallo del servicio afecta solo a las celdas de este lote.
+        return calls.map(() => ({ error: "no se pudo evaluar la fórmula" }));
+      }
+    },
+    [evaluateFunction],
+  );
+
+  /**
+   * Evalúa una celda con el motor compartido.
+   *
+   * Sustituye al evaluador anterior, que traducía la fórmula a JavaScript con
+   * 26 pasadas de `replace` y la ejecutaba con `Function()`. Eso era ejecución
+   * de código arbitrario —una fórmula puede venir de un `.xlsx` que subió
+   * cualquiera— y además hacía que el resultado no se pudiera reproducir fuera
+   * de un navegador, que es justo lo que el servidor necesita para recalcular.
+   *
+   * La lógica vive en `formula-evaluation.ts` para poder probarla sin montar
+   * React. La firma no cambia, así que sus ocho puntos de llamada siguen igual.
+   */
   const evaluateFormula = useCallback(
     async (
       formula: string,
       cellGrid: CellGrid,
       currentSheets: typeof sheets,
-    ): Promise<number | string | undefined> => {
-      if (!formula || formula.trim() === "") {
-        return "";
-      }
-
-      if (!formula.startsWith("=")) {
-        const num = Number.parseFloat(formula);
-        return isNaN(num) ? formula : num;
-      }
-
-      let expression = formula.slice(1).trim(); // Remove '=' and trim
-
-      if (!expression) {
-        return "#ERROR";
-      }
-
-      // Passthrough: DRAW: graphic formulas are not math expressions
-      if (expression.startsWith("DRAW:")) {
-        return expression;
-      }
-
-      // Helper: resolve cell value from cellGrid (same-sheet, up-to-date) or sheets (cross-sheet)
-      const resolveCellValue = (ref: string): number | string => {
-        if (!ref.includes("!")) {
-          const cell = cellGrid[ref];
-          if (cell && cell.computed !== undefined && cell.computed !== "") {
-            if (typeof cell.computed === "number") return cell.computed;
-            const num = Number(cell.computed);
-            if (!isNaN(num)) return num;
-          }
-          return 0;
-        }
-        return getCellValueFromAnySheet(ref, currentSheets);
-      };
-
-      try {
-        for (const func of customFunctions) {
-          const funcRegex = new RegExp(`${func.code}\\(([^)]*)\\)`, "g");
-
-          const matches = expression.match(funcRegex);
-          if (matches) {
-            for (const match of matches) {
-              const argsStr = match.substring(
-                func.code.length + 1,
-                match.length - 1,
-              );
-              if (!argsStr.trim()) {
-                expression = expression.replace(match, "#MISSING_ARGS");
-                continue;
-              }
-
-              const args = argsStr
-                .split(",")
-                .map((arg: string) => arg.trim())
-                .filter((arg: unknown) => arg !== "");
-
-              if (args.length === 0) {
-                expression = expression.replace(match, "#MISSING_ARGS");
-                continue;
-              }
-
-              // Now properly await the async result
-              const result = await evaluateCustomFunction(
-                func.code,
-                args,
-                cellGrid,
-                currentSheets,
-              );
-              return result;
-            }
-          }
-        }
-
-        expression = expression.replace(/SUM$$([^)]*)$$/g, (_, range) => {
-          if (!range.trim()) {
-            return "0";
-          }
-          const refs = range
-            .split(",")
-            .map((ref: string) => ref.trim())
-            .filter((ref: unknown) => ref !== "");
-          let sum = 0;
-          refs.forEach((ref: string) => {
-            if (ref.includes(":") && !ref.includes("!")) {
-              // Range like A1:A5 (same sheet only)
-              const [start, end] = ref.split(":");
-              const startPos = parseCellRef(start.trim());
-              const endPos = parseCellRef(end.trim());
-              if (startPos && endPos) {
-                for (let r = startPos.row; r <= endPos.row; r++) {
-                  for (let c = startPos.col; c <= endPos.col; c++) {
-                    const cellRef = getCellRef(r, c);
-                    const cell = cellGrid[cellRef];
-                    if (cell && typeof cell.computed === "number") {
-                      sum += cell.computed;
-                    }
-                  }
-                }
-              }
-            } else {
-              // Single cell reference (may be cross-sheet)
-              const cellValue = resolveCellValue(ref);
-              if (typeof cellValue === "number") {
-                sum += cellValue;
-              }
-            }
-          });
-          return sum.toString();
-        });
-
-        expression = expression.replace(/AVERAGE$$([^)]*)$$/g, (_, range) => {
-          if (!range.trim()) {
-            return "0";
-          }
-          const refs = range
-            .split(",")
-            .map((ref: string) => ref.trim())
-            .filter((ref: unknown) => ref !== "");
-          let sum = 0;
-          let count = 0;
-          refs.forEach((ref: string) => {
-            if (ref.includes(":") && !ref.includes("!")) {
-              // Range like A1:A5 (same sheet only)
-              const [start, end] = ref.split(":");
-              const startPos = parseCellRef(start.trim());
-              const endPos = parseCellRef(end.trim());
-              if (startPos && endPos) {
-                for (let r = startPos.row; r <= endPos.row; r++) {
-                  for (let c = startPos.col; c <= endPos.col; c++) {
-                    const cellRef = getCellRef(r, c);
-                    const cell = cellGrid[cellRef];
-                    if (cell && typeof cell.computed === "number") {
-                      sum += cell.computed;
-                      count++;
-                    }
-                  }
-                }
-              }
-            } else {
-              // Single cell reference (may be cross-sheet)
-              const cellValue = resolveCellValue(ref);
-              if (typeof cellValue === "number") {
-                sum += cellValue;
-                count++;
-              }
-            }
-          });
-          return count > 0 ? (sum / count).toString() : "0";
-        });
-
-        // BUSCARV (VLOOKUP) function
-        expression = expression.replace(/BUSCARV\(([^)]*)\)/g, (_, args) => {
-          if (!args.trim()) {
-            return "0";
-          }
-
-          // Support both comma and semicolon as separators (regional formats)
-          const normalizedArgs = args.replace(/;/g, ",");
-          const params = normalizedArgs
-            .split(",")
-            .map((param: string) => param.trim())
-            .filter((param: unknown) => param !== "");
-
-          if (params.length < 3) {
-            return "0";
-          }
-
-          const lookupValue = params[0];
-          let tableRange = params[1];
-          const columnIndex = Number.parseInt(params[2]);
-          const exactMatch = params[3]
-            ? params[3].toLowerCase() === "true" || params[3] === "1"
-            : true;
-
-          if (isNaN(columnIndex) || columnIndex < 1) {
-            return "0";
-          }
-
-          // Parse the table range - support cross-sheet references
-          if (!tableRange.includes(":")) {
-            return "0";
-          }
-
-          // Handle cross-sheet references: Tablas!B3:C10 or Tablas!B3:Tablas!C10
-          let targetSheetName: string | null = null;
-          let targetCellGrid = cellGrid;
-
-          if (tableRange.includes("!")) {
-            // Extract sheet name and normalize the range
-            const parts = tableRange.split(":");
-            let startPart = parts[0];
-            let endPart = parts[1];
-
-            // Extract sheet name from start part
-            if (startPart.includes("!")) {
-              const sheetAndCell = startPart.split("!");
-              targetSheetName = sheetAndCell[0];
-              startPart = sheetAndCell[1];
-            }
-
-            // If end part also has sheet reference, remove it
-            if (endPart.includes("!")) {
-              endPart = endPart.split("!")[1];
-            }
-
-            // Reconstruct the range without sheet references
-            tableRange = `${startPart}:${endPart}`;
-
-            // Find the target sheet
-            if (targetSheetName) {
-              const targetSheet = currentSheets.find(
-                (s) => s.name === targetSheetName || s.id === targetSheetName,
-              );
-              if (targetSheet) {
-                targetCellGrid = targetSheet.cells;
-              } else {
-                return "0";
-              }
-            }
-          }
-
-          const [start, end] = tableRange.split(":");
-          const startPos = parseCellRef(start.trim());
-          const endPos = parseCellRef(end.trim());
-
-          if (!startPos || !endPos) {
-            return "0";
-          }
-
-          // Get the lookup value - evaluate expressions like I39*10
-          let searchValue: string | number;
-          // Replace cell references in the lookup value with actual values
-          let evaluatedLookup = lookupValue.replace(
-            /\$?([A-Za-z0-9]+:[A-Za-z0-9]+!|[A-Za-z0-9]+!)?\$?[A-Z]+\$?\d+/g,
-            (match: string) => {
-              const cleanMatch = match.replace(/\$/g, "");
-              const cellValue = resolveCellValue(cleanMatch);
-              if (typeof cellValue === "number") {
-                return cellValue.toString();
-              }
-              return "0";
-            },
-          );
-
-          // Try to evaluate if it's a math expression
-          try {
-            const evaluated = Function(
-              `"use strict"; return (${evaluatedLookup})`,
-            )();
-            if (typeof evaluated === "number" && !isNaN(evaluated)) {
-              searchValue = evaluated;
-            } else if (!isNaN(Number.parseFloat(evaluatedLookup))) {
-              searchValue = Number.parseFloat(evaluatedLookup);
-            } else {
-              // Remove quotes if it's a string literal
-              searchValue = lookupValue.replace(/^["']|["']$/g, "");
-            }
-          } catch {
-            // If evaluation fails, try parsing as number or use as string
-            if (!isNaN(Number.parseFloat(evaluatedLookup))) {
-              searchValue = Number.parseFloat(evaluatedLookup);
-            } else {
-              searchValue = lookupValue.replace(/^["']|["']$/g, "");
-            }
-          }
-
-          // Check if column index is within the range
-          const tableWidth = endPos.col - startPos.col + 1;
-          if (columnIndex > tableWidth) {
-            return "0";
-          }
-
-          // Search in the first column of the range
-          let lastMatchRow = -1;
-          for (let r = startPos.row; r <= endPos.row; r++) {
-            const lookupCellRef = getCellRef(r, startPos.col);
-            const lookupCell = targetCellGrid[lookupCellRef];
-
-            let cellValue: string | number = "";
-            if (lookupCell) {
-              cellValue =
-                typeof lookupCell.computed === "number"
-                  ? lookupCell.computed
-                  : (lookupCell.computed || lookupCell.value || "").toString();
-            }
-
-            // Compare values
-            let isMatch = false;
-            if (exactMatch) {
-              if (
-                typeof searchValue === "number" &&
-                typeof cellValue === "number"
-              ) {
-                isMatch = Math.abs(searchValue - cellValue) < 0.0001;
-              } else {
-                isMatch =
-                  String(cellValue).toLowerCase() ===
-                  String(searchValue).toLowerCase();
-              }
-            } else {
-              // Approximate match (for sorted data)
-              if (
-                typeof searchValue === "number" &&
-                typeof cellValue === "number"
-              ) {
-                if (cellValue <= searchValue) {
-                  lastMatchRow = r;
-                }
-                if (cellValue > searchValue) {
-                  break;
-                }
-              } else {
-                if (
-                  String(cellValue).toLowerCase() <=
-                  String(searchValue).toLowerCase()
-                ) {
-                  lastMatchRow = r;
-                }
-                if (
-                  String(cellValue).toLowerCase() >
-                  String(searchValue).toLowerCase()
-                ) {
-                  break;
-                }
-              }
-              continue;
-            }
-
-            if (isMatch) {
-              // Return value from the specified column
-              const resultCol = startPos.col + columnIndex - 1;
-              const resultCellRef = getCellRef(r, resultCol);
-              const resultCell = targetCellGrid[resultCellRef];
-
-              if (resultCell) {
-                const resultValue =
-                  typeof resultCell.computed === "number"
-                    ? resultCell.computed
-                    : resultCell.computed || resultCell.value || "";
-                return typeof resultValue === "number"
-                  ? resultValue.toString()
-                  : "0";
-              }
-
-              return "0";
-            }
-          }
-
-          // For approximate match, return the last matching row
-          if (!exactMatch && lastMatchRow >= 0) {
-            const resultCol = startPos.col + columnIndex - 1;
-            const resultCellRef = getCellRef(lastMatchRow, resultCol);
-            const resultCell = targetCellGrid[resultCellRef];
-
-            if (resultCell) {
-              const resultValue =
-                typeof resultCell.computed === "number"
-                  ? resultCell.computed
-                  : resultCell.computed || resultCell.value || "";
-              return typeof resultValue === "number"
-                ? resultValue.toString()
-                : "0";
-            }
-          }
-
-          return "0";
-        });
-
-        // VLOOKUP function (English version)
-        expression = expression.replace(/VLOOKUP\(([^)]*)\)/g, (_, args) => {
-          if (!args.trim()) {
-            return "0";
-          }
-
-          // Support both comma and semicolon as separators (regional formats)
-          const normalizedArgs = args.replace(/;/g, ",");
-          const params = normalizedArgs
-            .split(",")
-            .map((param: string) => param.trim())
-            .filter((param: unknown) => param !== "");
-
-          if (params.length < 3) {
-            return "0";
-          }
-
-          const lookupValue = params[0];
-          let tableRange = params[1];
-          const columnIndex = Number.parseInt(params[2]);
-          const exactMatch = params[3]
-            ? params[3].toLowerCase() === "true" || params[3] === "1"
-            : true;
-
-          if (isNaN(columnIndex) || columnIndex < 1) {
-            return "0";
-          }
-
-          // Parse the table range - support cross-sheet references
-          if (!tableRange.includes(":")) {
-            return "0";
-          }
-
-          // Handle cross-sheet references: Tablas!B3:C10 or Tablas!B3:Tablas!C10
-          let targetSheetName: string | null = null;
-          let targetCellGrid = cellGrid;
-
-          if (tableRange.includes("!")) {
-            // Extract sheet name and normalize the range
-            const parts = tableRange.split(":");
-            let startPart = parts[0];
-            let endPart = parts[1];
-
-            // Extract sheet name from start part
-            if (startPart.includes("!")) {
-              const sheetAndCell = startPart.split("!");
-              targetSheetName = sheetAndCell[0];
-              startPart = sheetAndCell[1];
-            }
-
-            // If end part also has sheet reference, remove it
-            if (endPart.includes("!")) {
-              endPart = endPart.split("!")[1];
-            }
-
-            // Reconstruct the range without sheet references
-            tableRange = `${startPart}:${endPart}`;
-
-            // Find the target sheet
-            if (targetSheetName) {
-              const targetSheet = currentSheets.find(
-                (s) => s.name === targetSheetName || s.id === targetSheetName,
-              );
-              if (targetSheet) {
-                targetCellGrid = targetSheet.cells;
-              } else {
-                return "0";
-              }
-            }
-          }
-
-          const [start, end] = tableRange.split(":");
-          const startPos = parseCellRef(start.trim());
-          const endPos = parseCellRef(end.trim());
-
-          if (!startPos || !endPos) {
-            return "0";
-          }
-
-          // Get the lookup value - evaluate expressions like I39*10
-          let searchValue: string | number;
-          // Replace cell references in the lookup value with actual values
-          let evaluatedLookup = lookupValue.replace(
-            /\$?([A-Za-z0-9]+:[A-Za-z0-9]+!|[A-Za-z0-9]+!)?\$?[A-Z]+\$?\d+/g,
-            (match: string) => {
-              const cleanMatch = match.replace(/\$/g, "");
-              const cellValue = resolveCellValue(cleanMatch);
-              if (typeof cellValue === "number") {
-                return cellValue.toString();
-              }
-              return "0";
-            },
-          );
-
-          // Try to evaluate if it's a math expression
-          try {
-            const evaluated = Function(
-              `"use strict"; return (${evaluatedLookup})`,
-            )();
-            if (typeof evaluated === "number" && !isNaN(evaluated)) {
-              searchValue = evaluated;
-            } else if (!isNaN(Number.parseFloat(evaluatedLookup))) {
-              searchValue = Number.parseFloat(evaluatedLookup);
-            } else {
-              // Remove quotes if it's a string literal
-              searchValue = lookupValue.replace(/^["']|["']$/g, "");
-            }
-          } catch {
-            // If evaluation fails, try parsing as number or use as string
-            if (!isNaN(Number.parseFloat(evaluatedLookup))) {
-              searchValue = Number.parseFloat(evaluatedLookup);
-            } else {
-              searchValue = lookupValue.replace(/^["']|["']$/g, "");
-            }
-          }
-
-          // Check if column index is within the range
-          const tableWidth = endPos.col - startPos.col + 1;
-          if (columnIndex > tableWidth) {
-            return "0";
-          }
-
-          // Search in the first column of the range
-          let lastMatchRow = -1;
-          for (let r = startPos.row; r <= endPos.row; r++) {
-            const lookupCellRef = getCellRef(r, startPos.col);
-            const lookupCell = targetCellGrid[lookupCellRef];
-
-            let cellValue: string | number = "";
-            if (lookupCell) {
-              cellValue =
-                typeof lookupCell.computed === "number"
-                  ? lookupCell.computed
-                  : (lookupCell.computed || lookupCell.value || "").toString();
-            }
-
-            // Compare values
-            let isMatch = false;
-            if (exactMatch) {
-              if (
-                typeof searchValue === "number" &&
-                typeof cellValue === "number"
-              ) {
-                isMatch = Math.abs(searchValue - cellValue) < 0.0001;
-              } else {
-                isMatch =
-                  String(cellValue).toLowerCase() ===
-                  String(searchValue).toLowerCase();
-              }
-            } else {
-              // Approximate match (for sorted data)
-              if (
-                typeof searchValue === "number" &&
-                typeof cellValue === "number"
-              ) {
-                if (cellValue <= searchValue) {
-                  lastMatchRow = r;
-                }
-                if (cellValue > searchValue) {
-                  break;
-                }
-              } else {
-                if (
-                  String(cellValue).toLowerCase() <=
-                  String(searchValue).toLowerCase()
-                ) {
-                  lastMatchRow = r;
-                }
-                if (
-                  String(cellValue).toLowerCase() >
-                  String(searchValue).toLowerCase()
-                ) {
-                  break;
-                }
-              }
-              continue;
-            }
-
-            if (isMatch) {
-              // Return value from the specified column
-              const resultCol = startPos.col + columnIndex - 1;
-              const resultCellRef = getCellRef(r, resultCol);
-              const resultCell = targetCellGrid[resultCellRef];
-
-              if (resultCell) {
-                const resultValue =
-                  typeof resultCell.computed === "number"
-                    ? resultCell.computed
-                    : resultCell.computed || resultCell.value || "";
-                return typeof resultValue === "number"
-                  ? resultValue.toString()
-                  : "0";
-              }
-
-              return "0";
-            }
-          }
-
-          // For approximate match, return the last matching row
-          if (!exactMatch && lastMatchRow >= 0) {
-            const resultCol = startPos.col + columnIndex - 1;
-            const resultCellRef = getCellRef(lastMatchRow, resultCol);
-            const resultCell = targetCellGrid[resultCellRef];
-
-            if (resultCell) {
-              const resultValue =
-                typeof resultCell.computed === "number"
-                  ? resultCell.computed
-                  : resultCell.computed || resultCell.value || "";
-              return typeof resultValue === "number"
-                ? resultValue.toString()
-                : "0";
-            }
-          }
-
-          return "0";
-        });
-
-        // COINCIDIR (MATCH) function - Returns position of a value in a range or array
-        expression = expression.replace(/COINCIDIR\(([^)]*)\)/g, (_, args) => {
-          if (!args.trim()) {
-            return "0";
-          }
-
-          const params = args
-            .split(/,(?![^{]*\})/) // Split by comma, but not inside braces
-            .map((param: string) => param.trim())
-            .filter((param: unknown) => param !== "");
-
-          if (params.length < 2) {
-            return "0";
-          }
-
-          const lookupValueParam = params[0];
-          const rangeParam = params[1];
-          const matchType = params[2] ? Number.parseInt(params[2]) : 0; // 0=exact, 1=less/equal, -1=greater/equal
-
-          // Get the lookup value
-          let searchValue: string | number;
-          // Check if it's a cell reference (with or without $ symbols): C21, $C$21, $C21, C$21
-          if (/^\$?[A-Z]+\$?\d+$/.test(lookupValueParam)) {
-            const cleanRef = lookupValueParam.replace(/\$/g, "");
-            searchValue = resolveCellValue(cleanRef);
-          } else if (!isNaN(Number.parseFloat(lookupValueParam))) {
-            searchValue = Number.parseFloat(lookupValueParam);
-          } else {
-            searchValue = lookupValueParam.replace(/^["']|["']$/g, "");
-          }
-
-          // Parse the range/array
-          let values: (string | number)[] = [];
-
-          if (rangeParam.startsWith("{") && rangeParam.endsWith("}")) {
-            // Array notation: {1;2;4;9;13;20}
-            const arrayContent = rangeParam.slice(1, -1);
-            values = arrayContent.split(";").map((v: string) => {
-              const val = v.trim();
-              return !isNaN(Number.parseFloat(val))
-                ? Number.parseFloat(val)
-                : val;
-            });
-          } else if (rangeParam.includes(":")) {
-            // Range notation: A1:A10
-            const [start, end] = rangeParam.split(":");
-            const startPos = parseCellRef(start.trim());
-            const endPos = parseCellRef(end.trim());
-
-            if (startPos && endPos) {
-              // Handle both row and column ranges
-              if (startPos.col === endPos.col) {
-                // Column range (vertical)
-                for (let r = startPos.row; r <= endPos.row; r++) {
-                  const cellRef = getCellRef(r, startPos.col);
-                  const cellValue = cellGrid[cellRef];
-                  if (cellValue) {
-                    values.push(
-                      typeof cellValue.computed === "number"
-                        ? cellValue.computed
-                        : cellValue.computed || cellValue.value || "",
-                    );
-                  } else {
-                    values.push("");
-                  }
-                }
-              } else if (startPos.row === endPos.row) {
-                // Row range (horizontal)
-                for (let c = startPos.col; c <= endPos.col; c++) {
-                  const cellRef = getCellRef(startPos.row, c);
-                  const cellValue = cellGrid[cellRef];
-                  if (cellValue) {
-                    values.push(
-                      typeof cellValue.computed === "number"
-                        ? cellValue.computed
-                        : cellValue.computed || cellValue.value || "",
-                    );
-                  } else {
-                    values.push("");
-                  }
-                }
-              }
-            }
-          }
-
-          // Search for the value based on match type
-          if (matchType === 0) {
-            // Exact match
-            for (let i = 0; i < values.length; i++) {
-              const cellValue = values[i];
-              if (
-                typeof searchValue === "number" &&
-                typeof cellValue === "number"
-              ) {
-                if (Math.abs(searchValue - cellValue) < 0.0001) {
-                  return (i + 1).toString();
-                }
-              } else {
-                if (
-                  String(cellValue).toLowerCase() ===
-                  String(searchValue).toLowerCase()
-                ) {
-                  return (i + 1).toString();
-                }
-              }
-            }
-          } else if (matchType === 1) {
-            // Less than or equal (assumes sorted ascending)
-            let lastMatch = -1;
-            for (let i = 0; i < values.length; i++) {
-              const cellValue = values[i];
-              if (
-                typeof searchValue === "number" &&
-                typeof cellValue === "number"
-              ) {
-                if (cellValue <= searchValue) {
-                  lastMatch = i;
-                } else {
-                  break;
-                }
-              }
-            }
-            if (lastMatch >= 0) {
-              return (lastMatch + 1).toString();
-            }
-          } else if (matchType === -1) {
-            // Greater than or equal (assumes sorted descending)
-            for (let i = 0; i < values.length; i++) {
-              const cellValue = values[i];
-              if (
-                typeof searchValue === "number" &&
-                typeof cellValue === "number"
-              ) {
-                if (cellValue >= searchValue) {
-                  return (i + 1).toString();
-                }
-              }
-            }
-          }
-
-          return "0";
-        });
-
-        // Helper function to find matching closing parenthesis
-        const findClosingParen = (str: string, startIndex: number): number => {
-          let depth = 1;
-          for (let i = startIndex; i < str.length; i++) {
-            if (str[i] === "(") depth++;
-            if (str[i] === ")") {
-              depth--;
-              if (depth === 0) return i;
-            }
-          }
-          return -1;
-        };
-
-        // Helper function to split arguments respecting nested functions and arrays
-        const splitFunctionArgs = (argsString: string): string[] => {
-          const args: string[] = [];
-          let currentArg = "";
-          let depth = 0;
-          let inBraces = false;
-
-          for (let i = 0; i < argsString.length; i++) {
-            const char = argsString[i];
-
-            if (char === "{") {
-              inBraces = true;
-            } else if (char === "}") {
-              inBraces = false;
-            } else if (char === "(" && !inBraces) {
-              depth++;
-            } else if (char === ")" && !inBraces) {
-              depth--;
-            }
-
-            if (char === ";" && depth === 0 && !inBraces) {
-              args.push(currentArg.trim());
-              currentArg = "";
-            } else if (char === "," && depth === 0 && !inBraces) {
-              args.push(currentArg.trim());
-              currentArg = "";
-            } else {
-              currentArg += char;
-            }
-          }
-
-          if (currentArg.trim()) {
-            args.push(currentArg.trim());
-          }
-
-          return args.filter((arg) => arg !== "");
-        };
-
-        // ELEGIR (CHOOSE) function - Returns a value from a list based on index
-        // Process multiple times to handle nested ELEGIR functions
-        let elegirProcessed = true;
-        while (elegirProcessed) {
-          elegirProcessed = false;
-          const elegirIndex = expression.indexOf("ELEGIR(");
-
-          if (elegirIndex !== -1) {
-            const closingIndex = findClosingParen(expression, elegirIndex + 7);
-
-            if (closingIndex !== -1) {
-              const fullMatch = expression.substring(
-                elegirIndex,
-                closingIndex + 1,
-              );
-              const argsString = expression.substring(
-                elegirIndex + 7,
-                closingIndex,
-              );
-              const params = splitFunctionArgs(argsString);
-
-              if (params.length >= 2) {
-                // First parameter is the index
-                const indexParam = params[0];
-                let index: number;
-
-                // Check if it's directly a number
-                if (
-                  !isNaN(Number.parseFloat(indexParam)) &&
-                  !/[A-Z]/.test(indexParam)
-                ) {
-                  index = Math.floor(Number.parseFloat(indexParam));
-                } else if (/^\$?[A-Z]+\$?\d+$/.test(indexParam)) {
-                  // It's a cell reference (with or without $ symbols): C21, $C$21, etc.
-                  const cleanRef = indexParam.replace(/\$/g, "");
-                  const cellValue = resolveCellValue(cleanRef);
-                  index =
-                    typeof cellValue === "number" ? Math.floor(cellValue) : 0;
-                } else {
-                  // Skip this iteration, might be another function that needs processing first
-                  break;
-                }
-
-                let result = "0";
-                if (index >= 1 && index <= params.length - 1) {
-                  // Get the value at the specified index (1-based)
-                  const selectedParam = params[index];
-
-                  // Check if it's a cell reference (with or without $ symbols): K25, $K25, etc.
-                  if (/^\$?[A-Z]+\$?\d+$/.test(selectedParam)) {
-                    const cleanRef = selectedParam.replace(/\$/g, "");
-                    const cellValue = resolveCellValue(cleanRef);
-                    result =
-                      typeof cellValue === "number"
-                        ? cellValue.toString()
-                        : "0";
-                  } else if (
-                    !isNaN(Number.parseFloat(selectedParam)) &&
-                    !/[A-Z]/.test(selectedParam)
-                  ) {
-                    result = selectedParam;
-                  } else {
-                    // Keep the parameter as-is (might be another expression)
-                    result = selectedParam;
-                  }
-                }
-
-                expression =
-                  expression.substring(0, elegirIndex) +
-                  result +
-                  expression.substring(closingIndex + 1);
-                elegirProcessed = true;
-              } else {
-                expression =
-                  expression.substring(0, elegirIndex) +
-                  "0" +
-                  expression.substring(closingIndex + 1);
-                elegirProcessed = true;
-              }
-            }
-          }
-        }
-
-        // Replace cell references with their values (including cross-sheet and cross-instance refs)
-        // Handle both simple (A1, C21) and absolute references ($A$1, $C$21)
-        expression = expression.replace(
-          /\$?([A-Za-z0-9]+:[A-Za-z0-9]+!|[A-Za-z0-9]+!)?\$?[A-Z]+\$?\d+/g,
-          (match) => {
-            const cleanMatch = match.replace(/\$/g, "");
-            const cellValue = resolveCellValue(cleanMatch);
-            if (typeof cellValue === "number") {
-              return cellValue.toString();
-            }
-            return "0";
-          },
-        );
-
-        // --- Logical functions: AND, OR, SI/IF (processed after cell refs are resolved) ---
-
-        // Helper: evaluate a simple numeric/comparison expression
-        const evalSimpleExpr = (expr: string): number | string => {
-          try {
-            const val = Function(`"use strict"; return (${expr})`)();
-            if (typeof val === "boolean") return val ? 1 : 0;
-            if (typeof val === "number" && !isNaN(val)) return val;
-            return String(val);
-          } catch {
-            return expr;
-          }
-        };
-
-        // AND(cond1, cond2, ...) → 1 if all truthy, else 0
-        let andProcessed = true;
-        while (andProcessed) {
-          andProcessed = false;
-          // Find innermost AND( first
-          const andMatch = expression.match(/\bAND\(/i);
-          if (andMatch && andMatch.index !== undefined) {
-            const startIdx = andMatch.index;
-            const openParen = startIdx + andMatch[0].length;
-            const closeIdx = findClosingParen(expression, openParen);
-            if (closeIdx !== -1) {
-              const argsStr = expression.substring(openParen, closeIdx);
-              const args = splitFunctionArgs(argsStr);
-              const allTrue = args.every((arg) => {
-                const v = evalSimpleExpr(arg);
-                return typeof v === "number" ? v !== 0 : Boolean(v);
-              });
-              expression =
-                expression.substring(0, startIdx) +
-                (allTrue ? "1" : "0") +
-                expression.substring(closeIdx + 1);
-              andProcessed = true;
-            }
-          }
-        }
-
-        // OR / O(cond1, cond2, ...) → 1 if any truthy, else 0
-        let orProcessed = true;
-        while (orProcessed) {
-          orProcessed = false;
-          const orMatch = expression.match(/\b(?:OR|O)\(/i);
-          if (orMatch && orMatch.index !== undefined) {
-            const startIdx = orMatch.index;
-            const openParen = startIdx + orMatch[0].length;
-            const closeIdx = findClosingParen(expression, openParen);
-            if (closeIdx !== -1) {
-              const argsStr = expression.substring(openParen, closeIdx);
-              const args = splitFunctionArgs(argsStr);
-              const anyTrue = args.some((arg) => {
-                const v = evalSimpleExpr(arg);
-                return typeof v === "number" ? v !== 0 : Boolean(v);
-              });
-              expression =
-                expression.substring(0, startIdx) +
-                (anyTrue ? "1" : "0") +
-                expression.substring(closeIdx + 1);
-              orProcessed = true;
-            }
-          }
-        }
-
-        // SI / IF(condition, value_true, value_false) — process innermost first
-        let siProcessed = true;
-        while (siProcessed) {
-          siProcessed = false;
-          // Match innermost SI( or IF( (case-insensitive)
-          const siMatch = expression.match(/\b(?:SI|IF)\(/i);
-          if (siMatch && siMatch.index !== undefined) {
-            const startIdx = siMatch.index;
-            const openParen = startIdx + siMatch[0].length;
-            const closeIdx = findClosingParen(expression, openParen);
-            if (closeIdx !== -1) {
-              const argsStr = expression.substring(openParen, closeIdx);
-              const args = splitFunctionArgs(argsStr);
-              if (args.length >= 2) {
-                const conditionVal = evalSimpleExpr(args[0]);
-                const isTruthy =
-                  typeof conditionVal === "number"
-                    ? conditionVal !== 0
-                    : Boolean(conditionVal);
-                let result: string;
-                if (isTruthy) {
-                  const v = evalSimpleExpr(args[1]);
-                  result = String(v);
-                } else {
-                  if (args.length >= 3) {
-                    const v = evalSimpleExpr(args[2]);
-                    result = String(v);
-                  } else {
-                    result = "0";
-                  }
-                }
-                expression =
-                  expression.substring(0, startIdx) +
-                  result +
-                  expression.substring(closeIdx + 1);
-                siProcessed = true;
-              } else {
-                expression =
-                  expression.substring(0, startIdx) +
-                  "#ERROR" +
-                  expression.substring(closeIdx + 1);
-                siProcessed = true;
-              }
-            }
-          }
-        }
-
-        // Handle power operator (^) - convert to Math.pow
-        expression = expression.replace(
-          /(\d+(?:\.\d+)?|$$[^)]+$$)\s*\^\s*(\d+(?:\.\d+)?|$$[^)]+$$)/g,
-          (_, base, exponent) => `Math.pow(${base}, ${exponent})`,
-        );
-
-        // Math functions - Spanish and English names → Math.* equivalents
-        // Trigonometric (radians)
-        expression = expression.replace(/\b(?:SENO|SIN)\(/gi, "Math.sin(");
-        expression = expression.replace(/\b(?:COSENO|COS)\(/gi, "Math.cos(");
-        expression = expression.replace(/\b(?:TANGENTE|TAN)\(/gi, "Math.tan(");
-        expression = expression.replace(/\b(?:ASENO|ASIN)\(/gi, "Math.asin(");
-        expression = expression.replace(/\b(?:ACOSENO|ACOS)\(/gi, "Math.acos(");
-        expression = expression.replace(/\bATAN\(/gi, "Math.atan(");
-        // Logarithmic
-        expression = expression.replace(
-          /\b(?:LOGARITMO|LOG)\(/gi,
-          "Math.log10(",
-        );
-        expression = expression.replace(/\bLN\(/gi, "Math.log(");
-        // Other math functions
-        expression = expression.replace(/\b(?:RAIZ|SQRT)\(/gi, "Math.sqrt(");
-        expression = expression.replace(/\bABS\(/gi, "Math.abs(");
-        expression = expression.replace(
-          /\b(?:POTENCIA|POWER)\(/gi,
-          "Math.pow(",
-        );
-        expression = expression.replace(
-          /\b(?:REDONDEAR|ROUND)\(([^,]+),\s*(\d+)\)/gi,
-          (_, value, decimals) =>
-            `(Math.round(${value} * Math.pow(10, ${decimals})) / Math.pow(10, ${decimals}))`,
-        );
-        expression = expression.replace(
-          /\b(?:TECHO|CEILING)\(/gi,
-          "Math.ceil(",
-        );
-        expression = expression.replace(/\b(?:PISO|FLOOR)\(/gi, "Math.floor(");
-        expression = expression.replace(/\bPI\(\)/gi, "Math.PI");
-        // Degrees ↔ Radians conversion
-        expression = expression.replace(
-          /\b(?:RADIANES|RADIANS)\(/gi,
-          "(Math.PI/180)*(",
-        );
-        expression = expression.replace(
-          /\b(?:GRADOS|DEGREES)\(/gi,
-          "(180/Math.PI)*(",
-        );
-
-        // Check if expression is empty or invalid after processing
-        if (!expression.trim() || expression.trim() === "()") {
-          return "#ERROR";
-        }
-
-        // Basic math evaluation
-        const result = Function(`"use strict"; return (${expression})`)();
-        return typeof result === "number" && !isNaN(result) ? result : "#ERROR";
-      } catch (error) {
-        console.error("Error evaluating formula:", error);
-        return "#ERROR";
-      }
-    },
-    [customFunctions, evaluateCustomFunction, getCellValueFromAnySheet],
+    ): Promise<number | string | undefined> =>
+      evaluateFormulaWith(formula, {
+        customFunctions: customFunctionDefinitions,
+        resolveCustomFunctions,
+        localCellValue: (ref) => cellGrid[ref]?.computed,
+        crossSheetCellValue: (ref) =>
+          getCellValueFromAnySheet(ref, currentSheets),
+      }),
+    [
+      customFunctionDefinitions,
+      getCellValueFromAnySheet,
+      resolveCustomFunctions,
+    ],
   );
 
   // Update sheets when sheetsInitialData changes (e.g., when designBase is set)
@@ -3153,7 +2215,7 @@ const SpreadSheet = ({
         setSelectedCell("A1");
         selectionAnchorRef.current = "A1";
         setSelectedCells(new Set(["A1"]));
-        setFormulaInput("");
+        startFormula("");
       }
 
       // Recalculate all formulas for all sheets after a short delay
@@ -3257,42 +2319,51 @@ const SpreadSheet = ({
       cellGrid: CellGrid,
       allSheets: Sheet[],
     ): Promise<Record<string, string | number>> => {
-      const { order, circular } = getRecalcOrder(dirtyCells);
+      const { order } = getRecalcOrder(dirtyCells);
+
+      // Solo las celdas que hay que recalcular, más las originalmente
+      // modificadas: el motor las ordena y agrupa por nivel de dependencia.
+      const toEvaluate = new Set<string>([...order, ...dirtyCells]);
+      // `computed` viaja junto a la fórmula: las celdas que no entran en este
+      // recálculo conservan su valor, y sus dependientes pueden leerlo.
+      const cells: EvaluableCells = {};
+      for (const [ref, cell] of Object.entries(cellGrid)) {
+        if (cell) cells[ref] = { formula: cell.formula, computed: cell.computed };
+      }
+
+      const { values, circular } = await recalculateCells(cells, dirtyCells, {
+        customFunctions: customFunctionDefinitions,
+        resolveCustomFunctions,
+        crossSheetCellValue: (ref) => getCellValueFromAnySheet(ref, allSheets),
+      });
+
       const updatedValues: Record<string, string | number> = {};
 
-      // Mark circular references
       circular.forEach((ref) => {
         updatedValues[ref] = "#CIRCULAR";
         cellGrid[ref] = { ...cellGrid[ref], computed: "#CIRCULAR" };
       });
 
-      // Recalculate in topological order (dependencies first)
-      for (const ref of order) {
+      for (const ref of toEvaluate) {
+        if (circular.has(ref)) continue;
         const cellToCalc = cellGrid[ref];
         if (!cellToCalc) continue;
-
-        // Skip non-formula cells unless they are the originally dirty cell
         if (!cellToCalc.formula?.startsWith("=") && !dirtyCells.includes(ref))
           continue;
 
-        try {
-          const result = await evaluateFormula(
-            cellToCalc.formula,
-            cellGrid,
-            allSheets,
-          );
-          updatedValues[ref] = result !== undefined ? result : "";
-          cellGrid[ref] = { ...cellGrid[ref], computed: updatedValues[ref] };
-        } catch (error) {
-          console.error(`Error calculating cell ${ref}:`, error);
-          updatedValues[ref] = "#ERROR";
-          cellGrid[ref] = { ...cellGrid[ref], computed: "#ERROR" };
-        }
+        const value = values[ref];
+        updatedValues[ref] = value !== undefined ? value : "";
+        cellGrid[ref] = { ...cellGrid[ref], computed: updatedValues[ref] };
       }
 
       return updatedValues;
     },
-    [evaluateFormula, getRecalcOrder],
+    [
+      customFunctionDefinitions,
+      getCellValueFromAnySheet,
+      getRecalcOrder,
+      resolveCustomFunctions,
+    ],
   );
 
   // Update cell value in current sheet (optimized for typing performance)
@@ -3466,26 +2537,31 @@ const SpreadSheet = ({
     ],
   );
 
+  /**
+   * Refleja en la celda lo que el reducer acaba de insertar.
+   *
+   * El texto lo calcula la misma función pura que usa el reducer, así que la
+   * celda y la barra no pueden acabar diciendo cosas distintas.
+   */
+  const mirrorInsertion = (textToInsert: string) => {
+    const { formula, cursor } = insertIntoFormula(
+      formulaInput,
+      formulaCursorPosition,
+      textToInsert,
+    );
+
+    formulaInputValueRef.current = formula;
+    if (editingCell === selectedCell) {
+      setInlineCellValue(formula);
+    }
+    updateCell(selectedCell, formula);
+    restoreFormulaCursor(cursor);
+  };
+
   // Insert text at cursor position
   const insertAtCursor = (textToInsert: string) => {
-    const currentPosition = formulaCursorPosition;
-    const newFormula =
-      formulaInput.slice(0, currentPosition) +
-      textToInsert +
-      formulaInput.slice(currentPosition);
-
-    setFormulaInput(newFormula);
-    // Also update inline cell value if in inline editing mode
-    if (editingCell === selectedCell) {
-      setInlineCellValue(newFormula);
-    }
-    updateCell(selectedCell, newFormula);
-
-    // Set cursor position after the inserted text
-    const newPosition = currentPosition + textToInsert.length;
-    setTimeout(() => {
-      setCursorPosition(newPosition);
-    }, 0);
+    dispatchBuilder({ type: "insert", text: textToInsert });
+    mirrorInsertion(textToInsert);
   };
 
   // Insert function into formula
@@ -3953,7 +3029,7 @@ const SpreadSheet = ({
           case "Backspace":
             e.preventDefault();
             // Clear cell content
-            setFormulaInput("");
+            startFormula("");
             updateCell(selectedCell, "");
             break;
           default:
@@ -3990,12 +3066,7 @@ const SpreadSheet = ({
               // Start inline editing mode
               setEditingCell(selectedCell);
               setInlineCellValue(e.key);
-              setFormulaInput(e.key);
-              formulaInputValueRef.current = e.key;
-              // Enable formula building mode if starting with "="
-              if (e.key === "=") {
-                setIsFormulaBuildingMode(true);
-              }
+              startFormula(e.key);
             }
             break;
         }
@@ -4057,49 +3128,27 @@ const SpreadSheet = ({
       }
     }
 
-    if (isFormulaBuildingMode && isAddingToFormula) {
-      // Adding cell reference to formula - DON'T change selected cell
-      if (rangeSelectionStart && rangeSelectionStart !== cellRef) {
-        // Complete range selection
-        const rangeRef = `${rangeSelectionStart}:${cellRef}`;
-        insertAtCursor(rangeRef);
-        setRangeSelectionStart(null);
-        setIsAddingToFormula(false);
-      } else {
-        // Build cross-tab reference based on selected target instance and sheet
-        let crossTabRef = cellRef;
+    if (consumesCellClick(builder)) {
+      // La referencia la construye el motor: qué hay que calificar y cómo se
+      // forma el rango son sus reglas, no las de este componente.
+      const target = {
+        sheet: targetSheetName ?? activeSheetName,
+        instance: targetInstanceId,
+      };
+      const current = { sheet: activeSheetName, instance: instanceId };
 
-        // Check if we're referencing a different instance or sheet
-        if (targetInstanceId !== instanceId) {
-          // Cross-instance reference: design:Sheet1!A1
-          const targetInstance = allSheets.find(
-            (inst) => inst.instanceId === targetInstanceId,
-          );
-          const targetSheet = targetInstance?.sheets.find(
-            (s) => s.id === targetSheetId,
-          );
-          if (targetSheet) {
-            crossTabRef = `${targetInstanceId}:${targetSheet.name}!${cellRef}`;
-          }
-        } else if (targetSheetId !== activeSheetId) {
-          // Same instance, different sheet: Sheet1!A1
-          const targetSheet = sheets.find((s) => s.id === targetSheetId);
-          if (targetSheet) {
-            crossTabRef = `${targetSheet.name}!${cellRef}`;
-          }
-        }
-        // else: same instance and sheet, just use cellRef (e.g., A1)
+      const reference =
+        rangeSelectionStart && rangeSelectionStart !== cellRef
+          ? buildRangeRef(rangeSelectionStart, cellRef, target, current)
+          : qualifyCellRef(cellRef, target, current);
 
-        insertAtCursor(crossTabRef);
-        setIsAddingToFormula(false);
-      }
-
-      // Keep focus on formula input and don't change selected cell
-      setTimeout(() => {
-        if (formulaInputRef.current) {
-          formulaInputRef.current.focus();
-        }
-      }, 0);
+      dispatchBuilder({
+        type: "pick",
+        sheet: target.sheet,
+        ref: cellRef,
+        instance: target.instance,
+      });
+      mirrorInsertion(reference);
     } else {
       // Normal cell selection - use single select
       selectSingleCell(cellRef);
@@ -4113,16 +3162,34 @@ const SpreadSheet = ({
       const cellFormula = cell?.formula || "";
       setEditingCell(cellRef);
       setInlineCellValue(cellFormula);
-      setFormulaInput(cellFormula);
-      formulaInputValueRef.current = cellFormula;
-      // Enable formula building mode if the cell contains a formula
-      const isFormula = cellFormula.startsWith("=");
-      setIsFormulaBuildingMode(isFormula);
+      startFormula(cellFormula);
     },
-    [cells],
+    [cells, startFormula],
   );
 
   // Handle stopping inline editing
+  /**
+   * Lo que se teclea dentro de una celda, para que el modo fórmula se encienda
+   * en el momento y no al salir de ella.
+   *
+   * Sin esto, quien escribía `=` en la celda no veía la barra hasta salir y
+   * volver a entrar: la celda sabía que había un `=` y el constructor no.
+   *
+   * Solo se avisa al reducer cuando **cambia** si el contenido es fórmula o
+   * no. El input de la celda es no controlado a propósito, y despachar en cada
+   * tecla redibujaría la rejilla entera, que es justo lo que esa decisión
+   * evita. Entre la transición y el `blur` nadie lee el borrador: al soltar el
+   * foco se sincroniza con el texto completo.
+   */
+  const handleEditingDraft = useCallback(
+    (value: string) => {
+      if (value.startsWith("=") !== isFormulaBuildingMode) {
+        dispatchBuilder({ type: "draft", draft: value });
+      }
+    },
+    [isFormulaBuildingMode],
+  );
+
   const handleStopInlineEditing = useCallback(
     (value: string) => {
       if (editingCell) {
@@ -4134,11 +3201,10 @@ const SpreadSheet = ({
         }
         setEditingCell(null);
         // Sync the formula input with the final value
-        setFormulaInput(value);
-        formulaInputValueRef.current = value;
+        startFormula(value);
       }
     },
-    [editingCell, updateCell, cells],
+    [editingCell, updateCell, cells, startFormula],
   );
 
   // Handle navigation after editing
@@ -4156,37 +3222,26 @@ const SpreadSheet = ({
       formulaInputValueRef.current = value;
 
       // Batch state updates to minimize re-renders
-      const isFormula = value.startsWith("=");
-
       // Use startTransition for non-urgent formula input updates
       startTransition(() => {
-        setFormulaInput(value);
+        // El reducer deduce del texto si sigue siendo una fórmula, y apaga la
+        // selección de celdas cuando deja de serlo.
+        dispatchBuilder({ type: "draft", draft: value });
         updateCursorPosition();
-
-        if (isFormula !== isFormulaBuildingMode) {
-          setIsFormulaBuildingMode(isFormula);
-        }
-
-        if (!isFormula) {
-          setRangeSelectionStart(null);
-          setIsAddingToFormula(false);
-        }
       });
 
       // Don't update cell on every keystroke - only on Enter or blur
     },
-    [isFormulaBuildingMode, updateCursorPosition],
+    [updateCursorPosition],
   );
 
   // Toggle adding to formula mode
   const toggleAddingToFormula = () => {
     updateCursorPosition(); // Make sure we have the latest cursor position
-    const newAddingState = !isAddingToFormula;
-    setIsAddingToFormula(newAddingState);
-    setRangeSelectionStart(null);
+    dispatchBuilder({ type: "togglePicking" });
 
     // Reset to current instance and sheet when enabling
-    if (newAddingState) {
+    if (!isAddingToFormula) {
       setTargetInstanceId(instanceId);
       setTargetSheetId(activeSheetId);
     }
@@ -4212,19 +3267,12 @@ const SpreadSheet = ({
   // Handle range selection
   const handleRangeSelection = () => {
     updateCursorPosition(); // Make sure we have the latest cursor position
-    if (rangeSelectionStart) {
-      setRangeSelectionStart(null);
-    } else {
-      setRangeSelectionStart(selectedCell);
-      setIsAddingToFormula(true);
-    }
+    dispatchBuilder({ type: "toggleRange", activeRef: selectedCell });
   };
 
   // Exit formula building mode
   const exitFormulaBuildingMode = () => {
-    setIsFormulaBuildingMode(false);
-    setRangeSelectionStart(null);
-    setIsAddingToFormula(false);
+    dispatchBuilder({ type: "finish" });
     updateCell(selectedCell, formulaInput);
   };
 
@@ -4283,7 +3331,7 @@ const SpreadSheet = ({
     setSelectedCell("A1");
     selectionAnchorRef.current = "A1";
     setSelectedCells(new Set(["A1"]));
-    setFormulaInput("");
+    startFormula("");
 
     // If template was loaded, recalculate formulas for the new sheet
     if (templates.length === 1) {
@@ -4362,9 +3410,7 @@ const SpreadSheet = ({
       setSelectedCell("A1");
       selectionAnchorRef.current = "A1";
       setSelectedCells(new Set(["A1"]));
-      setFormulaInput("");
-      setIsAddingToFormula(false);
-      setRangeSelectionStart(null);
+      startFormula("");
     }
     // If in formula building mode, keep the formula and selection state
     // so users can navigate to other sheets to select cells
@@ -4403,9 +3449,7 @@ const SpreadSheet = ({
             setSelectedCell(targetCell);
             selectionAnchorRef.current = targetCell;
             setSelectedCells(new Set([targetCell]));
-            setFormulaInput("");
-            setIsAddingToFormula(false);
-            setRangeSelectionStart(null);
+            startFormula("");
 
             // For cross-sheet, use a longer delay so the new sheet grid has time to mount
             const delay = isCrossSheet ? 300 : 100;
@@ -4907,70 +3951,17 @@ const SpreadSheet = ({
     (template: Template) => {
       // Check if template has multiple sheets or single sheet format
       if (template.sheets && template.sheets.length > 0) {
-        // Multi-sheet template: Replace all sheets
-        const newSheets = template.sheets.map((templateSheet, index) => {
-          const sheetId = `${instanceId}-sheet${index + 1}`;
-
-          // Process template cells to populate with element values if elementKey exists
-          const processedCells = { ...templateSheet.cells };
-
-          Object.keys(processedCells).forEach((cellRef) => {
-            const cell = processedCells[cellRef];
-
-            // Check if cell has elementKey property
-            if (cell.elementKey) {
-              // Search for matching key in element.values
-              const elementValue = element.values.find(
-                (val: any) => val.key === cell.elementKey,
-              );
-
-              // If found, override cell value with element value
-              if (elementValue && elementValue.value !== undefined) {
-                // Convert to number if the type is number, otherwise keep as string
-                let computedValue: string | number = String(elementValue.value);
-
-                if (elementValue.type === "number") {
-                  const numValue = Number(elementValue.value);
-                  if (!isNaN(numValue)) {
-                    computedValue = numValue;
-                  }
-                }
-
-                processedCells[cellRef] = {
-                  ...cell,
-                  value: String(elementValue.value),
-                  formula: String(elementValue.value),
-                  computed: computedValue,
-                };
-              }
-            }
-          });
-
-          return {
-            id: sheetId,
-            name: templateSheet.name,
-            cells: processedCells,
-            columnWidths: { ...templateSheet.cellsStyles.columnWidths },
-            rowHeights: { ...templateSheet.cellsStyles.rowHeights },
-            templateHiddenRows: new Set<number>(
-              templateSheet.cellsStyles.hiddenRows || [],
-            ),
-            templateHiddenColumns: new Set<number>(
-              templateSheet.cellsStyles.hiddenColumns || [],
-            ),
-            userHiddenRows: new Set<number>(),
-            userHiddenColumns: new Set<number>(),
-            hiddenCells: new Set<string>(),
-            freezeRow: templateSheet.cellsStyles.freezeRow || 0,
-            freezeColumn: templateSheet.cellsStyles.freezeColumn || 0,
-            mergedCells: templateSheet.cellsStyles.mergedCells || [],
-            namedRanges: templateSheet.cellsStyles.namedRanges || [],
-            semiFinishedZones:
-              templateSheet.cellsStyles.semiFinishedZones || [],
-            itemCatalogTables:
-              templateSheet.cellsStyles.itemCatalogTables || [],
-          };
-        });
+        // La traducción de la plantilla a hojas la hace el contrato
+        // compartido, no este componente. Antes se hacía aquí, y era la
+        // segunda de dos traducciones para el mismo dato: por eso las filas
+        // que un autor ocultaba en la plantilla —guardadas como
+        // `templateHiddenRows`— nunca llegaban, porque aquí se leía
+        // `hiddenRows`.
+        const newSheets = runtimeSheetsFromTemplate(
+          template,
+          instanceId,
+          element.values as ElementValue[],
+        );
 
         // Recalculate all formulas for all sheets using dep graph
         const recalculateAllSheetsFormulas = async () => {
@@ -5057,7 +4048,7 @@ const SpreadSheet = ({
         setSelectedCell("A1");
         selectionAnchorRef.current = "A1";
         setSelectedCells(new Set(["A1"]));
-        setFormulaInput("");
+        startFormula("");
         return;
       }
 
@@ -5227,7 +4218,7 @@ const SpreadSheet = ({
       setShowTemplateLibrary(false);
       setSelectedCell("A1");
       setSelectedCells(new Set(["A1"]));
-      setFormulaInput("");
+      startFormula("");
     },
     [
       activeSheetId,
@@ -5362,6 +4353,7 @@ const SpreadSheet = ({
         editingCell={editingCell}
         inlineCellValue={inlineCellValue}
         onStartInlineEditing={handleStartInlineEditing}
+        onEditingDraft={handleEditingDraft}
         onStopInlineEditing={handleStopInlineEditing}
         onNavigateAfterEdit={handleNavigateAfterEdit}
         onGridReady={handleGridReady}

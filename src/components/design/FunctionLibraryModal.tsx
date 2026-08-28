@@ -34,8 +34,8 @@ const FunctionLibraryModal: React.FC<FunctionLibraryModalProps> = ({
     return (
       func.name.toLowerCase().includes(searchLower) ||
       func.description.toLowerCase().includes(searchLower) ||
-      func.variables.some((v) => v.toLowerCase().includes(searchLower)) ||
-      func.formula.toLowerCase().includes(searchLower)
+      func.code.toLowerCase().includes(searchLower) ||
+      func.variables.some((v) => v.toLowerCase().includes(searchLower))
     );
   });
 

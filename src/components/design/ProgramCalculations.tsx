@@ -131,10 +131,12 @@ const ProgramCalculations: React.FC<ProgramCalculationsProps> = ({
       return;
     }
 
+    // No se busca en la expresión: lo que llegaba era el texto cifrado, un
+    // bloque hexadecimal en el que ninguna búsqueda del usuario iba a acertar.
     const filtered = currentSheet.designFunctions.filter(
       (func) =>
         func.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        func.expression.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (func.code ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
         func.variables.toLowerCase().includes(searchTerm.toLowerCase())
     );
     setFilteredFunctions(filtered);
@@ -321,11 +323,12 @@ const ProgramCalculations: React.FC<ProgramCalculationsProps> = ({
     const sheetId = currentSheet.id;
     const variables = allVariablesBySheet[sheetId] || [];
 
+    // Sin la columna de expresión: exportaba el texto cifrado.
     let csvContent =
-      "Function Name,Expression," + variables.join(",") + ",Result\n";
+      "Function Name,Code," + variables.join(",") + ",Result\n";
 
     currentSheet.designFunctions.forEach((func) => {
-      let row = `"${func.name}","${func.expression}",`;
+      let row = `"${func.name}","${func.code ?? ""}",`;
 
       variables.forEach((variable) => {
         const value = func.variables.includes(variable)

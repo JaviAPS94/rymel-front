@@ -3,6 +3,7 @@ import {
   Design,
   DesignFunctionEvaluation,
   DesignFunctionEvaluationResponse,
+  RecalculationNotice,
   DesignsPaginated,
   DesignsPaginatedParams,
   DesignSubtype,
@@ -38,6 +39,14 @@ const designApi = createApi({
     getDesignSubtypeWithFunctionsById: builder.query<DesignSubtype, number>({
       query: (subTypeId) => `/design/subtypes/${subTypeId}/with-functions`,
       providesTags: ["Design"],
+    }),
+    /**
+     * Qué le pasó a los valores de esta hoja: si quedó desactualizada y qué
+     * cambió el último recálculo.
+     */
+    getRecalculationNotice: builder.query<RecalculationNotice, number>({
+      query: (subDesignId) =>
+        `/design-functions/sub-designs/${subDesignId}/recalculation-notice`,
     }),
     evaluateFunction: builder.mutation<
       DesignFunctionEvaluationResponse,
@@ -103,6 +112,7 @@ const designApi = createApi({
 
 export const {
   useGetDesignTypesQuery,
+  useGetRecalculationNoticeQuery,
   useGetDesignSubtypesByTypeIdQuery,
   useLazyGetDesignSubtypeWithFunctionsByIdQuery,
   useEvaluateFunctionMutation,
