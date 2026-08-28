@@ -3168,6 +3168,28 @@ const SpreadSheet = ({
   );
 
   // Handle stopping inline editing
+  /**
+   * Lo que se teclea dentro de una celda, para que el modo fórmula se encienda
+   * en el momento y no al salir de ella.
+   *
+   * Sin esto, quien escribía `=` en la celda no veía la barra hasta salir y
+   * volver a entrar: la celda sabía que había un `=` y el constructor no.
+   *
+   * Solo se avisa al reducer cuando **cambia** si el contenido es fórmula o
+   * no. El input de la celda es no controlado a propósito, y despachar en cada
+   * tecla redibujaría la rejilla entera, que es justo lo que esa decisión
+   * evita. Entre la transición y el `blur` nadie lee el borrador: al soltar el
+   * foco se sincroniza con el texto completo.
+   */
+  const handleEditingDraft = useCallback(
+    (value: string) => {
+      if (value.startsWith("=") !== isFormulaBuildingMode) {
+        dispatchBuilder({ type: "draft", draft: value });
+      }
+    },
+    [isFormulaBuildingMode],
+  );
+
   const handleStopInlineEditing = useCallback(
     (value: string) => {
       if (editingCell) {
@@ -4331,6 +4353,7 @@ const SpreadSheet = ({
         editingCell={editingCell}
         inlineCellValue={inlineCellValue}
         onStartInlineEditing={handleStartInlineEditing}
+        onEditingDraft={handleEditingDraft}
         onStopInlineEditing={handleStopInlineEditing}
         onNavigateAfterEdit={handleNavigateAfterEdit}
         onGridReady={handleGridReady}

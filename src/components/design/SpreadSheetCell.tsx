@@ -19,6 +19,15 @@ interface SpreadSheetCellProps {
   editingValue: string;
   onStartEditing?: (cellRef: string) => void;
   onStopEditing?: (value: string) => void;
+  /**
+   * Lo que se está tecleando, mientras se teclea.
+   *
+   * El input es **no controlado a propósito** —redibujar la rejilla en cada
+   * tecla es lo que se quiso evitar—, así que esto no lo convierte en
+   * controlado: solo avisa. Quien lo recibe decide si le interesa, y hoy solo
+   * le interesa el momento en que el contenido pasa a empezar por `=`.
+   */
+  onEditingDraft?: (value: string) => void;
   onNavigateAfterEdit?: (direction: "up" | "down" | "left" | "right") => void;
   cells: CellGrid; // Add cells prop for graphics
   fontScale?: number; // Zoom scale factor (1.0 = 100%)
@@ -66,6 +75,7 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
   editingValue,
   onStartEditing,
   onStopEditing,
+  onEditingDraft,
   onNavigateAfterEdit,
   cells,
   fontScale = 1,
@@ -345,6 +355,7 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
           ref={inputRef}
           type="text"
           defaultValue={editingValue}
+          onChange={(e) => onEditingDraft?.(e.target.value)}
           onBlur={() => {
             if (onStopEditing && inputRef.current) {
               onStopEditing(inputRef.current.value);

@@ -59,6 +59,8 @@ interface SpreadSheetGridProps {
   editingCell: string | null;
   inlineCellValue: string;
   onStartInlineEditing?: (cellRef: string) => void;
+  /** Lo que se teclea dentro de una celda, sin controlar su input. */
+  onEditingDraft?: (value: string) => void;
   onStopInlineEditing?: (value: string) => void;
   onNavigateAfterEdit?: (direction: "up" | "down" | "left" | "right") => void;
   onGridReady?: (scrollToCell: (cellRef: string) => void) => void;
@@ -123,6 +125,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
   editingCell,
   inlineCellValue,
   onStartInlineEditing,
+  onEditingDraft,
   onStopInlineEditing,
   onNavigateAfterEdit,
   onGridReady,
@@ -659,6 +662,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                             editingCell === cellRef ? inlineCellValue : ""
                           }
                           onStartEditing={onStartInlineEditing}
+                          onEditingDraft={onEditingDraft}
                           onStopEditing={onStopInlineEditing}
                           onNavigateAfterEdit={onNavigateAfterEdit}
                           fontScale={scale}
@@ -762,6 +766,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                             editingCell === cellRef ? inlineCellValue : ""
                           }
                           onStartEditing={onStartInlineEditing}
+                          onEditingDraft={onEditingDraft}
                           onStopEditing={onStopInlineEditing}
                           onNavigateAfterEdit={onNavigateAfterEdit}
                           fontScale={scale}
@@ -906,6 +911,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                             editingCell === cellRef ? inlineCellValue : ""
                           }
                           onStartEditing={onStartInlineEditing}
+                          onEditingDraft={onEditingDraft}
                           onStopEditing={onStopInlineEditing}
                           onNavigateAfterEdit={onNavigateAfterEdit}
                           fontScale={scale}
@@ -1010,6 +1016,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                             editingCell === cellRef ? inlineCellValue : ""
                           }
                           onStartEditing={onStartInlineEditing}
+                          onEditingDraft={onEditingDraft}
                           onStopEditing={onStopInlineEditing}
                           onNavigateAfterEdit={onNavigateAfterEdit}
                           fontScale={scale}
