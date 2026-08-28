@@ -85,7 +85,11 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({
               {searchTerm && ` coincidiendo con "${searchTerm}"`}
             </span>
           ) : (
-            <span>Mostrando {templates.length} plantillas en total</span>
+            <span>
+              Mostrando {templates.length} plantilla
+              {templates.length !== 1 ? "s" : ""} publicada
+              {templates.length !== 1 ? "s" : ""}
+            </span>
           )}
           {totalPages > 1 && (
             <span className="ml-2">
@@ -147,10 +151,18 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({
                   </p>
                 </div>
               ) : (
+                /* La biblioteca solo ofrece plantillas publicadas. Que no
+                   haya ninguna no es un error ni algo que el diseñador pueda
+                   resolver: quien las escribe y las publica es el
+                   administrador, y conviene decirlo en vez de invitarle a
+                   crear una que no puede crear. */
                 <div>
                   <div className="text-4xl mb-2">📋</div>
-                  <p>No hay plantillas disponibles</p>
-                  <p className="text-sm mt-1">¡Crea tu primera plantilla!</p>
+                  <p>No hay plantillas publicadas para este subtipo</p>
+                  <p className="text-sm mt-1">
+                    Puede haber alguna en preparación. Las plantillas se
+                    escriben y se publican desde la administración.
+                  </p>
                 </div>
               )}
             </div>

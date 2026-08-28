@@ -101,8 +101,17 @@ export const evaluateFormulaWith = async (
   return "#ERROR";
 };
 
-/** Celdas de una hoja, tal como las guarda el diseñador. */
-export type EvaluableCells = Record<string, { formula?: string } | undefined>;
+/**
+ * Celdas de una hoja, tal como las guarda el diseñador.
+ *
+ * `computed` es el valor que la celda ya tenía. Un recálculo parcial no vuelve
+ * a evaluar las celdas que quedan fuera del subgrafo sucio, así que es la
+ * única forma de que sus dependientes puedan leerlas.
+ */
+export type EvaluableCells = Record<
+  string,
+  { formula?: string; computed?: FormulaValue } | undefined
+>;
 
 export interface RecalculateResult {
   /** Valor calculado de cada celda evaluada. */
@@ -128,14 +137,25 @@ export const recalculateCells = async (
   dirtyCells: readonly string[],
   deps: Omit<EvaluateFormulaDeps, "localCellValue">,
 ): Promise<RecalculateResult> => {
-  // Las referencias a otras hojas se resuelven fuera del motor, que solo
-  // conoce las celdas que se le pasan.
   const initialValues: CellValueMap = {};
-  for (const cell of Object.values(cells)) {
+  for (const [ref, cell] of Object.entries(cells)) {
     const formula = cell?.formula;
     if (typeof formula !== "string" || !formula.startsWith("=")) continue;
-    for (const ref of extractPrecedents(formula)) {
-      if (ref.includes("!")) initialValues[ref] = deps.crossSheetCellValue(ref);
+
+    // El motor siembra por su cuenta las celdas sin fórmula, con su literal,
+    // pero no las que sí la tienen: espera calcularlas. En un recálculo
+    // parcial eso deja sin valor a toda celda con fórmula ajena al subgrafo
+    // sucio, y `=I39` sobre una de ellas devolvía 0 en silencio. Su valor
+    // previo sigue siendo el bueno mientras nada de lo que depende cambie;
+    // si entra en el recálculo, la evaluación lo sobrescribe igual.
+    if (cell?.computed !== undefined) initialValues[ref] = cell.computed;
+
+    // Las referencias a otras hojas se resuelven fuera del motor, que solo
+    // conoce las celdas que se le pasan.
+    for (const precedent of extractPrecedents(formula)) {
+      if (precedent.includes("!")) {
+        initialValues[precedent] = deps.crossSheetCellValue(precedent);
+      }
     }
   }
 

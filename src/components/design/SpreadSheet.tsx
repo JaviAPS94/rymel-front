@@ -6,6 +6,7 @@ import {
   useRef,
   useEffect,
   useMemo,
+  useReducer,
   startTransition,
 } from "react";
 import {
@@ -40,8 +41,14 @@ import {
 import Select, { Option } from "../core/Select";
 import {
   buildGraph as buildFormulaGraph,
+  buildRangeRef,
+  consumesCellClick,
   createDepGraph,
+  formulaBuilderReducer,
   getRecalcOrder as getFormulaRecalcOrder,
+  initialFormulaBuilderState,
+  insertIntoFormula,
+  qualifyCellRef,
   updateCellInGraph as updateFormulaCellInGraph,
   type CustomFunctionCall,
   type CustomFunctionDefinition,
@@ -51,7 +58,12 @@ import {
 import {
   evaluateFormulaWith,
   recalculateCells,
+  type EvaluableCells,
 } from "./formula-evaluation";
+import {
+  runtimeSheetsFromTemplate,
+  type ElementValue,
+} from "./template-loading";
 
 const ROWS = 250;
 const COLS = 50; // Rendered columns (supports Excel-style naming A-ZZ in formulas)
@@ -723,18 +735,72 @@ const SpreadSheet = ({
     </div>
   );
 
-  const [formulaInput, setFormulaInput] = useState<string>("");
   const formulaInputValueRef = useRef<string>(""); // Track immediate value without causing re-renders
-  const [isFormulaBuildingMode, setIsFormulaBuildingMode] =
-    useState<boolean>(false);
-  const [isAddingToFormula, setIsAddingToFormula] = useState<boolean>(false);
-  const [formulaCursorPosition, setFormulaCursorPosition] = useState<number>(0);
-  const [rangeSelectionStart, setRangeSelectionStart] = useState<string | null>(
-    null,
+  /**
+   * La construcción de fórmulas vive en `@rymel/formula-engine`.
+   *
+   * Antes estaba escrita aquí: cuándo calificar una referencia, cómo se forma
+   * un rango, qué apaga cada acción. El editor de plantillas del admin necesita
+   * exactamente lo mismo, y con dos copias la misma acción acaba produciendo
+   * dos fórmulas distintas en cada aplicación. Lo que queda local es la atadura
+   * con React —el paquete no puede depender de React sin dejar de correr en el
+   * servidor—, no las reglas.
+   */
+  const [builder, dispatchBuilder] = useReducer(
+    formulaBuilderReducer,
+    undefined,
+    initialFormulaBuilderState,
   );
+  const formulaInput = builder.draft;
+  const isFormulaBuildingMode = builder.isActive;
+  const isAddingToFormula = builder.isPicking;
+  const formulaCursorPosition = builder.cursor;
+  const rangeSelectionStart = builder.rangeStart;
+
+  /** Hoja a la que pertenece la fórmula: decide qué referencias hay que calificar. */
+  const activeSheetName = useMemo(
+    () => sheets.find((sheet) => sheet.id === activeSheetId)?.name ?? "",
+    [sheets, activeSheetId],
+  );
+
+  /**
+   * Empieza a editar el contenido de una celda.
+   *
+   * Un solo punto de entrada porque el estado del modo fórmula se deduce del
+   * texto —empieza por `=` o no—, y deducirlo suelto en cada sitio es como se
+   * quedaba encendido después de borrar el `=`.
+   */
+  const startFormula = useCallback(
+    (draft: string) => {
+      formulaInputValueRef.current = draft;
+      dispatchBuilder({
+        type: "start",
+        draft,
+        sheet: activeSheetName,
+        instance: instanceId,
+      });
+    },
+    [activeSheetName, instanceId],
+  );
+
   // Cross-tab reference selection state
   const [targetInstanceId, setTargetInstanceId] = useState<string>(instanceId);
   const [targetSheetId, setTargetSheetId] = useState<string>(activeSheetId);
+
+  /**
+   * Nombre de la hoja apuntada por el selector de instancia/hoja.
+   *
+   * Se busca en `allSheets` y no en `sheets` porque el destino puede estar en
+   * otra instancia del diseño, que es de donde salen las referencias
+   * `costos:Hoja1!A1`.
+   */
+  const targetSheetName = useMemo(
+    () =>
+      allSheets
+        .find((instance) => instance.instanceId === targetInstanceId)
+        ?.sheets.find((sheet) => sheet.id === targetSheetId)?.name,
+    [allSheets, targetInstanceId, targetSheetId],
+  );
   const [isFormulaInputFocused, setIsFormulaInputFocused] =
     useState<boolean>(false);
   const [editingSheetName, setEditingSheetName] = useState<string | null>(null);
@@ -1282,12 +1348,7 @@ const SpreadSheet = ({
       startTransition(() => {
         const cell = cells[cellRef];
         const cellFormula = cell?.formula || "";
-        formulaInputValueRef.current = cellFormula;
-        setFormulaInput(cellFormula);
-        setFormulaCursorPosition(cellFormula.length);
-        setIsFormulaBuildingMode(cellFormula.startsWith("="));
-        setRangeSelectionStart(null);
-        setIsAddingToFormula(false);
+        startFormula(cellFormula);
         // Exit inline editing when selecting a new cell
         setEditingCell(null);
       });
@@ -1964,17 +2025,28 @@ const SpreadSheet = ({
   // Update cursor position from input
   const updateCursorPosition = () => {
     if (formulaInputRef.current) {
-      setFormulaCursorPosition(formulaInputRef.current.selectionStart || 0);
+      dispatchBuilder({
+        type: "cursor",
+        cursor: formulaInputRef.current.selectionStart || 0,
+      });
     }
   };
 
-  // Set cursor position in input
-  const setCursorPosition = (position: number) => {
-    if (formulaInputRef.current) {
-      formulaInputRef.current.setSelectionRange(position, position);
-      formulaInputRef.current.focus();
-      setFormulaCursorPosition(position);
-    }
+  /**
+   * Devuelve el foco a la barra con el cursor detrás de lo insertado.
+   *
+   * Va tras el repintado porque el input todavía tiene el texto anterior: sin
+   * esperar, el cursor acabaría en un sitio que ya no existe.
+   */
+  const restoreFormulaCursor = (position: number) => {
+    setTimeout(() => {
+      const input = formulaInputRef.current;
+      if (!input) return;
+      input.focus();
+      const at = Math.min(position, input.value.length);
+      input.setSelectionRange(at, at);
+      dispatchBuilder({ type: "cursor", cursor: at });
+    }, 0);
   };
 
   // Function library state
@@ -2143,7 +2215,7 @@ const SpreadSheet = ({
         setSelectedCell("A1");
         selectionAnchorRef.current = "A1";
         setSelectedCells(new Set(["A1"]));
-        setFormulaInput("");
+        startFormula("");
       }
 
       // Recalculate all formulas for all sheets after a short delay
@@ -2252,9 +2324,11 @@ const SpreadSheet = ({
       // Solo las celdas que hay que recalcular, más las originalmente
       // modificadas: el motor las ordena y agrupa por nivel de dependencia.
       const toEvaluate = new Set<string>([...order, ...dirtyCells]);
-      const cells: Record<string, { formula?: string }> = {};
+      // `computed` viaja junto a la fórmula: las celdas que no entran en este
+      // recálculo conservan su valor, y sus dependientes pueden leerlo.
+      const cells: EvaluableCells = {};
       for (const [ref, cell] of Object.entries(cellGrid)) {
-        if (cell) cells[ref] = { formula: cell.formula };
+        if (cell) cells[ref] = { formula: cell.formula, computed: cell.computed };
       }
 
       const { values, circular } = await recalculateCells(cells, dirtyCells, {
@@ -2463,26 +2537,31 @@ const SpreadSheet = ({
     ],
   );
 
+  /**
+   * Refleja en la celda lo que el reducer acaba de insertar.
+   *
+   * El texto lo calcula la misma función pura que usa el reducer, así que la
+   * celda y la barra no pueden acabar diciendo cosas distintas.
+   */
+  const mirrorInsertion = (textToInsert: string) => {
+    const { formula, cursor } = insertIntoFormula(
+      formulaInput,
+      formulaCursorPosition,
+      textToInsert,
+    );
+
+    formulaInputValueRef.current = formula;
+    if (editingCell === selectedCell) {
+      setInlineCellValue(formula);
+    }
+    updateCell(selectedCell, formula);
+    restoreFormulaCursor(cursor);
+  };
+
   // Insert text at cursor position
   const insertAtCursor = (textToInsert: string) => {
-    const currentPosition = formulaCursorPosition;
-    const newFormula =
-      formulaInput.slice(0, currentPosition) +
-      textToInsert +
-      formulaInput.slice(currentPosition);
-
-    setFormulaInput(newFormula);
-    // Also update inline cell value if in inline editing mode
-    if (editingCell === selectedCell) {
-      setInlineCellValue(newFormula);
-    }
-    updateCell(selectedCell, newFormula);
-
-    // Set cursor position after the inserted text
-    const newPosition = currentPosition + textToInsert.length;
-    setTimeout(() => {
-      setCursorPosition(newPosition);
-    }, 0);
+    dispatchBuilder({ type: "insert", text: textToInsert });
+    mirrorInsertion(textToInsert);
   };
 
   // Insert function into formula
@@ -2950,7 +3029,7 @@ const SpreadSheet = ({
           case "Backspace":
             e.preventDefault();
             // Clear cell content
-            setFormulaInput("");
+            startFormula("");
             updateCell(selectedCell, "");
             break;
           default:
@@ -2987,12 +3066,7 @@ const SpreadSheet = ({
               // Start inline editing mode
               setEditingCell(selectedCell);
               setInlineCellValue(e.key);
-              setFormulaInput(e.key);
-              formulaInputValueRef.current = e.key;
-              // Enable formula building mode if starting with "="
-              if (e.key === "=") {
-                setIsFormulaBuildingMode(true);
-              }
+              startFormula(e.key);
             }
             break;
         }
@@ -3054,49 +3128,27 @@ const SpreadSheet = ({
       }
     }
 
-    if (isFormulaBuildingMode && isAddingToFormula) {
-      // Adding cell reference to formula - DON'T change selected cell
-      if (rangeSelectionStart && rangeSelectionStart !== cellRef) {
-        // Complete range selection
-        const rangeRef = `${rangeSelectionStart}:${cellRef}`;
-        insertAtCursor(rangeRef);
-        setRangeSelectionStart(null);
-        setIsAddingToFormula(false);
-      } else {
-        // Build cross-tab reference based on selected target instance and sheet
-        let crossTabRef = cellRef;
+    if (consumesCellClick(builder)) {
+      // La referencia la construye el motor: qué hay que calificar y cómo se
+      // forma el rango son sus reglas, no las de este componente.
+      const target = {
+        sheet: targetSheetName ?? activeSheetName,
+        instance: targetInstanceId,
+      };
+      const current = { sheet: activeSheetName, instance: instanceId };
 
-        // Check if we're referencing a different instance or sheet
-        if (targetInstanceId !== instanceId) {
-          // Cross-instance reference: design:Sheet1!A1
-          const targetInstance = allSheets.find(
-            (inst) => inst.instanceId === targetInstanceId,
-          );
-          const targetSheet = targetInstance?.sheets.find(
-            (s) => s.id === targetSheetId,
-          );
-          if (targetSheet) {
-            crossTabRef = `${targetInstanceId}:${targetSheet.name}!${cellRef}`;
-          }
-        } else if (targetSheetId !== activeSheetId) {
-          // Same instance, different sheet: Sheet1!A1
-          const targetSheet = sheets.find((s) => s.id === targetSheetId);
-          if (targetSheet) {
-            crossTabRef = `${targetSheet.name}!${cellRef}`;
-          }
-        }
-        // else: same instance and sheet, just use cellRef (e.g., A1)
+      const reference =
+        rangeSelectionStart && rangeSelectionStart !== cellRef
+          ? buildRangeRef(rangeSelectionStart, cellRef, target, current)
+          : qualifyCellRef(cellRef, target, current);
 
-        insertAtCursor(crossTabRef);
-        setIsAddingToFormula(false);
-      }
-
-      // Keep focus on formula input and don't change selected cell
-      setTimeout(() => {
-        if (formulaInputRef.current) {
-          formulaInputRef.current.focus();
-        }
-      }, 0);
+      dispatchBuilder({
+        type: "pick",
+        sheet: target.sheet,
+        ref: cellRef,
+        instance: target.instance,
+      });
+      mirrorInsertion(reference);
     } else {
       // Normal cell selection - use single select
       selectSingleCell(cellRef);
@@ -3110,13 +3162,9 @@ const SpreadSheet = ({
       const cellFormula = cell?.formula || "";
       setEditingCell(cellRef);
       setInlineCellValue(cellFormula);
-      setFormulaInput(cellFormula);
-      formulaInputValueRef.current = cellFormula;
-      // Enable formula building mode if the cell contains a formula
-      const isFormula = cellFormula.startsWith("=");
-      setIsFormulaBuildingMode(isFormula);
+      startFormula(cellFormula);
     },
-    [cells],
+    [cells, startFormula],
   );
 
   // Handle stopping inline editing
@@ -3131,11 +3179,10 @@ const SpreadSheet = ({
         }
         setEditingCell(null);
         // Sync the formula input with the final value
-        setFormulaInput(value);
-        formulaInputValueRef.current = value;
+        startFormula(value);
       }
     },
-    [editingCell, updateCell, cells],
+    [editingCell, updateCell, cells, startFormula],
   );
 
   // Handle navigation after editing
@@ -3153,37 +3200,26 @@ const SpreadSheet = ({
       formulaInputValueRef.current = value;
 
       // Batch state updates to minimize re-renders
-      const isFormula = value.startsWith("=");
-
       // Use startTransition for non-urgent formula input updates
       startTransition(() => {
-        setFormulaInput(value);
+        // El reducer deduce del texto si sigue siendo una fórmula, y apaga la
+        // selección de celdas cuando deja de serlo.
+        dispatchBuilder({ type: "draft", draft: value });
         updateCursorPosition();
-
-        if (isFormula !== isFormulaBuildingMode) {
-          setIsFormulaBuildingMode(isFormula);
-        }
-
-        if (!isFormula) {
-          setRangeSelectionStart(null);
-          setIsAddingToFormula(false);
-        }
       });
 
       // Don't update cell on every keystroke - only on Enter or blur
     },
-    [isFormulaBuildingMode, updateCursorPosition],
+    [updateCursorPosition],
   );
 
   // Toggle adding to formula mode
   const toggleAddingToFormula = () => {
     updateCursorPosition(); // Make sure we have the latest cursor position
-    const newAddingState = !isAddingToFormula;
-    setIsAddingToFormula(newAddingState);
-    setRangeSelectionStart(null);
+    dispatchBuilder({ type: "togglePicking" });
 
     // Reset to current instance and sheet when enabling
-    if (newAddingState) {
+    if (!isAddingToFormula) {
       setTargetInstanceId(instanceId);
       setTargetSheetId(activeSheetId);
     }
@@ -3209,19 +3245,12 @@ const SpreadSheet = ({
   // Handle range selection
   const handleRangeSelection = () => {
     updateCursorPosition(); // Make sure we have the latest cursor position
-    if (rangeSelectionStart) {
-      setRangeSelectionStart(null);
-    } else {
-      setRangeSelectionStart(selectedCell);
-      setIsAddingToFormula(true);
-    }
+    dispatchBuilder({ type: "toggleRange", activeRef: selectedCell });
   };
 
   // Exit formula building mode
   const exitFormulaBuildingMode = () => {
-    setIsFormulaBuildingMode(false);
-    setRangeSelectionStart(null);
-    setIsAddingToFormula(false);
+    dispatchBuilder({ type: "finish" });
     updateCell(selectedCell, formulaInput);
   };
 
@@ -3280,7 +3309,7 @@ const SpreadSheet = ({
     setSelectedCell("A1");
     selectionAnchorRef.current = "A1";
     setSelectedCells(new Set(["A1"]));
-    setFormulaInput("");
+    startFormula("");
 
     // If template was loaded, recalculate formulas for the new sheet
     if (templates.length === 1) {
@@ -3359,9 +3388,7 @@ const SpreadSheet = ({
       setSelectedCell("A1");
       selectionAnchorRef.current = "A1";
       setSelectedCells(new Set(["A1"]));
-      setFormulaInput("");
-      setIsAddingToFormula(false);
-      setRangeSelectionStart(null);
+      startFormula("");
     }
     // If in formula building mode, keep the formula and selection state
     // so users can navigate to other sheets to select cells
@@ -3400,9 +3427,7 @@ const SpreadSheet = ({
             setSelectedCell(targetCell);
             selectionAnchorRef.current = targetCell;
             setSelectedCells(new Set([targetCell]));
-            setFormulaInput("");
-            setIsAddingToFormula(false);
-            setRangeSelectionStart(null);
+            startFormula("");
 
             // For cross-sheet, use a longer delay so the new sheet grid has time to mount
             const delay = isCrossSheet ? 300 : 100;
@@ -3904,70 +3929,17 @@ const SpreadSheet = ({
     (template: Template) => {
       // Check if template has multiple sheets or single sheet format
       if (template.sheets && template.sheets.length > 0) {
-        // Multi-sheet template: Replace all sheets
-        const newSheets = template.sheets.map((templateSheet, index) => {
-          const sheetId = `${instanceId}-sheet${index + 1}`;
-
-          // Process template cells to populate with element values if elementKey exists
-          const processedCells = { ...templateSheet.cells };
-
-          Object.keys(processedCells).forEach((cellRef) => {
-            const cell = processedCells[cellRef];
-
-            // Check if cell has elementKey property
-            if (cell.elementKey) {
-              // Search for matching key in element.values
-              const elementValue = element.values.find(
-                (val: any) => val.key === cell.elementKey,
-              );
-
-              // If found, override cell value with element value
-              if (elementValue && elementValue.value !== undefined) {
-                // Convert to number if the type is number, otherwise keep as string
-                let computedValue: string | number = String(elementValue.value);
-
-                if (elementValue.type === "number") {
-                  const numValue = Number(elementValue.value);
-                  if (!isNaN(numValue)) {
-                    computedValue = numValue;
-                  }
-                }
-
-                processedCells[cellRef] = {
-                  ...cell,
-                  value: String(elementValue.value),
-                  formula: String(elementValue.value),
-                  computed: computedValue,
-                };
-              }
-            }
-          });
-
-          return {
-            id: sheetId,
-            name: templateSheet.name,
-            cells: processedCells,
-            columnWidths: { ...templateSheet.cellsStyles.columnWidths },
-            rowHeights: { ...templateSheet.cellsStyles.rowHeights },
-            templateHiddenRows: new Set<number>(
-              templateSheet.cellsStyles.hiddenRows || [],
-            ),
-            templateHiddenColumns: new Set<number>(
-              templateSheet.cellsStyles.hiddenColumns || [],
-            ),
-            userHiddenRows: new Set<number>(),
-            userHiddenColumns: new Set<number>(),
-            hiddenCells: new Set<string>(),
-            freezeRow: templateSheet.cellsStyles.freezeRow || 0,
-            freezeColumn: templateSheet.cellsStyles.freezeColumn || 0,
-            mergedCells: templateSheet.cellsStyles.mergedCells || [],
-            namedRanges: templateSheet.cellsStyles.namedRanges || [],
-            semiFinishedZones:
-              templateSheet.cellsStyles.semiFinishedZones || [],
-            itemCatalogTables:
-              templateSheet.cellsStyles.itemCatalogTables || [],
-          };
-        });
+        // La traducción de la plantilla a hojas la hace el contrato
+        // compartido, no este componente. Antes se hacía aquí, y era la
+        // segunda de dos traducciones para el mismo dato: por eso las filas
+        // que un autor ocultaba en la plantilla —guardadas como
+        // `templateHiddenRows`— nunca llegaban, porque aquí se leía
+        // `hiddenRows`.
+        const newSheets = runtimeSheetsFromTemplate(
+          template,
+          instanceId,
+          element.values as ElementValue[],
+        );
 
         // Recalculate all formulas for all sheets using dep graph
         const recalculateAllSheetsFormulas = async () => {
@@ -4054,7 +4026,7 @@ const SpreadSheet = ({
         setSelectedCell("A1");
         selectionAnchorRef.current = "A1";
         setSelectedCells(new Set(["A1"]));
-        setFormulaInput("");
+        startFormula("");
         return;
       }
 
@@ -4224,7 +4196,7 @@ const SpreadSheet = ({
       setShowTemplateLibrary(false);
       setSelectedCell("A1");
       setSelectedCells(new Set(["A1"]));
-      setFormulaInput("");
+      startFormula("");
     },
     [
       activeSheetId,

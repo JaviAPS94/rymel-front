@@ -48,3 +48,43 @@ export default tseslint.config({
   },
 })
 ```
+
+## Motor de fórmulas
+
+El diseñador **no evalúa las fórmulas por su cuenta**. Usa
+`@rymel/formula-engine`, fijado a un tag inmutable:
+
+```json
+"@rymel/formula-engine": "github:JaviAPS94/rymel-formula-engine#v1.5.0"
+```
+
+Antes, `SpreadSheet.tsx` traducía cada fórmula a JavaScript con veintiséis
+pasadas de `replace` y la ejecutaba con `Function()`. Eso era ejecución de
+código arbitrario —una fórmula puede venir de un `.xlsx` que subió
+cualquiera— y hacía que el resultado no se pudiera reproducir fuera de un
+navegador, que es justo lo que el servidor necesita para recalcular un diseño.
+
+La lógica de evaluación vive en `src/components/design/formula-evaluation.ts`
+y **no dentro del componente**: enterrada en las siete mil líneas de
+`SpreadSheet.tsx` no se podía ejercitar sin montar React, así que la única
+forma de comprobar un cambio era abrir el navegador y mirar.
+
+### Verificar tras actualizar el motor
+
+```bash
+node_modules/esbuild/bin/esbuild src/components/design/formula-evaluation.ts \
+  --format=esm --platform=node --outfile=.tmp/formula-evaluation.mjs
+MODULO="$PWD/.tmp/formula-evaluation.mjs" node scripts/verificar-evaluador.mjs <token-jwt>
+```
+
+Evalúa todas las celdas con fórmula de todos los diseños con **el mismo
+código que usa la interfaz** y las contrasta contra los valores guardados.
+También informa cuántas peticiones hizo: las invocaciones de fórmulas de
+diseño se agrupan por nivel de dependencia, así que una hoja con cuarenta
+celdas debe costar una petición, no cuarenta.
+
+### Funciones que la ayuda promete y nadie implementa
+
+`InstructionsModal.tsx` documenta `ELEGIR`, `MIN`, `MAX` y `COUNT`, que
+**nunca estuvieron en el evaluador**: están rotas desde antes de la
+migración. Conviene implementarlas o retirarlas de la ayuda.
