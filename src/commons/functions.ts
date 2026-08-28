@@ -93,4 +93,37 @@ const urlToFile = async (url: string): Promise<File> => {
   return new File([blob], fileName, { type: mimeType });
 };
 
-export { toCamelCase, validateNumberField, validateStringField, urlToFile };
+/**
+ * Las características técnicas de un elemento, siempre como arreglo.
+ *
+ * El servidor las guarda como texto JSON y las devuelve de dos formas según
+ * por dónde se pidan: el catálogo de elementos las convierte a arreglo, y la
+ * respuesta de un diseño entrega la entidad cruda, es decir, la cadena. Quien
+ * recibe un elemento no sabe de cuál de los dos caminos viene, así que
+ * normalizar en el momento de leerlas es lo único que no depende de eso.
+ *
+ * Devuelve un arreglo vacío ante cualquier otra cosa: sin características, la
+ * pantalla que las use se queda corta, pero no se rompe.
+ */
+const parseElementValues = (values: unknown): Record<string, unknown>[] => {
+  if (Array.isArray(values)) return values as Record<string, unknown>[];
+
+  if (typeof values === "string") {
+    try {
+      const parsed: unknown = JSON.parse(values);
+      return Array.isArray(parsed) ? (parsed as Record<string, unknown>[]) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  return [];
+};
+
+export {
+  toCamelCase,
+  validateNumberField,
+  validateStringField,
+  urlToFile,
+  parseElementValues,
+};

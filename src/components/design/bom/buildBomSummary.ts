@@ -1,4 +1,5 @@
 import { Accessory, BomNode, BomResponse, ElementResponse } from "../../../commons/types";
+import { parseElementValues } from "../../../commons/functions";
 import { Cell, ItemCatalogTable, Sheet } from "../spreadsheet-types";
 
 // Helper function to convert column index (0-based) to Excel-style column name
@@ -158,7 +159,9 @@ export const buildBomSummaryCells = (
 
   // Collect accessory rows for a given SF id from element.values["accesories"]
   const collectAccessoryRows = (sfId: number) => {
-    const accEntry = element.values.find(
+    // `values` llega como arreglo desde el catálogo de elementos y como texto
+    // JSON desde la respuesta de un diseño. Aquí no se sabe de cuál vino.
+    const accEntry = parseElementValues(element.values).find(
       (v: Record<string, unknown>) => v["key"] === "accesories",
     );
     if (!accEntry || !accEntry["value"]) return [];

@@ -76,10 +76,28 @@ const BomSummaryTab = ({ element, sheets, subTypeWithFunctions }: BomSummaryTabP
       return;
     }
 
+    // Armar la hoja también puede fallar: depende de la forma de los datos del
+    // elemento, del diseño y del catálogo, y ninguno de los tres se valida
+    // aquí. Sin este `try`, el fallo salía como promesa rechazada en la
+    // consola y en pantalla no ocurría nada: el usuario pulsaba «Generar» y se
+    // quedaba mirando un panel vacío, sin saber si estaba cargando.
     const freshExpanded = new Set<number>();
+    let sheet: Sheet;
+    try {
+      sheet = buildBomSheet(result.data, freshExpanded, sheets, element);
+    } catch (err) {
+      console.error("[BOM] buildBomSheet falló:", err);
+      setErrorMessage(
+        "No se pudo armar la lista de materiales con los datos de este diseño. " +
+          "Revisa que el elemento tenga sus características técnicas cargadas y " +
+          "vuelve a intentarlo.",
+      );
+      return;
+    }
+
     setBomData(result.data);
     setExpandedChildNodes(freshExpanded);
-    setBomSheets([buildBomSheet(result.data, freshExpanded, sheets, element)]);
+    setBomSheets([sheet]);
   };
 
   // Clicking the ▶/▼ cell in column A of a child SF row expands/collapses
@@ -94,8 +112,16 @@ const BomSummaryTab = ({ element, sheets, subTypeWithFunctions }: BomSummaryTabP
     } else {
       next.add(nodeId);
     }
+    let freshCells: { [key: string]: Cell };
+    try {
+      freshCells = buildBomSummaryCells(bomData, next, sheets, element);
+    } catch (err) {
+      console.error("[BOM] buildBomSummaryCells falló al expandir:", err);
+      setErrorMessage("No se pudo expandir este semielaborado.");
+      return true;
+    }
+
     setExpandedChildNodes(next);
-    const freshCells = buildBomSummaryCells(bomData, next, sheets, element);
     setBomSheets((prev) =>
       prev.map((s, i) => (i === 0 ? { ...s, cells: freshCells } : s)),
     );
