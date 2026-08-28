@@ -850,7 +850,7 @@ const ElementsDesignPage = () => {
     return designCodePreview.code;
   }, [designCodePreview, disambiguationToken]);
 
-  const handleSaveDesignWithSubDesigns = () => {
+  const handleSaveDesignWithSubDesigns = async () => {
     const subDesignData: SubDesignData[] = designSheets.map((sheet) => {
       // Convert Sets to arrays for JSON serialization
       const serializableSheet = {
@@ -941,11 +941,9 @@ const ElementsDesignPage = () => {
         ...designData,
         id: designId,
       };
-      console.log(updatedDesignData);
-      //await updateDesign(updatedDesignData);
+      await updateDesign(updatedDesignData);
     } else {
-      console.log(designData);
-      //await saveDesignWithSubDesigns(designData);
+      await saveDesignWithSubDesigns(designData);
     }
   };
 
