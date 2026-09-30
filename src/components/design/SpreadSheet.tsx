@@ -9,36 +9,29 @@ import {
   useReducer,
   startTransition,
 } from "react";
+import { isReadOnly } from "@rymel/design-template";
 import {
   CellGrid,
   DesignSubtype,
   ElementResponse,
   Template,
 } from "../../commons/types";
-import {
-  useEvaluateFunctionMutation,
-  useGetSemiFinishedQuery,
-} from "../../store";
+import { useEvaluateFunctionMutation } from "../../store";
 
 // Import new components
 import FormulaBar from "./FormulaBar";
 import SpreadSheetGrid from "./SpreadSheetGrid";
 import SheetTabs from "./SheetTabs";
-import ItemPickerModal, { CatalogEntry } from "./ItemPickerModal";
 import CrossTabSelector from "./CrossTabSelector";
 import FunctionLibraryModal from "./FunctionLibraryModal";
 import TemplateLibraryModal from "./TemplateLibraryModal";
 import {
   Cell,
-  CellItemLink,
   CustomFunction,
   ItemCatalogTable,
-  NamedRange,
-  SemiFinishedZone,
   Sheet,
   getSemiFinishedColor,
 } from "./spreadsheet-types";
-import Select, { Option } from "../core/Select";
 import {
   buildGraph as buildFormulaGraph,
   buildRangeRef,
@@ -833,118 +826,6 @@ const SpreadSheet = ({
     useState<boolean>(false);
   const [evaluateFunction] = useEvaluateFunctionMutation();
 
-  // Note editing state
-  const [noteModal, setNoteModal] = useState<{
-    visible: boolean;
-    cellRef: string;
-    value: string;
-  }>({ visible: false, cellRef: "", value: "" });
-
-  // GoTo / Named Range modal states
-  const [goToConfigModal, setGoToConfigModal] = useState<{
-    visible: boolean;
-    cellRef: string;
-    conditionCells: string; // comma-separated cell refs
-  }>({ visible: false, cellRef: "", conditionCells: "" });
-
-  const [namedRangeModal, setNamedRangeModal] = useState<{
-    visible: boolean;
-    editId: string | null; // null = create new, string = edit existing
-    name: string;
-    tags: string; // comma-separated tags
-    startCell: string;
-    endCell: string;
-  }>({
-    visible: false,
-    editId: null,
-    name: "",
-    tags: "",
-    startCell: "",
-    endCell: "",
-  });
-
-  // Semi-finished zone modal state
-  const [semiFinishedZoneModal, setSemiFinishedZoneModal] = useState<{
-    visible: boolean;
-    editId: string | null;
-    semiFinishedId: number | null;
-    startCell: string;
-    endCell: string;
-  }>({
-    visible: false,
-    editId: null,
-    semiFinishedId: null,
-    startCell: "",
-    endCell: "",
-  });
-
-  // Item catalog table modal state
-  const [catalogTableModal, setCatalogTableModal] = useState<{
-    visible: boolean;
-    editId: string | null;
-    name: string;
-    tagsInput: string; // comma-separated, parsed on save
-    startCell: string;
-    endCell: string;
-    headerRows: number;
-    idColumnOffset: number;
-    descriptionColumnOffset: number;
-    umColumnOffset: number;
-  }>({
-    visible: false,
-    editId: null,
-    name: "",
-    tagsInput: "",
-    startCell: "",
-    endCell: "",
-    headerRows: 1,
-    idColumnOffset: 0,
-    descriptionColumnOffset: 1,
-    umColumnOffset: 2,
-  });
-
-  // "Configurar vínculo al catálogo" modal — lets the user pick which cells
-  // act as conditions; their values are matched against catalog tags to
-  // auto-route the ItemPickerModal to the right catalog.
-  const [catalogConditionModal, setCatalogConditionModal] = useState<{
-    visible: boolean;
-    cellRef: string | null;
-    conditionCellsInput: string; // comma-separated
-  }>({
-    visible: false,
-    cellRef: null,
-    conditionCellsInput: "",
-  });
-
-  // ItemPickerModal state. When open, shows the catalogs filtered by the source
-  // cell's catalogConditionCells (matched against catalog tags). `showAll`
-  // bypasses the filter — useful as a fallback when nothing matches.
-  const [itemPickerModal, setItemPickerModal] = useState<{
-    isOpen: boolean;
-    sourceCellRef: string | null;
-    sourceSheetId: string | null;
-    showAll: boolean;
-  }>({
-    isOpen: false,
-    sourceCellRef: null,
-    sourceSheetId: null,
-    showAll: false,
-  });
-
-  // Load semi-finished products for zone assignment
-  const { data: semiFinishedList, isLoading: isLoadingSemiFinished } =
-    useGetSemiFinishedQuery(null);
-
-  // Options shape expected by the project's custom Select
-  const semiFinishedOptions = useMemo<Option<number>[]>(
-    () =>
-      (semiFinishedList || []).map((sf) => ({
-        label: `${sf.name} (${sf.code})`,
-        value: sf.id,
-      })),
-    [semiFinishedList],
-  );
-
   // Template state
 
   // Track if initial template has been loaded
@@ -983,6 +864,51 @@ const SpreadSheet = ({
   // Get current sheet
   const currentSheet = sheets.find((sheet) => sheet.id === activeSheetId);
   const cells = useMemo(() => currentSheet?.cells || {}, [currentSheet?.cells]);
+
+  /**
+   * Celdas que la plantilla protege.
+   *
+   * La regla es la del contrato —la misma con la que el editor las señala y
+   * el servidor las comprueba—; aquí solo se cumple. Protege lo que el
+   * diseñador escribe: el recálculo y el relleno con los datos del elemento
+   * al cargar la plantilla no pasan por aquí.
+   */
+  const isProtected = useCallback(
+    (ref: string) => (currentSheet ? isReadOnly(currentSheet, ref) : false),
+    [currentSheet],
+  );
+  const [readOnlyNotice, setReadOnlyNotice] = useState<string | null>(null);
+  useEffect(() => {
+    if (!readOnlyNotice) return;
+    const timer = setTimeout(() => setReadOnlyNotice(null), 4000);
+    return () => clearTimeout(timer);
+  }, [readOnlyNotice]);
+  const warnProtected = useCallback(
+    (ref: string) =>
+      setReadOnlyNotice(
+        `${ref} está protegida por la plantilla y no se puede modificar.`,
+      ),
+    [],
+  );
+  /**
+   * Quita de una escritura por lotes —pegar— las celdas protegidas, y avisa
+   * de cuántas se omitieron. Las demás se escriben.
+   */
+  const keepWritable = useCallback(
+    (writes: { cellRef: string }[]) => {
+      const before = writes.length;
+      for (let index = writes.length - 1; index >= 0; index--) {
+        if (isProtected(writes[index].cellRef)) writes.splice(index, 1);
+      }
+      const skipped = before - writes.length;
+      if (skipped > 0) {
+        setReadOnlyNotice(
+          `Se omitieron ${skipped} celda(s) protegidas por la plantilla.`,
+        );
+      }
+    },
+    [isProtected],
+  );
   const columnWidths = currentSheet?.columnWidths || {};
 
   // Compute set of cells that are the start of a named range (for visual indicator)
@@ -1680,158 +1606,6 @@ const SpreadSheet = ({
     [activeSheetId],
   );
 
-  // Etiqueta una celda como "MO" o "MD" (material de devanado) para el código de diseño.
-  // La etiqueta es exclusiva dentro de todo el diseño (todas las hojas): al asignarla a una
-  // celda nueva, se quita automáticamente de cualquier otra celda que ya la tuviera.
-  const tagCellAsMaterial = useCallback(
-    (cellRef: string, tag: "MO" | "MD") => {
-      setSheets((prevSheets) =>
-        prevSheets.map((sheet) => {
-          const isTargetSheet = sheet.id === activeSheetId;
-          let changed = false;
-          const newCells = { ...sheet.cells };
-
-          for (const [ref, cell] of Object.entries(newCells)) {
-            if (cell.materialTag === tag && !(isTargetSheet && ref === cellRef)) {
-              newCells[ref] = { ...cell, materialTag: undefined };
-              changed = true;
-            }
-          }
-
-          if (isTargetSheet) {
-            const existing =
-              newCells[cellRef] ?? { value: "", formula: "", computed: "" };
-            newCells[cellRef] = { ...existing, materialTag: tag };
-            changed = true;
-          }
-
-          return changed ? { ...sheet, cells: newCells } : sheet;
-        }),
-      );
-      setContextMenu({ visible: false, x: 0, y: 0, type: null, index: -1 });
-    },
-    [activeSheetId],
-  );
-
-  const clearCellMaterialTag = useCallback(
-    (cellRef: string) => {
-      setSheets((prevSheets) =>
-        prevSheets.map((sheet) => {
-          if (sheet.id !== activeSheetId) return sheet;
-          const newCells = { ...sheet.cells };
-          if (newCells[cellRef]) {
-            newCells[cellRef] = { ...newCells[cellRef] };
-            delete newCells[cellRef].materialTag;
-          }
-          return { ...sheet, cells: newCells };
-        }),
-      );
-      setContextMenu({ visible: false, x: 0, y: 0, type: null, index: -1 });
-    },
-    [activeSheetId],
-  );
-
-  const freezePanes = useCallback(
-    (row: number, column: number) => {
-      setSheets((prevSheets) =>
-        prevSheets.map((sheet) => {
-          if (sheet.id === activeSheetId) {
-            return {
-              ...sheet,
-              freezeRow: row,
-              freezeColumn: column,
-            };
-          }
-          return sheet;
-        }),
-      );
-      setContextMenu({ visible: false, x: 0, y: 0, type: null, index: -1 });
-    },
-    [activeSheetId],
-  );
-
-  const unfreezePanes = useCallback(() => {
-    setSheets((prevSheets) =>
-      prevSheets.map((sheet) => {
-        if (sheet.id === activeSheetId) {
-          return {
-            ...sheet,
-            freezeRow: 0,
-            freezeColumn: 0,
-          };
-        }
-        return sheet;
-      }),
-    );
-    setContextMenu({ visible: false, x: 0, y: 0, type: null, index: -1 });
-  }, [activeSheetId]);
-
-  const freezeRowsOnly = useCallback(
-    (upToRow: number) => {
-      setSheets((prevSheets) =>
-        prevSheets.map((sheet) => {
-          if (sheet.id === activeSheetId) {
-            return {
-              ...sheet,
-              freezeRow: upToRow,
-            };
-          }
-          return sheet;
-        }),
-      );
-      setContextMenu({ visible: false, x: 0, y: 0, type: null, index: -1 });
-    },
-    [activeSheetId],
-  );
-
-  const unfreezeRows = useCallback(() => {
-    setSheets((prevSheets) =>
-      prevSheets.map((sheet) => {
-        if (sheet.id === activeSheetId) {
-          return {
-            ...sheet,
-            freezeRow: 0,
-          };
-        }
-        return sheet;
-      }),
-    );
-    setContextMenu({ visible: false, x: 0, y: 0, type: null, index: -1 });
-  }, [activeSheetId]);
-
-  const freezeColumnsOnly = useCallback(
-    (upToCol: number) => {
-      setSheets((prevSheets) =>
-        prevSheets.map((sheet) => {
-          if (sheet.id === activeSheetId) {
-            return {
-              ...sheet,
-              freezeColumn: upToCol,
-            };
-          }
-          return sheet;
-        }),
-      );
-      setContextMenu({ visible: false, x: 0, y: 0, type: null, index: -1 });
-    },
-    [activeSheetId],
-  );
-
-  const unfreezeColumns = useCallback(() => {
-    setSheets((prevSheets) =>
-      prevSheets.map((sheet) => {
-        if (sheet.id === activeSheetId) {
-          return {
-            ...sheet,
-            freezeColumn: 0,
-          };
-        }
-        return sheet;
-      }),
-    );
-    setContextMenu({ visible: false, x: 0, y: 0, type: null, index: -1 });
-  }, [activeSheetId]);
-
   const unhideAllColumns = useCallback(() => {
     setSheets((prevSheets) =>
       prevSheets.map((sheet) => {
@@ -1845,118 +1619,6 @@ const SpreadSheet = ({
       }),
     );
   }, [activeSheetId]);
-
-  // Merge cells function
-  const mergeCells = useCallback(() => {
-    if (selectedCells.size < 2) return; // Need at least 2 cells to merge
-
-    // Get cell coordinates for all selected cells
-    const cellCoords = Array.from(selectedCells)
-      .map((cellRef) => {
-        const pos = parseCellRef(cellRef);
-        return pos ? { cellRef, ...pos } : null;
-      })
-      .filter(
-        (coord): coord is { cellRef: string; row: number; col: number } =>
-          coord !== null,
-      );
-
-    if (cellCoords.length < 2) return;
-
-    // Find the bounding box
-    const minRow = Math.min(...cellCoords.map((c) => c.row));
-    const maxRow = Math.max(...cellCoords.map((c) => c.row));
-    const minCol = Math.min(...cellCoords.map((c) => c.col));
-    const maxCol = Math.max(...cellCoords.map((c) => c.col));
-
-    const startCell = getCellRef(minRow, minCol);
-    const endCell = getCellRef(maxRow, maxCol);
-    const rowSpan = maxRow - minRow + 1;
-    const colSpan = maxCol - minCol + 1;
-
-    setSheets((prevSheets) =>
-      prevSheets.map((sheet) => {
-        if (sheet.id === activeSheetId) {
-          // Check if any cell in the range is already part of a merge
-          const existingMerge = sheet.mergedCells.find((merge) => {
-            const mergeStart = parseCellRef(merge.startCell);
-            const mergeEnd = parseCellRef(merge.endCell);
-            if (!mergeStart || !mergeEnd) return false;
-
-            // Check for overlap
-            for (let r = minRow; r <= maxRow; r++) {
-              for (let c = minCol; c <= maxCol; c++) {
-                if (
-                  r >= mergeStart.row &&
-                  r <= mergeEnd.row &&
-                  c >= mergeStart.col &&
-                  c <= mergeEnd.col
-                ) {
-                  return true;
-                }
-              }
-            }
-            return false;
-          });
-
-          if (existingMerge) {
-            // Don't merge if there's overlap
-            return sheet;
-          }
-
-          return {
-            ...sheet,
-            mergedCells: [
-              ...sheet.mergedCells,
-              { startCell, endCell, rowSpan, colSpan },
-            ],
-          };
-        }
-        return sheet;
-      }),
-    );
-    setContextMenu({ visible: false, x: 0, y: 0, type: null, index: -1 });
-  }, [activeSheetId, selectedCells]);
-
-  // Unmerge cells function
-  const unmergeCells = useCallback(() => {
-    if (selectedCells.size === 0) return;
-
-    const selectedCellRef = Array.from(selectedCells)[0];
-    const pos = parseCellRef(selectedCellRef);
-    if (!pos) return;
-
-    setSheets((prevSheets) =>
-      prevSheets.map((sheet) => {
-        if (sheet.id === activeSheetId) {
-          // Find the merge that contains the selected cell
-          const mergeToRemove = sheet.mergedCells.find((merge) => {
-            const mergeStart = parseCellRef(merge.startCell);
-            const mergeEnd = parseCellRef(merge.endCell);
-            if (!mergeStart || !mergeEnd) return false;
-
-            return (
-              pos.row >= mergeStart.row &&
-              pos.row <= mergeEnd.row &&
-              pos.col >= mergeStart.col &&
-              pos.col <= mergeEnd.col
-            );
-          });
-
-          if (!mergeToRemove) return sheet;
-
-          return {
-            ...sheet,
-            mergedCells: sheet.mergedCells.filter(
-              (merge) => merge !== mergeToRemove,
-            ),
-          };
-        }
-        return sheet;
-      }),
-    );
-    setContextMenu({ visible: false, x: 0, y: 0, type: null, index: -1 });
-  }, [activeSheetId, selectedCells]);
 
   // Context menu handlers
   const handleRowHeaderContextMenu = useCallback(
@@ -2373,6 +2035,13 @@ const SpreadSheet = ({
       value: string,
       options?: { skipHistory?: boolean; immediate?: boolean },
     ) => {
+      if (isProtected(cellRef)) {
+        warnProtected(cellRef);
+        // La barra vuelve a mostrar lo que la celda tiene de verdad.
+        if (cellRef === selectedCell) startFormula(cells[cellRef]?.formula || "");
+        return;
+      }
+
       // For typing, use debounced history; for other actions, save immediately
       if (!options?.skipHistory) {
         if (options?.immediate) {
@@ -2461,12 +2130,22 @@ const SpreadSheet = ({
       updateCellInGraph,
       saveToHistoryDebounced,
       saveToHistoryImmediate,
+      isProtected,
+      warnProtected,
+      selectedCell,
+      cells,
+      startFormula,
     ],
   );
 
   // Handler for updating dropdown cell values
   const handleDropdownCellChange = useCallback(
     async (cellRef: string, value: string) => {
+      if (isProtected(cellRef)) {
+        warnProtected(cellRef);
+        return;
+      }
+
       // Save current state to history before making changes (immediate for dropdown)
       saveToHistoryImmediate();
 
@@ -2534,6 +2213,8 @@ const SpreadSheet = ({
       recalcDirtyCells,
       updateCellInGraph,
       saveToHistoryImmediate,
+      isProtected,
+      warnProtected,
     ],
   );
 
@@ -2700,6 +2381,8 @@ const SpreadSheet = ({
           }
         });
       });
+
+      keepWritable(newCellsData);
 
       // Apply external paste data
       setSheets((prevSheets) => {
@@ -2881,6 +2564,8 @@ const SpreadSheet = ({
       });
     });
 
+    keepWritable(newCellsData);
+
     // Apply all changes at once
     setSheets((prevSheets) => {
       return prevSheets.map((sheet) => {
@@ -2972,6 +2657,7 @@ const SpreadSheet = ({
     updateCellInGraph,
     buildGraph,
     saveToHistoryImmediate,
+    keepWritable,
   ]);
 
   // Handle global keyboard events
@@ -3028,6 +2714,10 @@ const SpreadSheet = ({
           case "Delete":
           case "Backspace":
             e.preventDefault();
+            if (isProtected(selectedCell)) {
+              warnProtected(selectedCell);
+              break;
+            }
             // Clear cell content
             startFormula("");
             updateCell(selectedCell, "");
@@ -3063,6 +2753,10 @@ const SpreadSheet = ({
             // If user types a regular character, start inline editing
             if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
               e.preventDefault();
+              if (isProtected(selectedCell)) {
+                warnProtected(selectedCell);
+                break;
+              }
               // Start inline editing mode
               setEditingCell(selectedCell);
               setInlineCellValue(e.key);
@@ -3089,6 +2783,8 @@ const SpreadSheet = ({
     handleUndo,
     handleRedo,
     updateCell,
+    isProtected,
+    warnProtected,
   ]);
 
   // Handle cell click
@@ -3158,13 +2854,17 @@ const SpreadSheet = ({
   // Handle starting inline editing
   const handleStartInlineEditing = useCallback(
     (cellRef: string) => {
+      if (isProtected(cellRef)) {
+        warnProtected(cellRef);
+        return;
+      }
       const cell = cells[cellRef];
       const cellFormula = cell?.formula || "";
       setEditingCell(cellRef);
       setInlineCellValue(cellFormula);
       startFormula(cellFormula);
     },
-    [cells, startFormula],
+    [cells, startFormula, isProtected, warnProtected],
   );
 
   // Handle stopping inline editing
@@ -3475,240 +3175,6 @@ const SpreadSheet = ({
     [cells, sheets, activeSheetId],
   );
 
-  // Save GoTo config to a cell
-  const saveGoToConfig = useCallback(
-    (cellRef: string, conditionCells: string[]) => {
-      setSheets((prevSheets) =>
-        prevSheets.map((sheet) => {
-          if (sheet.id !== activeSheetId) return sheet;
-          const updatedCells = { ...sheet.cells };
-          updatedCells[cellRef] = {
-            ...updatedCells[cellRef],
-            goTo: conditionCells.length > 0 ? { conditionCells } : undefined,
-          };
-          return { ...sheet, cells: updatedCells };
-        }),
-      );
-    },
-    [activeSheetId, setSheets],
-  );
-
-  // Add/update a named range on the active sheet
-  const saveNamedRange = useCallback(
-    (range: NamedRange) => {
-      setSheets((prevSheets) =>
-        prevSheets.map((sheet) => {
-          if (sheet.id !== activeSheetId) return sheet;
-          const existing = sheet.namedRanges || [];
-          const idx = existing.findIndex((r) => r.id === range.id);
-          const updated =
-            idx >= 0
-              ? existing.map((r) => (r.id === range.id ? range : r))
-              : [...existing, range];
-          return { ...sheet, namedRanges: updated };
-        }),
-      );
-    },
-    [activeSheetId, setSheets],
-  );
-
-  // Delete a named range from the active sheet
-  const deleteNamedRange = useCallback(
-    (rangeId: string) => {
-      setSheets((prevSheets) =>
-        prevSheets.map((sheet) => {
-          if (sheet.id !== activeSheetId) return sheet;
-          return {
-            ...sheet,
-            namedRanges: (sheet.namedRanges || []).filter(
-              (r) => r.id !== rangeId,
-            ),
-          };
-        }),
-      );
-    },
-    [activeSheetId, setSheets],
-  );
-
-  // Save / update a semi-finished zone on the active sheet.
-  // Overlapping cells are reassigned to the new zone (one zone per cell).
-  const saveSemiFinishedZone = useCallback(
-    (zone: SemiFinishedZone) => {
-      setSheets((prevSheets) =>
-        prevSheets.map((sheet) => {
-          if (sheet.id !== activeSheetId) return sheet;
-          const existing = sheet.semiFinishedZones || [];
-          const newStart = parseCellRef(zone.startCell);
-          const newEnd = parseCellRef(zone.endCell);
-          if (!newStart || !newEnd) return sheet;
-          const newMinRow = Math.min(newStart.row, newEnd.row);
-          const newMaxRow = Math.max(newStart.row, newEnd.row);
-          const newMinCol = Math.min(newStart.col, newEnd.col);
-          const newMaxCol = Math.max(newStart.col, newEnd.col);
-
-          const rectsOverlap = (other: SemiFinishedZone) => {
-            if (other.id === zone.id) return false;
-            const os = parseCellRef(other.startCell);
-            const oe = parseCellRef(other.endCell);
-            if (!os || !oe) return false;
-            const oMinRow = Math.min(os.row, oe.row);
-            const oMaxRow = Math.max(os.row, oe.row);
-            const oMinCol = Math.min(os.col, oe.col);
-            const oMaxCol = Math.max(os.col, oe.col);
-            return !(
-              newMaxRow < oMinRow ||
-              newMinRow > oMaxRow ||
-              newMaxCol < oMinCol ||
-              newMinCol > oMaxCol
-            );
-          };
-
-          const withoutOverlaps = existing.filter((z) => !rectsOverlap(z));
-          const idx = withoutOverlaps.findIndex((z) => z.id === zone.id);
-          const updated =
-            idx >= 0
-              ? withoutOverlaps.map((z) => (z.id === zone.id ? zone : z))
-              : [...withoutOverlaps, zone];
-          return { ...sheet, semiFinishedZones: updated };
-        }),
-      );
-    },
-    [activeSheetId, setSheets],
-  );
-
-  const deleteSemiFinishedZone = useCallback(
-    (zoneId: string) => {
-      setSheets((prevSheets) =>
-        prevSheets.map((sheet) => {
-          if (sheet.id !== activeSheetId) return sheet;
-          return {
-            ...sheet,
-            semiFinishedZones: (sheet.semiFinishedZones || []).filter(
-              (z) => z.id !== zoneId,
-            ),
-          };
-        }),
-      );
-    },
-    [activeSheetId, setSheets],
-  );
-
-  // Save / update an item catalog table on the active sheet. Overlapping tables
-  // on the same sheet are not allowed; the new one replaces any overlap so the
-  // catalogCellMap stays unambiguous (one cell -> one catalog).
-  const saveItemCatalogTable = useCallback(
-    (table: ItemCatalogTable) => {
-      setSheets((prevSheets) =>
-        prevSheets.map((sheet) => {
-          if (sheet.id !== activeSheetId) return sheet;
-          const existing = sheet.itemCatalogTables || [];
-          const newStart = parseCellRef(table.startCell);
-          const newEnd = parseCellRef(table.endCell);
-          if (!newStart || !newEnd) return sheet;
-          const newMinRow = Math.min(newStart.row, newEnd.row);
-          const newMaxRow = Math.max(newStart.row, newEnd.row);
-          const newMinCol = Math.min(newStart.col, newEnd.col);
-          const newMaxCol = Math.max(newStart.col, newEnd.col);
-
-          const rectsOverlap = (other: ItemCatalogTable) => {
-            if (other.id === table.id) return false;
-            const os = parseCellRef(other.startCell);
-            const oe = parseCellRef(other.endCell);
-            if (!os || !oe) return false;
-            const oMinRow = Math.min(os.row, oe.row);
-            const oMaxRow = Math.max(os.row, oe.row);
-            const oMinCol = Math.min(os.col, oe.col);
-            const oMaxCol = Math.max(os.col, oe.col);
-            return !(
-              newMaxRow < oMinRow ||
-              newMinRow > oMaxRow ||
-              newMaxCol < oMinCol ||
-              newMinCol > oMaxCol
-            );
-          };
-
-          const withoutOverlaps = existing.filter((t) => !rectsOverlap(t));
-          const idx = withoutOverlaps.findIndex((t) => t.id === table.id);
-          const updated =
-            idx >= 0
-              ? withoutOverlaps.map((t) => (t.id === table.id ? table : t))
-              : [...withoutOverlaps, table];
-          return { ...sheet, itemCatalogTables: updated };
-        }),
-      );
-    },
-    [activeSheetId, setSheets],
-  );
-
-  const deleteItemCatalogTable = useCallback(
-    (tableId: string) => {
-      setSheets((prevSheets) =>
-        prevSheets.map((sheet) => {
-          if (sheet.id !== activeSheetId) return sheet;
-          return {
-            ...sheet,
-            itemCatalogTables: (sheet.itemCatalogTables || []).filter(
-              (t) => t.id !== tableId,
-            ),
-          };
-        }),
-      );
-    },
-    [activeSheetId, setSheets],
-  );
-
-  // Write or clear the itemLink on a specific cell of a specific sheet.
-  // Passing null clears the link.
-  const setCellItemLink = useCallback(
-    (sheetId: string, cellRef: string, link: CellItemLink | null) => {
-      setSheets((prev) =>
-        prev.map((s) => {
-          if (s.id !== sheetId) return s;
-          const cells = { ...s.cells };
-          const existing: Cell = cells[cellRef] || {
-            value: "",
-            formula: "",
-            computed: "",
-          };
-          if (link === null) {
-            const { itemLink: _omit, ...rest } = existing;
-            cells[cellRef] = rest as Cell;
-          } else {
-            cells[cellRef] = { ...existing, itemLink: link };
-          }
-          return { ...s, cells };
-        }),
-      );
-    },
-    [setSheets],
-  );
-
-  // Set or clear `catalogConditionCells` on a cell. The list of cellRefs is
-  // matched (by computed value) against catalog tags to auto-route the picker.
-  const setCellCatalogConditionCells = useCallback(
-    (sheetId: string, cellRef: string, conditionCells: string[] | null) => {
-      setSheets((prev) =>
-        prev.map((s) => {
-          if (s.id !== sheetId) return s;
-          const cells = { ...s.cells };
-          const existing: Cell = cells[cellRef] || {
-            value: "",
-            formula: "",
-            computed: "",
-          };
-          if (!conditionCells || conditionCells.length === 0) {
-            const { catalogConditionCells: _omit, ...rest } = existing;
-            cells[cellRef] = rest as Cell;
-          } else {
-            cells[cellRef] = { ...existing, catalogConditionCells: conditionCells };
-          }
-          return { ...s, cells };
-        }),
-      );
-    },
-    [setSheets],
-  );
-
   // Read the user-visible value of a cell, preferring the computed result.
   // Used by the picker to extract the item ID from the catalog ID column.
   const readCellDisplayValue = useCallback((c: Cell | undefined): string => {
@@ -3719,29 +3185,6 @@ const SpreadSheet = ({
         : null;
     if (computed !== null) return String(computed).trim();
     return (c.value || "").trim();
-  }, []);
-
-  // Open the picker modal for a specific cell. Filtering by tags happens in
-  // the memo below; here we just record which cell triggered the picker.
-  const openItemPickerForCell = useCallback(
-    (sourceCellRef: string) => {
-      setItemPickerModal({
-        isOpen: true,
-        sourceCellRef,
-        sourceSheetId: activeSheetId,
-        showAll: false,
-      });
-    },
-    [activeSheetId],
-  );
-
-  const closeItemPickerModal = useCallback(() => {
-    setItemPickerModal({
-      isOpen: false,
-      sourceCellRef: null,
-      sourceSheetId: null,
-      showAll: false,
-    });
   }, []);
 
   // Workbook-wide resolver: catalogTableId -> { sheetId, table, itemsById }.
@@ -3838,78 +3281,6 @@ const SpreadSheet = ({
     }
     return map;
   }, [currentSheet, catalogResolver]);
-
-  // Build the catalogs list to show in ItemPickerModal. Filtering rule:
-  // 1. Read the source cell's catalogConditionCells; resolve each ref to its
-  //    computed display value (lowercased, trimmed).
-  // 2. Keep catalogs whose `tags` array contains ALL condition values (AND).
-  // 3. If `showAll` is true, or no condition values were configured, or no
-  //    catalog matched, fall back to every catalog in the workbook.
-  const itemPickerCatalogs = useMemo(() => {
-    const allEntries: CatalogEntry[] = [];
-    catalogResolver.forEach((entry) => {
-      const rows: Array<{
-        itemId: string;
-        description: string;
-        um: string;
-      }> = [];
-      entry.itemsById.forEach((row, itemId) => {
-        rows.push({ itemId, description: row.description, um: row.um });
-      });
-      allEntries.push({
-        table: entry.table,
-        sheetId: entry.sheetId,
-        sheetName: entry.sheetName,
-        rows,
-      });
-    });
-
-    if (!itemPickerModal.isOpen) {
-      return { entries: allEntries, filteredByConditions: false };
-    }
-
-    if (itemPickerModal.showAll) {
-      return { entries: allEntries, filteredByConditions: false };
-    }
-
-    const sourceSheet = sheets.find(
-      (s) => s.id === itemPickerModal.sourceSheetId,
-    );
-    const conditionCells =
-      sourceSheet?.cells[itemPickerModal.sourceCellRef ?? ""]
-        ?.catalogConditionCells;
-    if (!conditionCells || conditionCells.length === 0) {
-      return { entries: allEntries, filteredByConditions: false };
-    }
-
-    const requiredTags = conditionCells
-      .map((ref) => readCellDisplayValue(sourceSheet?.cells[ref]).toLowerCase())
-      .filter((v) => v.length > 0);
-    if (requiredTags.length === 0) {
-      return { entries: allEntries, filteredByConditions: false };
-    }
-
-    const filtered = allEntries.filter((e) => {
-      const tags = (e.table.tags || []).map((t) => t.toLowerCase());
-      return requiredTags.every((rt) => tags.includes(rt));
-    });
-
-    if (filtered.length === 0) {
-      // No catalog matched the conditions — be permissive and show all,
-      // marked as "no match" so the modal can surface a hint.
-      return { entries: allEntries, filteredByConditions: false };
-    }
-
-    return { entries: filtered, filteredByConditions: true };
-  }, [
-    catalogResolver,
-    itemPickerModal.isOpen,
-    itemPickerModal.showAll,
-    itemPickerModal.sourceSheetId,
-    itemPickerModal.sourceCellRef,
-    sheets,
-    readCellDisplayValue,
-  ]);
 
   // Delete sheet
   const deleteSheet = (sheetId: string) => {
@@ -4330,7 +3701,16 @@ const SpreadSheet = ({
           position: relative;
         }
       `}</style>
+      {readOnlyNotice && (
+        <div
+          role="status"
+          className="mx-2 my-1 rounded bg-amber-50 px-3 py-1 text-sm text-amber-900"
+        >
+          🔒 {readOnlyNotice}
+        </div>
+      )}
       <SpreadSheetGrid
+        isReadOnlyCell={isProtected}
         cells={cells}
         selectedCell={selectedCell}
         selectedCells={selectedCells}
@@ -4438,21 +3818,6 @@ const SpreadSheet = ({
                     Mostrar todas las filas
                   </button>
                 )}
-                <div className="border-t my-1"></div>
-                <button
-                  className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
-                  onClick={() => freezeRowsOnly(contextMenu.index + 1)}
-                >
-                  🔒 Inmovilizar filas hasta fila {contextMenu.index + 1}
-                </button>
-                {(currentSheet?.freezeRow || 0) > 0 && (
-                  <button
-                    className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
-                    onClick={unfreezeRows}
-                  >
-                    🔓 Movilizar filas
-                  </button>
-                )}
               </>
             )}
             {contextMenu.type === "column" && (
@@ -4471,615 +3836,55 @@ const SpreadSheet = ({
                     Mostrar todas las columnas
                   </button>
                 )}
-                <div className="border-t my-1"></div>
-                <button
-                  className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
-                  onClick={() => freezeColumnsOnly(contextMenu.index + 1)}
-                >
-                  🔒 Inmovilizar columnas hasta columna{" "}
-                  {getColumnLabel(contextMenu.index)}
-                </button>
-                {(currentSheet?.freezeColumn || 0) > 0 && (
-                  <button
-                    className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
-                    onClick={unfreezeColumns}
-                  >
-                    🔓 Movilizar columnas
-                  </button>
-                )}
               </>
             )}
+            {/* El diseñador usa la hoja; configurarla es trabajo del editor de
+                plantillas de project-admin. Aquí quedan solo el estado de su
+                sesión —ocultar una celda— y seguir un «Ir a» ya configurado. */}
             {contextMenu.type === "cell" &&
               contextMenu.cellRef &&
               (() => {
-                const isCellHidden = currentSheet?.hiddenCells?.has(
-                  contextMenu.cellRef,
-                );
-                const pos = parseCellRef(contextMenu.cellRef);
-                const hasFrozenPanes =
-                  (currentSheet?.freezeRow || 0) > 0 ||
-                  (currentSheet?.freezeColumn || 0) > 0;
-
-                // Check if cell is part of a merged region
-                const isMerged = currentSheet?.mergedCells.some((merge) => {
-                  const mergeStart = parseCellRef(merge.startCell);
-                  const mergeEnd = parseCellRef(merge.endCell);
-                  if (!mergeStart || !mergeEnd || !pos) return false;
-                  return (
-                    pos.row >= mergeStart.row &&
-                    pos.row <= mergeEnd.row &&
-                    pos.col >= mergeStart.col &&
-                    pos.col <= mergeEnd.col
-                  );
-                });
-
-                const canMerge = selectedCells.size > 1;
-
+                const ref = contextMenu.cellRef;
+                const isCellHidden = currentSheet?.hiddenCells?.has(ref);
+                const closeMenu = () =>
+                  setContextMenu({
+                    visible: false,
+                    x: 0,
+                    y: 0,
+                    type: null,
+                    index: -1,
+                  });
                 return (
                   <>
-                    {canMerge && (
-                      <>
-                        <button
-                          className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
-                          onClick={mergeCells}
-                        >
-                          🔗 Combinar celdas
-                        </button>
-                        <div className="border-t my-1"></div>
-                      </>
-                    )}
-                    {isMerged && (
-                      <>
-                        <button
-                          className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
-                          onClick={unmergeCells}
-                        >
-                          ✂️ Separar celdas
-                        </button>
-                        <div className="border-t my-1"></div>
-                      </>
-                    )}
                     {isCellHidden ? (
                       <button
                         className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
-                        onClick={() => unhideCell(contextMenu.cellRef!)}
+                        onClick={() => unhideCell(ref)}
                       >
-                        Mostrar celda {contextMenu.cellRef}
+                        Mostrar celda {ref}
                       </button>
                     ) : (
                       <button
                         className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
-                        onClick={() => hideCell(contextMenu.cellRef!)}
+                        onClick={() => hideCell(ref)}
                       >
-                        Ocultar celda {contextMenu.cellRef}
+                        Ocultar celda {ref}
                       </button>
                     )}
-                    {pos && (
+                    {currentSheet?.cells[ref]?.goTo && (
                       <>
                         <div className="border-t my-1"></div>
                         <button
-                          className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
-                          onClick={() => freezePanes(pos.row, pos.col)}
+                          className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm text-blue-600 font-medium"
+                          onClick={() => {
+                            navigateGoTo(ref);
+                            closeMenu();
+                          }}
                         >
-                          🔒 Inmovilizar paneles aquí
+                          🔗 Ir a tabla
                         </button>
-                        {hasFrozenPanes && (
-                          <button
-                            className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
-                            onClick={unfreezePanes}
-                          >
-                            🔓 Movilizar paneles
-                          </button>
-                        )}
                       </>
                     )}
-                    <div className="border-t my-1"></div>
-                    <button
-                      className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
-                      onClick={() => {
-                        const existingNote =
-                          currentSheet?.cells[contextMenu.cellRef!]?.note || "";
-                        setNoteModal({
-                          visible: true,
-                          cellRef: contextMenu.cellRef!,
-                          value: existingNote,
-                        });
-                        setContextMenu({
-                          visible: false,
-                          x: 0,
-                          y: 0,
-                          type: null,
-                          index: -1,
-                        });
-                      }}
-                    >
-                      📝{" "}
-                      {currentSheet?.cells[contextMenu.cellRef!]?.note
-                        ? "Editar nota"
-                        : "Agregar nota"}
-                    </button>
-                    {currentSheet?.cells[contextMenu.cellRef!]?.note && (
-                      <button
-                        className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm text-red-600"
-                        onClick={() => {
-                          const ref = contextMenu.cellRef!;
-                          setSheets((prev) =>
-                            prev.map((sheet) => {
-                              if (sheet.id !== activeSheetId) return sheet;
-                              const newCells = { ...sheet.cells };
-                              if (newCells[ref]) {
-                                newCells[ref] = { ...newCells[ref] };
-                                delete newCells[ref].note;
-                              }
-                              return { ...sheet, cells: newCells };
-                            }),
-                          );
-                          setContextMenu({
-                            visible: false,
-                            x: 0,
-                            y: 0,
-                            type: null,
-                            index: -1,
-                          });
-                        }}
-                      >
-                        🗑️ Eliminar nota
-                      </button>
-                    )}
-                    <div className="border-t my-1"></div>
-                    {/* Etiquetado de celda para el código de diseño (MO / material de devanado) */}
-                    {(() => {
-                      const currentTag =
-                        currentSheet?.cells[contextMenu.cellRef!]?.materialTag;
-                      return (
-                        <>
-                          <button
-                            className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
-                            disabled={currentTag === "MO"}
-                            onClick={() =>
-                              tagCellAsMaterial(contextMenu.cellRef!, "MO")
-                            }
-                          >
-                            🏷️{" "}
-                            {currentTag === "MO"
-                              ? "Celda etiquetada como Material del Núcleo"
-                              : "Etiquetar celda como Material del Núcleo (MO)"}
-                          </button>
-                          <button
-                            className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
-                            disabled={currentTag === "MD"}
-                            onClick={() =>
-                              tagCellAsMaterial(contextMenu.cellRef!, "MD")
-                            }
-                          >
-                            🏷️{" "}
-                            {currentTag === "MD"
-                              ? "Celda etiquetada como Material de Devanado"
-                              : "Etiquetar celda como Material de Devanado (MD)"}
-                          </button>
-                          {currentTag && (
-                            <button
-                              className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm text-red-600"
-                              onClick={() =>
-                                clearCellMaterialTag(contextMenu.cellRef!)
-                              }
-                            >
-                              🗑️ Quitar etiqueta {currentTag}
-                            </button>
-                          )}
-                        </>
-                      );
-                    })()}
-                    <div className="border-t my-1"></div>
-                    {/* GoTo: navigate to linked table */}
-                    {currentSheet?.cells[contextMenu.cellRef!]?.goTo && (
-                      <button
-                        className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm text-blue-600 font-medium"
-                        onClick={() => {
-                          navigateGoTo(contextMenu.cellRef!);
-                          setContextMenu({
-                            visible: false,
-                            x: 0,
-                            y: 0,
-                            type: null,
-                            index: -1,
-                          });
-                        }}
-                      >
-                        🔗 Ir a tabla
-                      </button>
-                    )}
-                    {/* Configure GoTo on this cell */}
-                    <button
-                      className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
-                      onClick={() => {
-                        const existing =
-                          currentSheet?.cells[contextMenu.cellRef!]?.goTo;
-                        setGoToConfigModal({
-                          visible: true,
-                          cellRef: contextMenu.cellRef!,
-                          conditionCells: existing
-                            ? existing.conditionCells.join(", ")
-                            : "",
-                        });
-                        setContextMenu({
-                          visible: false,
-                          x: 0,
-                          y: 0,
-                          type: null,
-                          index: -1,
-                        });
-                      }}
-                    >
-                      🎯{" "}
-                      {currentSheet?.cells[contextMenu.cellRef!]?.goTo
-                        ? "Editar Ir a..."
-                        : "Configurar Ir a..."}
-                    </button>
-                    {currentSheet?.cells[contextMenu.cellRef!]?.goTo && (
-                      <button
-                        className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm text-red-600"
-                        onClick={() => {
-                          saveGoToConfig(contextMenu.cellRef!, []);
-                          setContextMenu({
-                            visible: false,
-                            x: 0,
-                            y: 0,
-                            type: null,
-                            index: -1,
-                          });
-                        }}
-                      >
-                        🗑️ Quitar Ir a
-                      </button>
-                    )}
-                    <div className="border-t my-1"></div>
-                    {/* Named Range: label selection as a table */}
-                    <button
-                      className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
-                      onClick={() => {
-                        // Pre-fill with selection range
-                        const coords: { col: number; row: number }[] = [];
-                        selectedCells.forEach((ref) => {
-                          const pos = parseCellRef(ref);
-                          if (pos) coords.push(pos);
-                        });
-                        let startCell = contextMenu.cellRef!;
-                        let endCell = contextMenu.cellRef!;
-                        if (coords.length > 1) {
-                          const minCol = Math.min(...coords.map((c) => c.col));
-                          const maxCol = Math.max(...coords.map((c) => c.col));
-                          const minRow = Math.min(...coords.map((c) => c.row));
-                          const maxRow = Math.max(...coords.map((c) => c.row));
-                          startCell = `${getColumnLabel(minCol)}${minRow + 1}`;
-                          endCell = `${getColumnLabel(maxCol)}${maxRow + 1}`;
-                        }
-                        setNamedRangeModal({
-                          visible: true,
-                          editId: null,
-                          name: "",
-                          tags: "",
-                          startCell,
-                          endCell,
-                        });
-                        setContextMenu({
-                          visible: false,
-                          x: 0,
-                          y: 0,
-                          type: null,
-                          index: -1,
-                        });
-                      }}
-                    >
-                      📋 Etiquetar rango como tabla
-                    </button>
-                    {(currentSheet?.namedRanges || []).length > 0 && (
-                      <button
-                        className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
-                        onClick={() => {
-                          // Show a simple list - open modal with first range for editing
-                          const ranges = currentSheet?.namedRanges || [];
-                          if (ranges.length > 0) {
-                            const r = ranges[0];
-                            setNamedRangeModal({
-                              visible: true,
-                              editId: r.id,
-                              name: r.name,
-                              tags: r.tags.join(", "),
-                              startCell: r.startCell,
-                              endCell: r.endCell,
-                            });
-                          }
-                          setContextMenu({
-                            visible: false,
-                            x: 0,
-                            y: 0,
-                            type: null,
-                            index: -1,
-                          });
-                        }}
-                      >
-                        📑 Ver tablas etiquetadas (
-                        {(currentSheet?.namedRanges || []).length})
-                      </button>
-                    )}
-                    <div className="border-t my-1"></div>
-                    {/* Semi-finished zone: assign selection to a semi-finished product */}
-                    {(() => {
-                      const existingZone = (
-                        currentSheet?.semiFinishedZones || []
-                      ).find((z) => {
-                        const s = parseCellRef(z.startCell);
-                        const e = parseCellRef(z.endCell);
-                        const cur = parseCellRef(contextMenu.cellRef!);
-                        if (!s || !e || !cur) return false;
-                        const minR = Math.min(s.row, e.row);
-                        const maxR = Math.max(s.row, e.row);
-                        const minC = Math.min(s.col, e.col);
-                        const maxC = Math.max(s.col, e.col);
-                        return (
-                          cur.row >= minR &&
-                          cur.row <= maxR &&
-                          cur.col >= minC &&
-                          cur.col <= maxC
-                        );
-                      });
-                      return (
-                        <>
-                          <button
-                            className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
-                            onClick={() => {
-                              const coords: {
-                                col: number;
-                                row: number;
-                              }[] = [];
-                              selectedCells.forEach((ref) => {
-                                const pos = parseCellRef(ref);
-                                if (pos) coords.push(pos);
-                              });
-                              let startCell = contextMenu.cellRef!;
-                              let endCell = contextMenu.cellRef!;
-                              if (coords.length > 1) {
-                                const minCol = Math.min(
-                                  ...coords.map((c) => c.col),
-                                );
-                                const maxCol = Math.max(
-                                  ...coords.map((c) => c.col),
-                                );
-                                const minRow = Math.min(
-                                  ...coords.map((c) => c.row),
-                                );
-                                const maxRow = Math.max(
-                                  ...coords.map((c) => c.row),
-                                );
-                                startCell = `${getColumnLabel(minCol)}${minRow + 1}`;
-                                endCell = `${getColumnLabel(maxCol)}${maxRow + 1}`;
-                              }
-                              setSemiFinishedZoneModal({
-                                visible: true,
-                                editId: existingZone?.id || null,
-                                semiFinishedId:
-                                  existingZone?.semiFinishedId ?? null,
-                                startCell:
-                                  existingZone?.startCell || startCell,
-                                endCell: existingZone?.endCell || endCell,
-                              });
-                              setContextMenu({
-                                visible: false,
-                                x: 0,
-                                y: 0,
-                                type: null,
-                                index: -1,
-                              });
-                            }}
-                          >
-                            🏷️{" "}
-                            {existingZone
-                              ? `Editar zona (${existingZone.semiFinishedCode})`
-                              : "Asignar zona a semi-terminado"}
-                          </button>
-                          {existingZone && (
-                            <button
-                              className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm text-red-600"
-                              onClick={() => {
-                                deleteSemiFinishedZone(existingZone.id);
-                                setContextMenu({
-                                  visible: false,
-                                  x: 0,
-                                  y: 0,
-                                  type: null,
-                                  index: -1,
-                                });
-                              }}
-                            >
-                              🗑️ Quitar zona
-                            </button>
-                          )}
-                        </>
-                      );
-                    })()}
-                    <div className="border-t my-1"></div>
-                    {/* Item catalog table: mark selection as catalog source */}
-                    {(() => {
-                      const existingTable = (
-                        currentSheet?.itemCatalogTables || []
-                      ).find((t) => {
-                        const s = parseCellRef(t.startCell);
-                        const e = parseCellRef(t.endCell);
-                        const cur = parseCellRef(contextMenu.cellRef!);
-                        if (!s || !e || !cur) return false;
-                        const minR = Math.min(s.row, e.row);
-                        const maxR = Math.max(s.row, e.row);
-                        const minC = Math.min(s.col, e.col);
-                        const maxC = Math.max(s.col, e.col);
-                        return (
-                          cur.row >= minR &&
-                          cur.row <= maxR &&
-                          cur.col >= minC &&
-                          cur.col <= maxC
-                        );
-                      });
-                      return (
-                        <>
-                          <button
-                            className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
-                            onClick={() => {
-                              const coords: {
-                                col: number;
-                                row: number;
-                              }[] = [];
-                              selectedCells.forEach((ref) => {
-                                const pos = parseCellRef(ref);
-                                if (pos) coords.push(pos);
-                              });
-                              let startCell = contextMenu.cellRef!;
-                              let endCell = contextMenu.cellRef!;
-                              if (coords.length > 1) {
-                                const minCol = Math.min(
-                                  ...coords.map((c) => c.col),
-                                );
-                                const maxCol = Math.max(
-                                  ...coords.map((c) => c.col),
-                                );
-                                const minRow = Math.min(
-                                  ...coords.map((c) => c.row),
-                                );
-                                const maxRow = Math.max(
-                                  ...coords.map((c) => c.row),
-                                );
-                                startCell = `${getColumnLabel(minCol)}${minRow + 1}`;
-                                endCell = `${getColumnLabel(maxCol)}${maxRow + 1}`;
-                              }
-                              setCatalogTableModal({
-                                visible: true,
-                                editId: existingTable?.id || null,
-                                name: existingTable?.name || "",
-                                tagsInput: (existingTable?.tags || []).join(", "),
-                                startCell:
-                                  existingTable?.startCell || startCell,
-                                endCell: existingTable?.endCell || endCell,
-                                headerRows: existingTable?.headerRows ?? 1,
-                                idColumnOffset:
-                                  existingTable?.idColumnOffset ?? 0,
-                                descriptionColumnOffset:
-                                  existingTable?.descriptionColumnOffset ?? 1,
-                                umColumnOffset:
-                                  existingTable?.umColumnOffset ?? 2,
-                              });
-                              setContextMenu({
-                                visible: false,
-                                x: 0,
-                                y: 0,
-                                type: null,
-                                index: -1,
-                              });
-                            }}
-                          >
-                            📚{" "}
-                            {existingTable
-                              ? `Editar tabla catálogo (${existingTable.name})`
-                              : "Marcar como tabla de catálogo"}
-                          </button>
-                          {existingTable && (
-                            <button
-                              className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm text-red-600"
-                              onClick={() => {
-                                deleteItemCatalogTable(existingTable.id);
-                                setContextMenu({
-                                  visible: false,
-                                  x: 0,
-                                  y: 0,
-                                  type: null,
-                                  index: -1,
-                                });
-                              }}
-                            >
-                              🗑️ Quitar tabla catálogo
-                            </button>
-                          )}
-                        </>
-                      );
-                    })()}
-                    <div className="border-t my-1"></div>
-                    {/* Item link: bind / edit / clear the catalog item for this cell */}
-                    {(() => {
-                      const ref = contextMenu.cellRef!;
-                      const existingLink = currentSheet?.cells[ref]?.itemLink;
-                      return (
-                        <>
-                          <button
-                            className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm"
-                            onClick={() => {
-                              openItemPickerForCell(ref);
-                              setContextMenu({
-                                visible: false,
-                                x: 0,
-                                y: 0,
-                                type: null,
-                                index: -1,
-                              });
-                            }}
-                          >
-                            🔗{" "}
-                            {existingLink
-                              ? `Cambiar vínculo (#${existingLink.itemId})`
-                              : "Vincular a item del catálogo"}
-                          </button>
-                          {existingLink && (
-                            <button
-                              className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm text-red-600"
-                              onClick={() => {
-                                setCellItemLink(activeSheetId, ref, null);
-                                setContextMenu({
-                                  visible: false,
-                                  x: 0,
-                                  y: 0,
-                                  type: null,
-                                  index: -1,
-                                });
-                              }}
-                            >
-                              ❌ Quitar vínculo
-                            </button>
-                          )}
-                          {/* Configure which condition cells route this cell
-                              to the right catalog (tags match against values). */}
-                          <button
-                            className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm text-gray-600"
-                            onClick={() => {
-                              const existing =
-                                currentSheet?.cells[ref]
-                                  ?.catalogConditionCells || [];
-                              setCatalogConditionModal({
-                                visible: true,
-                                cellRef: ref,
-                                conditionCellsInput: existing.join(", "),
-                              });
-                              setContextMenu({
-                                visible: false,
-                                x: 0,
-                                y: 0,
-                                type: null,
-                                index: -1,
-                              });
-                            }}
-                          >
-                            ⚙️ Configurar vínculo al catálogo
-                            {(currentSheet?.cells[ref]
-                              ?.catalogConditionCells?.length ?? 0) > 0 && (
-                              <span className="text-xs text-cyan-600 ml-1">
-                                (
-                                {
-                                  currentSheet?.cells[ref]
-                                    ?.catalogConditionCells?.length
-                                }
-                                )
-                              </span>
-                            )}
-                          </button>
-                        </>
-                      );
-                    })()}
                   </>
                 );
               })()}
@@ -5087,1196 +3892,7 @@ const SpreadSheet = ({
         </>
       )}
 
-      {/* Catalog Condition Cells Modal */}
-      {catalogConditionModal.visible && (
-        <>
-          <div
-            className="fixed inset-0 bg-black bg-opacity-30 z-50"
-            onClick={() =>
-              setCatalogConditionModal({
-                visible: false,
-                cellRef: null,
-                conditionCellsInput: "",
-              })
-            }
-          />
-          <div
-            className="fixed z-50 bg-white border border-gray-300 shadow-xl rounded-lg p-4 w-[28rem]"
-            style={{
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-            }}
-          >
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="text-sm font-semibold text-gray-700">
-                ⚙️ Configurar vínculo al catálogo ·{" "}
-                <span className="font-mono">
-                  {catalogConditionModal.cellRef}
-                </span>
-              </h3>
-              <button
-                className="text-gray-400 hover:text-gray-600"
-                onClick={() =>
-                  setCatalogConditionModal({
-                    visible: false,
-                    cellRef: null,
-                    conditionCellsInput: "",
-                  })
-                }
-              >
-                ✕
-              </button>
-            </div>
-            <p className="text-xs text-gray-500 mb-3">
-              Indica qué celdas se leen como condición. Sus valores se comparan
-              contra los <strong>tags</strong> de los catálogos. Al vincular,
-              el modal abre directamente la tabla cuyos tags coinciden.
-              <br />
-              <span className="text-gray-400">
-                Si no defines condiciones, el modal mostrará todos los
-                catálogos.
-              </span>
-            </p>
-            <label className="text-xs text-gray-500 block mb-1">
-              Celdas de condición{" "}
-              <span className="text-gray-400 font-normal">
-                (separadas por coma, ej: B5, B6)
-              </span>
-            </label>
-            <input
-              className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 font-mono"
-              value={catalogConditionModal.conditionCellsInput}
-              onChange={(e) =>
-                setCatalogConditionModal((prev) => ({
-                  ...prev,
-                  conditionCellsInput: e.target.value.toUpperCase(),
-                }))
-              }
-              placeholder="B5, B6"
-            />
-            {catalogConditionModal.cellRef &&
-              (() => {
-                const refs = catalogConditionModal.conditionCellsInput
-                  .split(",")
-                  .map((s) => s.trim())
-                  .filter((s) => s.length > 0);
-                if (refs.length === 0) return null;
-                return (
-                  <div className="mt-3 text-xs bg-gray-50 border border-gray-200 rounded p-2">
-                    <div className="text-gray-500 font-semibold mb-1">
-                      Valores actuales:
-                    </div>
-                    {refs.map((r) => (
-                      <div key={r} className="font-mono text-gray-700">
-                        {r} ={" "}
-                        <span className="text-cyan-700">
-                          "{readCellDisplayValue(currentSheet?.cells[r])}"
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })()}
-            <div className="flex justify-end gap-2 mt-4">
-              <button
-                className="px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-100"
-                onClick={() => {
-                  if (catalogConditionModal.cellRef) {
-                    setCellCatalogConditionCells(
-                      activeSheetId,
-                      catalogConditionModal.cellRef,
-                      null,
-                    );
-                  }
-                  setCatalogConditionModal({
-                    visible: false,
-                    cellRef: null,
-                    conditionCellsInput: "",
-                  });
-                }}
-              >
-                Quitar configuración
-              </button>
-              <button
-                className="px-3 py-1 text-sm rounded bg-blue-500 text-white hover:bg-blue-600"
-                onClick={() => {
-                  if (!catalogConditionModal.cellRef) return;
-                  const refs = catalogConditionModal.conditionCellsInput
-                    .split(",")
-                    .map((s) => s.trim().toUpperCase())
-                    .filter((s) => /^[A-Z]+\d+$/.test(s));
-                  setCellCatalogConditionCells(
-                    activeSheetId,
-                    catalogConditionModal.cellRef,
-                    refs,
-                  );
-                  setCatalogConditionModal({
-                    visible: false,
-                    cellRef: null,
-                    conditionCellsInput: "",
-                  });
-                }}
-              >
-                Guardar
-              </button>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* Note Editing Modal */}
-      {noteModal.visible && (
-        <>
-          <div
-            className="fixed inset-0 bg-black bg-opacity-30 z-50"
-            onClick={() =>
-              setNoteModal({ visible: false, cellRef: "", value: "" })
-            }
-          />
-          <div
-            className="fixed z-50 bg-white border border-gray-300 shadow-xl rounded-lg p-4 w-80"
-            style={{
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-            }}
-          >
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="text-sm font-semibold text-gray-700">
-                📝 Nota - {noteModal.cellRef}
-              </h3>
-              <button
-                className="text-gray-400 hover:text-gray-600"
-                onClick={() =>
-                  setNoteModal({ visible: false, cellRef: "", value: "" })
-                }
-              >
-                ✕
-              </button>
-            </div>
-            <textarea
-              className="w-full border border-gray-300 rounded p-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-400"
-              rows={4}
-              value={noteModal.value}
-              onChange={(e) =>
-                setNoteModal((prev) => ({ ...prev, value: e.target.value }))
-              }
-              placeholder="Escribe una nota..."
-              autoFocus
-            />
-            <div className="flex justify-end gap-2 mt-2">
-              <button
-                className="px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-100"
-                onClick={() =>
-                  setNoteModal({ visible: false, cellRef: "", value: "" })
-                }
-              >
-                Cancelar
-              </button>
-              <button
-                className="px-3 py-1 text-sm rounded bg-blue-500 text-white hover:bg-blue-600"
-                onClick={() => {
-                  const { cellRef, value } = noteModal;
-                  setSheets((prev) =>
-                    prev.map((sheet) => {
-                      if (sheet.id !== activeSheetId) return sheet;
-                      const newCells = { ...sheet.cells };
-                      const existingCell = newCells[cellRef] || {
-                        value: "",
-                        formula: "",
-                        computed: "",
-                      };
-                      if (value.trim()) {
-                        newCells[cellRef] = {
-                          ...existingCell,
-                          note: value.trim(),
-                        };
-                      } else {
-                        newCells[cellRef] = { ...existingCell };
-                        delete newCells[cellRef].note;
-                      }
-                      return { ...sheet, cells: newCells };
-                    }),
-                  );
-                  setNoteModal({ visible: false, cellRef: "", value: "" });
-                }}
-              >
-                Guardar
-              </button>
-            </div>
-          </div>
-        </>
-      )}
-
       {/* Sheet Tabs */}
-      {/* GoTo Config Modal */}
-      {goToConfigModal.visible && (
-        <>
-          <div
-            className="fixed inset-0 bg-black bg-opacity-30 z-50"
-            onClick={() =>
-              setGoToConfigModal({
-                visible: false,
-                cellRef: "",
-                conditionCells: "",
-              })
-            }
-          />
-          <div
-            className="fixed z-50 bg-white border border-gray-300 shadow-xl rounded-lg p-4 w-96"
-            style={{
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-            }}
-          >
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="text-sm font-semibold text-gray-700">
-                🎯 Configurar "Ir a" - {goToConfigModal.cellRef}
-              </h3>
-              <button
-                className="text-gray-400 hover:text-gray-600"
-                onClick={() =>
-                  setGoToConfigModal({
-                    visible: false,
-                    cellRef: "",
-                    conditionCells: "",
-                  })
-                }
-              >
-                ✕
-              </button>
-            </div>
-            <p className="text-xs text-gray-500 mb-2">
-              Ingresa las celdas cuyo valor determina a qué tabla navegar.
-              Separadas por coma (ej: A1, A2).
-            </p>
-            <input
-              className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-              value={goToConfigModal.conditionCells}
-              onChange={(e) =>
-                setGoToConfigModal((prev) => ({
-                  ...prev,
-                  conditionCells: e.target.value,
-                }))
-              }
-              placeholder="A1, A2"
-              autoFocus
-            />
-            <div className="flex justify-end gap-2 mt-3">
-              <button
-                className="px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-100"
-                onClick={() =>
-                  setGoToConfigModal({
-                    visible: false,
-                    cellRef: "",
-                    conditionCells: "",
-                  })
-                }
-              >
-                Cancelar
-              </button>
-              <button
-                className="px-3 py-1 text-sm rounded bg-blue-500 text-white hover:bg-blue-600"
-                onClick={() => {
-                  const refs = goToConfigModal.conditionCells
-                    .split(",")
-                    .map((s) => s.trim().toUpperCase())
-                    .filter((s) => /^[A-Z]+\d+$/.test(s));
-                  saveGoToConfig(goToConfigModal.cellRef, refs);
-                  setGoToConfigModal({
-                    visible: false,
-                    cellRef: "",
-                    conditionCells: "",
-                  });
-                }}
-              >
-                Guardar
-              </button>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* Named Range Modal */}
-      {namedRangeModal.visible && (
-        <>
-          <div
-            className="fixed inset-0 bg-black bg-opacity-30 z-50"
-            onClick={() =>
-              setNamedRangeModal({
-                visible: false,
-                editId: null,
-                name: "",
-                tags: "",
-                startCell: "",
-                endCell: "",
-              })
-            }
-          />
-          <div
-            className="fixed z-50 bg-white border border-gray-300 shadow-xl rounded-lg p-4 w-[28rem]"
-            style={{
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-            }}
-          >
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="text-sm font-semibold text-gray-700">
-                📋 {namedRangeModal.editId ? "Editar" : "Nueva"} tabla
-                etiquetada
-              </h3>
-              <button
-                className="text-gray-400 hover:text-gray-600"
-                onClick={() =>
-                  setNamedRangeModal({
-                    visible: false,
-                    editId: null,
-                    name: "",
-                    tags: "",
-                    startCell: "",
-                    endCell: "",
-                  })
-                }
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              <div>
-                <label className="text-xs text-gray-500 block mb-1">
-                  Nombre
-                </label>
-                <input
-                  className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  value={namedRangeModal.name}
-                  onChange={(e) =>
-                    setNamedRangeModal((prev) => ({
-                      ...prev,
-                      name: e.target.value,
-                    }))
-                  }
-                  placeholder="Tabla Aluminio-Cobre"
-                  autoFocus
-                />
-              </div>
-              <div>
-                <label className="text-xs text-gray-500 block mb-1">
-                  Etiquetas (separadas por coma) — deben coincidir con los
-                  valores de las celdas condición
-                </label>
-                <input
-                  className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  value={namedRangeModal.tags}
-                  onChange={(e) =>
-                    setNamedRangeModal((prev) => ({
-                      ...prev,
-                      tags: e.target.value,
-                    }))
-                  }
-                  placeholder="aluminio, cobre"
-                />
-              </div>
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <label className="text-xs text-gray-500 block mb-1">
-                    Celda inicio
-                  </label>
-                  <input
-                    className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    value={namedRangeModal.startCell}
-                    onChange={(e) =>
-                      setNamedRangeModal((prev) => ({
-                        ...prev,
-                        startCell: e.target.value.toUpperCase(),
-                      }))
-                    }
-                    placeholder="A10"
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className="text-xs text-gray-500 block mb-1">
-                    Celda fin
-                  </label>
-                  <input
-                    className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    value={namedRangeModal.endCell}
-                    onChange={(e) =>
-                      setNamedRangeModal((prev) => ({
-                        ...prev,
-                        endCell: e.target.value.toUpperCase(),
-                      }))
-                    }
-                    placeholder="F20"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* List of existing named ranges on this sheet */}
-            {(currentSheet?.namedRanges || []).length > 0 && (
-              <div className="mt-3 border-t pt-2">
-                <p className="text-xs text-gray-500 mb-1 font-medium">
-                  Tablas etiquetadas en esta hoja:
-                </p>
-                <div className="max-h-32 overflow-y-auto space-y-1">
-                  {(currentSheet?.namedRanges || []).map((r) => (
-                    <div
-                      key={r.id}
-                      className="flex items-center justify-between text-xs bg-gray-50 rounded px-2 py-1"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <span className="font-medium text-gray-700">
-                          {r.name}
-                        </span>
-                        <span className="text-gray-400 ml-1">
-                          [{r.tags.join(", ")}]
-                        </span>
-                        <span className="text-gray-400 ml-1">
-                          {r.startCell}:{r.endCell}
-                        </span>
-                      </div>
-                      <div className="flex gap-1 ml-2">
-                        <button
-                          className="text-blue-500 hover:text-blue-700"
-                          title="Editar"
-                          onClick={() =>
-                            setNamedRangeModal({
-                              visible: true,
-                              editId: r.id,
-                              name: r.name,
-                              tags: r.tags.join(", "),
-                              startCell: r.startCell,
-                              endCell: r.endCell,
-                            })
-                          }
-                        >
-                          ✎
-                        </button>
-                        <button
-                          className="text-blue-500 hover:text-blue-700"
-                          title="Ir a"
-                          onClick={() => {
-                            // Navigate directly to this range
-                            setSelectedCell(r.startCell);
-                            selectionAnchorRef.current = r.startCell;
-                            setSelectedCells(new Set([r.startCell]));
-                            setTimeout(() => {
-                              if (scrollToCellRef.current) {
-                                scrollToCellRef.current(r.startCell);
-                              }
-                            }, 50);
-                            setNamedRangeModal({
-                              visible: false,
-                              editId: null,
-                              name: "",
-                              tags: "",
-                              startCell: "",
-                              endCell: "",
-                            });
-                          }}
-                        >
-                          →
-                        </button>
-                        <button
-                          className="text-red-500 hover:text-red-700"
-                          title="Eliminar"
-                          onClick={() => deleteNamedRange(r.id)}
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="flex justify-end gap-2 mt-3">
-              <button
-                className="px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-100"
-                onClick={() =>
-                  setNamedRangeModal({
-                    visible: false,
-                    editId: null,
-                    name: "",
-                    tags: "",
-                    startCell: "",
-                    endCell: "",
-                  })
-                }
-              >
-                Cancelar
-              </button>
-              <button
-                className="px-3 py-1 text-sm rounded bg-blue-500 text-white hover:bg-blue-600"
-                onClick={() => {
-                  const tags = namedRangeModal.tags
-                    .split(",")
-                    .map((s) => s.trim())
-                    .filter(Boolean);
-                  if (
-                    !namedRangeModal.name.trim() ||
-                    tags.length === 0 ||
-                    !namedRangeModal.startCell ||
-                    !namedRangeModal.endCell
-                  ) {
-                    return;
-                  }
-                  const range: NamedRange = {
-                    id: namedRangeModal.editId || `nr-${Date.now()}`,
-                    name: namedRangeModal.name.trim(),
-                    tags,
-                    startCell: namedRangeModal.startCell,
-                    endCell: namedRangeModal.endCell,
-                  };
-                  saveNamedRange(range);
-                  setNamedRangeModal({
-                    visible: false,
-                    editId: null,
-                    name: "",
-                    tags: "",
-                    startCell: "",
-                    endCell: "",
-                  });
-                }}
-              >
-                Guardar
-              </button>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* Semi-finished Zone Modal */}
-      {semiFinishedZoneModal.visible && (
-        <>
-          <div
-            className="fixed inset-0 bg-black bg-opacity-30 z-50"
-            onClick={() =>
-              setSemiFinishedZoneModal({
-                visible: false,
-                editId: null,
-                semiFinishedId: null,
-                startCell: "",
-                endCell: "",
-              })
-            }
-          />
-          <div
-            className="fixed z-50 bg-white border border-gray-300 shadow-xl rounded-lg p-4 w-[28rem]"
-            style={{
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-            }}
-          >
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="text-sm font-semibold text-gray-700">
-                🏷️{" "}
-                {semiFinishedZoneModal.editId ? "Editar" : "Nueva"} zona
-                semi-terminado
-              </h3>
-              <button
-                className="text-gray-400 hover:text-gray-600"
-                onClick={() =>
-                  setSemiFinishedZoneModal({
-                    visible: false,
-                    editId: null,
-                    semiFinishedId: null,
-                    startCell: "",
-                    endCell: "",
-                  })
-                }
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              <div>
-                <label className="text-xs text-gray-500 block mb-1">
-                  Semi-terminado
-                </label>
-                <Select<number>
-                  options={semiFinishedOptions}
-                  selectedValue={semiFinishedZoneModal.semiFinishedId}
-                  isLoading={isLoadingSemiFinished}
-                  placeholder="Selecciona un semi-terminado..."
-                  onChange={(value) =>
-                    setSemiFinishedZoneModal((prev) => ({
-                      ...prev,
-                      semiFinishedId: value ?? null,
-                    }))
-                  }
-                />
-                {semiFinishedZoneModal.semiFinishedId !== null && (() => {
-                  const sf = (semiFinishedList || []).find(
-                    (s) => s.id === semiFinishedZoneModal.semiFinishedId,
-                  );
-                  if (!sf) return null;
-                  const palette = getSemiFinishedColor(sf.code);
-                  return (
-                    <div
-                      className="mt-2 inline-flex items-center gap-2 px-2 py-1 rounded text-xs"
-                      style={{
-                        backgroundColor: palette.bg,
-                        color: palette.text,
-                        border: `1px solid ${palette.border}`,
-                      }}
-                    >
-                      <span
-                        className="inline-block w-3 h-3 rounded"
-                        style={{ backgroundColor: palette.border }}
-                      />
-                      Color asignado a {sf.code}
-                    </div>
-                  );
-                })()}
-              </div>
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <label className="text-xs text-gray-500 block mb-1">
-                    Celda inicio
-                  </label>
-                  <input
-                    className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    value={semiFinishedZoneModal.startCell}
-                    onChange={(e) =>
-                      setSemiFinishedZoneModal((prev) => ({
-                        ...prev,
-                        startCell: e.target.value.toUpperCase(),
-                      }))
-                    }
-                    placeholder="A1"
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className="text-xs text-gray-500 block mb-1">
-                    Celda fin
-                  </label>
-                  <input
-                    className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    value={semiFinishedZoneModal.endCell}
-                    onChange={(e) =>
-                      setSemiFinishedZoneModal((prev) => ({
-                        ...prev,
-                        endCell: e.target.value.toUpperCase(),
-                      }))
-                    }
-                    placeholder="C5"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {(currentSheet?.semiFinishedZones || []).length > 0 && (
-              <div className="mt-3 border-t pt-2">
-                <p className="text-xs text-gray-500 mb-1 font-medium">
-                  Zonas en esta hoja:
-                </p>
-                <div className="max-h-32 overflow-y-auto space-y-1">
-                  {(currentSheet?.semiFinishedZones || []).map((z) => {
-                    const palette = getSemiFinishedColor(z.semiFinishedCode);
-                    return (
-                      <div
-                        key={z.id}
-                        className="flex items-center justify-between text-xs rounded px-2 py-1"
-                        style={{
-                          backgroundColor: palette.bg,
-                          border: `1px solid ${palette.border}`,
-                        }}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <span
-                            className="font-medium"
-                            style={{ color: palette.text }}
-                          >
-                            {z.semiFinishedName}
-                          </span>
-                          <span
-                            className="ml-1"
-                            style={{ color: palette.text, opacity: 0.7 }}
-                          >
-                            [{z.semiFinishedCode}]
-                          </span>
-                          <span
-                            className="ml-1"
-                            style={{ color: palette.text, opacity: 0.7 }}
-                          >
-                            {z.startCell}:{z.endCell}
-                          </span>
-                        </div>
-                        <div className="flex gap-1 ml-2">
-                          <button
-                            className="text-blue-600 hover:text-blue-800"
-                            title="Editar"
-                            onClick={() =>
-                              setSemiFinishedZoneModal({
-                                visible: true,
-                                editId: z.id,
-                                semiFinishedId: z.semiFinishedId,
-                                startCell: z.startCell,
-                                endCell: z.endCell,
-                              })
-                            }
-                          >
-                            ✎
-                          </button>
-                          <button
-                            className="text-red-600 hover:text-red-800"
-                            title="Eliminar"
-                            onClick={() => deleteSemiFinishedZone(z.id)}
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            <div className="flex justify-end gap-2 mt-3">
-              <button
-                className="px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-100"
-                onClick={() =>
-                  setSemiFinishedZoneModal({
-                    visible: false,
-                    editId: null,
-                    semiFinishedId: null,
-                    startCell: "",
-                    endCell: "",
-                  })
-                }
-              >
-                Cancelar
-              </button>
-              <button
-                className="px-3 py-1 text-sm rounded bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={
-                  semiFinishedZoneModal.semiFinishedId === null ||
-                  !semiFinishedZoneModal.startCell ||
-                  !semiFinishedZoneModal.endCell
-                }
-                onClick={() => {
-                  if (
-                    semiFinishedZoneModal.semiFinishedId === null ||
-                    !semiFinishedZoneModal.startCell ||
-                    !semiFinishedZoneModal.endCell
-                  ) {
-                    return;
-                  }
-                  const sf = (semiFinishedList || []).find(
-                    (s) => s.id === semiFinishedZoneModal.semiFinishedId,
-                  );
-                  if (!sf) return;
-                  const zone: SemiFinishedZone = {
-                    id:
-                      semiFinishedZoneModal.editId ||
-                      `sfz-${Date.now()}`,
-                    semiFinishedId: sf.id,
-                    semiFinishedCode: sf.code,
-                    semiFinishedName: sf.name,
-                    startCell: semiFinishedZoneModal.startCell,
-                    endCell: semiFinishedZoneModal.endCell,
-                  };
-                  saveSemiFinishedZone(zone);
-                  setSemiFinishedZoneModal({
-                    visible: false,
-                    editId: null,
-                    semiFinishedId: null,
-                    startCell: "",
-                    endCell: "",
-                  });
-                }}
-              >
-                Guardar
-              </button>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* Item Catalog Table Modal */}
-      {catalogTableModal.visible &&
-        (() => {
-          const startPos = parseCellRef(catalogTableModal.startCell);
-          const endPos = parseCellRef(catalogTableModal.endCell);
-          const minCol =
-            startPos && endPos
-              ? Math.min(startPos.col, endPos.col)
-              : 0;
-          const maxCol =
-            startPos && endPos
-              ? Math.max(startPos.col, endPos.col)
-              : 0;
-          const colCount = startPos && endPos ? maxCol - minCol + 1 : 0;
-          const rowCount =
-            startPos && endPos
-              ? Math.abs(endPos.row - startPos.row) + 1
-              : 0;
-          // Build the offset options (0..colCount-1) labeled with the
-          // absolute column letter so the user can match the spreadsheet.
-          const columnOptions: Option<number>[] = [];
-          for (let i = 0; i < colCount; i++) {
-            columnOptions.push({
-              label: `Columna ${getColumnLabel(minCol + i)}`,
-              value: i,
-            });
-          }
-          const closeModal = () =>
-            setCatalogTableModal({
-              visible: false,
-              editId: null,
-              name: "",
-              tagsInput: "",
-              startCell: "",
-              endCell: "",
-              headerRows: 1,
-              idColumnOffset: 0,
-              descriptionColumnOffset: 1,
-              umColumnOffset: 2,
-            });
-          const offsetsAreValid =
-            colCount > 0 &&
-            catalogTableModal.idColumnOffset < colCount &&
-            catalogTableModal.descriptionColumnOffset < colCount &&
-            catalogTableModal.umColumnOffset < colCount;
-          const offsetsAreDistinct =
-            new Set([
-              catalogTableModal.idColumnOffset,
-              catalogTableModal.descriptionColumnOffset,
-              catalogTableModal.umColumnOffset,
-            ]).size === 3;
-          const headerRowsValid =
-            catalogTableModal.headerRows >= 0 &&
-            catalogTableModal.headerRows < rowCount;
-          const canSave =
-            !!catalogTableModal.name.trim() &&
-            !!catalogTableModal.startCell &&
-            !!catalogTableModal.endCell &&
-            offsetsAreValid &&
-            offsetsAreDistinct &&
-            headerRowsValid;
-          return (
-            <>
-              <div
-                className="fixed inset-0 bg-black bg-opacity-30 z-50"
-                onClick={closeModal}
-              />
-              <div
-                className="fixed z-50 bg-white border border-gray-300 shadow-xl rounded-lg p-4 w-[30rem]"
-                style={{
-                  top: "50%",
-                  left: "50%",
-                  transform: "translate(-50%, -50%)",
-                }}
-              >
-                <div className="flex justify-between items-center mb-3">
-                  <h3 className="text-sm font-semibold text-gray-700">
-                    📚{" "}
-                    {catalogTableModal.editId ? "Editar" : "Nueva"} tabla
-                    catálogo
-                  </h3>
-                  <button
-                    className="text-gray-400 hover:text-gray-600"
-                    onClick={closeModal}
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                <div className="space-y-2">
-                  <div>
-                    <label className="text-xs text-gray-500 block mb-1">
-                      Nombre
-                    </label>
-                    <input
-                      className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                      value={catalogTableModal.name}
-                      onChange={(e) =>
-                        setCatalogTableModal((prev) => ({
-                          ...prev,
-                          name: e.target.value,
-                        }))
-                      }
-                      placeholder="Ej: Alambres rectangulares aluminio"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-500 block mb-1">
-                      Tags{" "}
-                      <span className="text-gray-400 font-normal">
-                        (palabras clave separadas por coma — se comparan con
-                        las celdas de condición al vincular)
-                      </span>
-                    </label>
-                    <input
-                      className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                      value={catalogTableModal.tagsInput}
-                      onChange={(e) =>
-                        setCatalogTableModal((prev) => ({
-                          ...prev,
-                          tagsInput: e.target.value,
-                        }))
-                      }
-                      placeholder="Ej: aluminio, rectangular"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <div className="flex-1">
-                      <label className="text-xs text-gray-500 block mb-1">
-                        Celda inicio
-                      </label>
-                      <input
-                        className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                        value={catalogTableModal.startCell}
-                        onChange={(e) =>
-                          setCatalogTableModal((prev) => ({
-                            ...prev,
-                            startCell: e.target.value.toUpperCase(),
-                          }))
-                        }
-                        placeholder="A1"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <label className="text-xs text-gray-500 block mb-1">
-                        Celda fin
-                      </label>
-                      <input
-                        className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                        value={catalogTableModal.endCell}
-                        onChange={(e) =>
-                          setCatalogTableModal((prev) => ({
-                            ...prev,
-                            endCell: e.target.value.toUpperCase(),
-                          }))
-                        }
-                        placeholder="G6"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-500 block mb-1">
-                      Filas de encabezado a omitir
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                      value={catalogTableModal.headerRows}
-                      onChange={(e) =>
-                        setCatalogTableModal((prev) => ({
-                          ...prev,
-                          headerRows: Math.max(
-                            0,
-                            Number.parseInt(e.target.value || "0") || 0,
-                          ),
-                        }))
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-500 block mb-1">
-                      Columna Item ID
-                    </label>
-                    <Select<number>
-                      options={columnOptions}
-                      selectedValue={catalogTableModal.idColumnOffset}
-                      placeholder="Selecciona columna..."
-                      isLoading={false}
-                      onChange={(value) =>
-                        setCatalogTableModal((prev) => ({
-                          ...prev,
-                          idColumnOffset: value ?? 0,
-                        }))
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-500 block mb-1">
-                      Columna Descripción
-                    </label>
-                    <Select<number>
-                      options={columnOptions}
-                      selectedValue={
-                        catalogTableModal.descriptionColumnOffset
-                      }
-                      placeholder="Selecciona columna..."
-                      isLoading={false}
-                      onChange={(value) =>
-                        setCatalogTableModal((prev) => ({
-                          ...prev,
-                          descriptionColumnOffset: value ?? 0,
-                        }))
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-500 block mb-1">
-                      Columna Unidad de Medida
-                    </label>
-                    <Select<number>
-                      options={columnOptions}
-                      selectedValue={catalogTableModal.umColumnOffset}
-                      placeholder="Selecciona columna..."
-                      isLoading={false}
-                      onChange={(value) =>
-                        setCatalogTableModal((prev) => ({
-                          ...prev,
-                          umColumnOffset: value ?? 0,
-                        }))
-                      }
-                    />
-                  </div>
-                </div>
-
-                {colCount > 0 && colCount < 3 && (
-                  <p className="text-xs text-red-600 mt-2">
-                    El rango debe tener al menos 3 columnas para mapear Item
-                    ID, Descripción y U.M.
-                  </p>
-                )}
-                {colCount >= 3 && !offsetsAreDistinct && (
-                  <p className="text-xs text-red-600 mt-2">
-                    Las tres columnas (ID, Descripción, U.M.) deben ser
-                    distintas.
-                  </p>
-                )}
-                {!headerRowsValid && rowCount > 0 && (
-                  <p className="text-xs text-red-600 mt-2">
-                    El número de filas de encabezado debe ser menor a la
-                    altura del rango ({rowCount}).
-                  </p>
-                )}
-
-                {(currentSheet?.itemCatalogTables || []).length > 0 && (
-                  <div className="mt-3 border-t pt-2">
-                    <p className="text-xs text-gray-500 mb-1 font-medium">
-                      Tablas en esta hoja:
-                    </p>
-                    <div className="max-h-32 overflow-y-auto space-y-1">
-                      {(currentSheet?.itemCatalogTables || []).map((t) => (
-                        <div
-                          key={t.id}
-                          className="flex items-center justify-between text-xs rounded px-2 py-1 bg-cyan-50 border border-cyan-300"
-                        >
-                          <div className="flex-1 min-w-0">
-                            <span className="font-medium text-cyan-900">
-                              {t.name}
-                            </span>
-                            <span className="ml-1 text-cyan-700 opacity-80">
-                              {t.startCell}:{t.endCell}
-                            </span>
-                          </div>
-                          <div className="flex gap-1 ml-2">
-                            <button
-                              className="text-blue-600 hover:text-blue-800"
-                              title="Editar"
-                              onClick={() =>
-                                setCatalogTableModal({
-                                  visible: true,
-                                  editId: t.id,
-                                  name: t.name,
-                                  tagsInput: (t.tags || []).join(", "),
-                                  startCell: t.startCell,
-                                  endCell: t.endCell,
-                                  headerRows: t.headerRows,
-                                  idColumnOffset: t.idColumnOffset,
-                                  descriptionColumnOffset:
-                                    t.descriptionColumnOffset,
-                                  umColumnOffset: t.umColumnOffset,
-                                })
-                              }
-                            >
-                              ✎
-                            </button>
-                            <button
-                              className="text-red-600 hover:text-red-800"
-                              title="Eliminar"
-                              onClick={() => deleteItemCatalogTable(t.id)}
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex justify-end gap-2 mt-3">
-                  <button
-                    className="px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-100"
-                    onClick={closeModal}
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    className="px-3 py-1 text-sm rounded bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={!canSave}
-                    onClick={() => {
-                      if (!canSave) return;
-                      const parsedTags = catalogTableModal.tagsInput
-                        .split(",")
-                        .map((s) => s.trim().toLowerCase())
-                        .filter((s) => s.length > 0);
-                      const table: ItemCatalogTable = {
-                        id:
-                          catalogTableModal.editId ||
-                          `ict-${Date.now()}`,
-                        name: catalogTableModal.name.trim(),
-                        tags: parsedTags.length > 0 ? parsedTags : undefined,
-                        startCell: catalogTableModal.startCell,
-                        endCell: catalogTableModal.endCell,
-                        headerRows: catalogTableModal.headerRows,
-                        idColumnOffset: catalogTableModal.idColumnOffset,
-                        descriptionColumnOffset:
-                          catalogTableModal.descriptionColumnOffset,
-                        umColumnOffset: catalogTableModal.umColumnOffset,
-                      };
-                      saveItemCatalogTable(table);
-                      closeModal();
-                    }}
-                  >
-                    Guardar
-                  </button>
-                </div>
-              </div>
-            </>
-          );
-        })()}
-
-      <ItemPickerModal
-        isOpen={itemPickerModal.isOpen}
-        onClose={closeItemPickerModal}
-        catalogs={itemPickerCatalogs.entries}
-        filteredByConditions={itemPickerCatalogs.filteredByConditions}
-        targetCellRef={itemPickerModal.sourceCellRef ?? undefined}
-        onShowAll={() =>
-          setItemPickerModal((prev) => ({ ...prev, showAll: true }))
-        }
-        onSelect={(link) => {
-          if (
-            itemPickerModal.sourceSheetId &&
-            itemPickerModal.sourceCellRef
-          ) {
-            setCellItemLink(
-              itemPickerModal.sourceSheetId,
-              itemPickerModal.sourceCellRef,
-              link,
-            );
-          }
-          closeItemPickerModal();
-        }}
-      />
-
       <SheetTabs
         sheets={sheets}
         activeSheetId={activeSheetId}

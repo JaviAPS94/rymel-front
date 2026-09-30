@@ -64,6 +64,8 @@ interface SpreadSheetGridProps {
   onStopInlineEditing?: (value: string) => void;
   onNavigateAfterEdit?: (direction: "up" | "down" | "left" | "right") => void;
   onGridReady?: (scrollToCell: (cellRef: string) => void) => void;
+  /** Si la plantilla protege la celda, para señalarla. */
+  isReadOnlyCell?: (cellRef: string) => boolean;
   zoom?: number;
   namedRangeStartCells?: Set<string>;
   cellZoneMap?: Map<
@@ -129,6 +131,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
   onStopInlineEditing,
   onNavigateAfterEdit,
   onGridReady,
+  isReadOnlyCell,
   zoom = 100,
   namedRangeStartCells = new Set(),
   cellZoneMap,
@@ -667,6 +670,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                           onNavigateAfterEdit={onNavigateAfterEdit}
                           fontScale={scale}
                           isNamedRangeStart={namedRangeStartCells.has(cellRef)}
+                          isReadOnly={isReadOnlyCell?.(cellRef) ?? false}
                           zone={cellZoneMap?.get(cellRef)}
                           catalog={catalogCellMap?.get(cellRef)}
                           itemLink={cellItemLinkMap?.get(cellRef)}
@@ -771,6 +775,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                           onNavigateAfterEdit={onNavigateAfterEdit}
                           fontScale={scale}
                           isNamedRangeStart={namedRangeStartCells.has(cellRef)}
+                          isReadOnly={isReadOnlyCell?.(cellRef) ?? false}
                           zone={cellZoneMap?.get(cellRef)}
                           catalog={catalogCellMap?.get(cellRef)}
                           itemLink={cellItemLinkMap?.get(cellRef)}
@@ -916,6 +921,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                           onNavigateAfterEdit={onNavigateAfterEdit}
                           fontScale={scale}
                           isNamedRangeStart={namedRangeStartCells.has(cellRef)}
+                          isReadOnly={isReadOnlyCell?.(cellRef) ?? false}
                           zone={cellZoneMap?.get(cellRef)}
                           catalog={catalogCellMap?.get(cellRef)}
                           itemLink={cellItemLinkMap?.get(cellRef)}
@@ -1021,6 +1027,7 @@ const SpreadSheetGrid: React.FC<SpreadSheetGridProps> = ({
                           onNavigateAfterEdit={onNavigateAfterEdit}
                           fontScale={scale}
                           isNamedRangeStart={namedRangeStartCells.has(cellRef)}
+                          isReadOnly={isReadOnlyCell?.(cellRef) ?? false}
                           zone={cellZoneMap?.get(cellRef)}
                           catalog={catalogCellMap?.get(cellRef)}
                           itemLink={cellItemLinkMap?.get(cellRef)}

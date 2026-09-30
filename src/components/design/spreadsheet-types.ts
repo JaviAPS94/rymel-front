@@ -1,5 +1,7 @@
 // Type definitions for SpreadSheet components
 
+import type { ReadOnlyZone } from "@rymel/design-template";
+
 export interface Cell {
   value: string;
   formula: string;
@@ -144,6 +146,12 @@ export interface Sheet {
   namedRanges?: NamedRange[]; // Labeled table regions for GoTo navigation
   semiFinishedZones?: SemiFinishedZone[]; // Zones tagged with a semi-finished product
   itemCatalogTables?: ItemCatalogTable[]; // Lookup tables used to resolve item links
+  /**
+   * Zonas que la plantilla protege: el diseñador no puede modificar sus
+   * celdas. Viajan con la copia de la hoja que se guarda en el diseño, para
+   * que un diseño reabierto siga protegido.
+   */
+  readOnlyZones?: ReadOnlyZone[];
 }
 
 export interface CustomFunction {

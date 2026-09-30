@@ -28,8 +28,11 @@ import {
   splitRef,
   type CellValueMap,
 } from "@rymel/formula-engine";
+import { isReadOnly } from "@rymel/design-template";
 import { runtimeSheetsFromTemplate } from "../src/components/design/template-loading";
-import type { Template } from "../src/commons/types";
+import { buildBomSummaryCells } from "../src/components/design/bom/buildBomSummary";
+import { extractMaterialTagValues } from "../src/components/design/materialTagUtils";
+import type { BomResponse, ElementResponse, Template } from "../src/commons/types";
 
 let failures = 0;
 
@@ -152,6 +155,69 @@ const main = async (): Promise<void> => {
           `${ref}: ${String(designer.values[ref])} vs ${String(editor[ref])}`,
       )
       .join(" | "),
+  );
+
+  console.log("\n--- lo que configura el admin, en el diseñador");
+
+  check(
+    "las etiquetas del catálogo llegan",
+    JSON.stringify(tablas.itemCatalogTables?.[0]?.tags) === '["acero"]',
+  );
+  check(
+    "las condiciones del vínculo llegan",
+    JSON.stringify(resumen.cells.B5?.catalogConditionCells) === '["B6"]',
+  );
+  check(
+    "la zona de solo lectura llega y protege B3:B4",
+    isReadOnly(resumen, "B3") && isReadOnly(resumen, "B4") && !isReadOnly(resumen, "B5"),
+  );
+
+  // Con los valores calculados puestos, como los tiene el diseñador en pantalla.
+  const calculated = sheets.map((sheet) => ({
+    ...sheet,
+    cells: Object.fromEntries(
+      Object.entries(sheet.cells).map(([ref, cell]) => [
+        ref,
+        { ...cell, computed: designer.values[`${sheet.name}!${ref}`] ?? cell.computed },
+      ]),
+    ),
+  }));
+
+  const tags = extractMaterialTagValues(calculated);
+  check(
+    "el código de diseño toma MO y MD de la plantilla",
+    tags.moValue === "3000" && tags.materialDevanadoValue === "18",
+    JSON.stringify(tags),
+  );
+
+  const bom = {
+    id: 1,
+    code: "BOM",
+    name: "BOM",
+    createdAt: "",
+    updatedAt: "",
+    deletedAt: null,
+    nodes: [
+      {
+        id: 1,
+        semiFinished: { id: 1, name: "BOBINA", code: "BOBINA" },
+        type: "STANDARD",
+        parentId: null,
+        children: [],
+      },
+    ],
+  } as unknown as BomResponse;
+  const summary = buildBomSummaryCells(
+    bom,
+    new Set(),
+    calculated,
+    { values: [] } as unknown as ElementResponse,
+  );
+  const itemRow = ["B3", "C3", "D3", "E3"].map((ref) => summary[ref]?.value);
+  check(
+    "el resumen BOM lista el ítem vinculado con su cantidad",
+    JSON.stringify(itemRow) === '["AC-1","Acero al silicio","18","kg"]',
+    JSON.stringify(itemRow),
   );
 
   console.log(

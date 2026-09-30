@@ -1,0 +1,9108 @@
+{
+ "id": 3,
+ "name": "Template 1F",
+ "code": "TEMPLATE_1F_0001",
+ "description": "Plantilla para sub diseño 1F",
+ "sheets": [
+  {
+   "name": "Resumen",
+   "cells": {
+    "A1": {
+     "formula": "",
+     "bold": true
+    },
+    "C2": {
+     "formula": "Eficiencia DOE (%)",
+     "bold": true,
+     "border": "1px solid #000"
+    },
+    "H2": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "I2": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "C3": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "D3": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "E3": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "F3": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "G3": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "H3": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "I3": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "C5": {
+     "formula": "Perdidas en vacio (W)",
+     "bold": true,
+     "border": "1px solid #000"
+    },
+    "H5": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "C6": {
+     "formula": "=AE42*(VLOOKUP(I39*10; Tablas!B45:Tablas!C156; 2; TRUE))",
+     "border": "1px solid #000"
+    },
+    "K2": {
+     "formula": "Eficiencia NEMA (%)",
+     "bold": true,
+     "border": "1px solid #000"
+    },
+    "L2": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "M2": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "N2": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "O2": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "P2": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "Q2": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "K3": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "L3": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "M3": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "N3": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "O3": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "P3": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "Q3": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "K5": {
+     "formula": "Corriente de vacío (%)",
+     "bold": true,
+     "border": "1px solid #000"
+    },
+    "P5": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "K6": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "L6": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "M6": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "N6": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "O6": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "P6": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "Q6": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "S3": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "T3": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "U3": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "V3": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "W3": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "X3": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "Y3": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "S2": {
+     "formula": "Eficiencia NTC (%)",
+     "bold": true,
+     "border": "1px solid #000"
+    },
+    "X2": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "X5": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "Y5": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "S5": {
+     "formula": "Perdidas en carga (w)",
+     "bold": true,
+     "border": "1px solid #000"
+    },
+    "S6": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "T6": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "U6": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "V6": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "W6": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "X6": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "Y6": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "AA5": {
+     "formula": "Impedancia (%)",
+     "bold": true,
+     "border": "1px solid #000"
+    },
+    "AF5": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "AA6": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "C9": {
+     "formula": "Plantilla para transformadores Convencionales Monofásicos",
+     "bold": true,
+     "textColor": "#2d6ef0"
+    },
+    "C11": {
+     "formula": "Datos de entrada",
+     "bold": true,
+     "textColor": "#7c2782"
+    },
+    "D11": {
+     "formula": "",
+     "bold": true,
+     "textColor": "#7c2782"
+    },
+    "E11": {
+     "formula": "",
+     "bold": true,
+     "textColor": "#7c2782"
+    },
+    "F11": {
+     "formula": "",
+     "textColor": "#7c2782"
+    },
+    "C13": {
+     "formula": "Altitud (msnm)",
+     "bold": true,
+     "border": "1px solid #000"
+    },
+    "D13": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "E13": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "F13": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "G13": {
+     "formula": "3000",
+     "textColor": "#f20707",
+     "border": "1px solid #000"
+    },
+    "C14": {
+     "formula": "BIL (kV) (Mayor)",
+     "bold": true,
+     "border": "1px solid #000"
+    },
+    "D14": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "E14": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "F14": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "G14": {
+     "formula": "20",
+     "textColor": "#f20707",
+     "border": "1px solid #000"
+    },
+    "C15": {
+     "formula": "Frecuencia (Hz)",
+     "bold": true,
+     "border": "1px solid #000"
+    },
+    "D15": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "E15": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "F15": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "G15": {
+     "formula": "50",
+     "textColor": "#f20707",
+     "border": "1px solid #000"
+    },
+    "C16": {
+     "formula": "Potencia (kVA)",
+     "bold": true,
+     "border": "1px solid #000"
+    },
+    "D16": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "E16": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "F16": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "G16": {
+     "formula": "10",
+     "textColor": "#f20707",
+     "border": "1px solid #000"
+    },
+    "C17": {
+     "formula": "Potencia 2 (kVA)",
+     "bold": true,
+     "border": "1px solid #000"
+    },
+    "D17": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "E17": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "F17": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "G17": {
+     "formula": "=G14*(VLOOKUP(G13;Tablas!B3:Tablas!C10;2;TRUE))",
+     "textColor": "#f20707",
+     "border": "1px solid #000"
+    },
+    "L14": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "C19": {
+     "formula": "Devanado Secundario",
+     "bold": true,
+     "textColor": "#7d05a8"
+    },
+    "C21": {
+     "formula": "Conductor",
+     "textColor": "#5f1e8a",
+     "border": "1px solid #000"
+    },
+    "N21": {
+     "formula": "Conductor",
+     "textColor": "#56257e",
+     "border": "1px solid #000"
+    },
+    "Y21": {
+     "formula": "Conductor",
+     "textColor": "#3e1570",
+     "border": "1px solid #000"
+    },
+    "C22": {
+     "formula": "Corriente Secundaria (A)",
+     "border": "1px solid #000"
+    },
+    "D22": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "E22": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "F22": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "G22": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "H22": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "I22": {
+     "formula": "150",
+     "border": "1px solid #000"
+    },
+    "N22": {
+     "formula": "Ancho Conductor Aislado 1.",
+     "border": "1px solid #000"
+    },
+    "O22": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "P22": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "Q22": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "R22": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "S22": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "T22": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "U22": {
+     "formula": "4",
+     "border": "1px solid #000"
+    },
+    "Y22": {
+     "formula": "Conductores Axiales 1.",
+     "border": "1px solid #000"
+    },
+    "Z22": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "AA22": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "AB22": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "AC22": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "AD22": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "AE22": {
+     "formula": "1",
+     "border": "1px solid #000"
+    },
+    "C23": {
+     "formula": "Material del devanado",
+     "border": "1px solid #000"
+    },
+    "D23": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "E23": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "F23": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "G23": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "H23": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "I23": {
+     "formula": "Aluminio",
+     "border": "1px solid #000",
+     "options": [
+      "Aluminio",
+      "Cobre"
+     ]
+    },
+    "N23": {
+     "formula": "Alto Conductor Aislado 1.",
+     "border": "1px solid #000"
+    },
+    "O23": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "P23": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "Q23": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "R23": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "S23": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "T23": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "U23": {
+     "formula": "3",
+     "border": "1px solid #000"
+    },
+    "Y23": {
+     "formula": "Conductores Radiales 1.",
+     "border": "1px solid #000"
+    },
+    "Z23": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "AA23": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "AB23": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "AC23": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "AD23": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "AE23": {
+     "formula": "1",
+     "border": "1px solid #000"
+    },
+    "C24": {
+     "formula": "Tipo de conductor",
+     "border": "1px solid #000"
+    },
+    "D24": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "E24": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "F24": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "G24": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "H24": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "I24": {
+     "formula": "Alambre",
+     "border": "1px solid #000",
+     "options": [
+      "Alambre",
+      "Alambre rectángular",
+      "Alambre rectángular + Alambre",
+      "Fleje"
+     ]
+    },
+    "N24": {
+     "formula": "Ancho Conductor Aislado 2.",
+     "border": "1px solid #000"
+    },
+    "O24": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "P24": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "Q24": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "R24": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "S24": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "T24": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "U24": {
+     "formula": "3,36",
+     "border": "1px solid #000"
+    },
+    "Y24": {
+     "formula": "Conductores Axiales 2.",
+     "border": "1px solid #000"
+    },
+    "Z24": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "AA24": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "AB24": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "AC24": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "AD24": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "AE24": {
+     "formula": "2",
+     "border": "1px solid #000"
+    },
+    "C25": {
+     "formula": "Densidad (A/mm^2)",
+     "border": "1px solid #000"
+    },
+    "D25": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "E25": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "F25": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "G25": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "H25": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "I25": {
+     "formula": "5,2",
+     "border": "1px solid #000"
+    },
+    "N25": {
+     "formula": "Alto Conductor Aislado 2.",
+     "border": "1px solid #000"
+    },
+    "O25": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "P25": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "Q25": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "R25": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "S25": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "T25": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "U25": {
+     "formula": "3,36",
+     "border": "1px solid #000"
+    },
+    "Y25": {
+     "formula": "Conductores Radiales 2.",
+     "border": "1px solid #000"
+    },
+    "Z25": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "AA25": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "AB25": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "AC25": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "AD25": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "AE25": {
+     "formula": "1",
+     "border": "1px solid #000"
+    },
+    "C27": {
+     "formula": "Formaleta",
+     "textColor": "#642191",
+     "border": "1px solid #000"
+    },
+    "N27": {
+     "formula": "Aislamiento",
+     "textColor": "#552277",
+     "border": "1px solid #000"
+    },
+    "O27": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "P27": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "Q27": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "R27": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "S27": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "Y27": {
+     "formula": "Refrigeraciones",
+     "textColor": "#5b1281",
+     "border": "1px solid #000"
+    },
+    "C28": {
+     "formula": "Espesor (mm)",
+     "border": "1px solid #000"
+    },
+    "D28": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "E28": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "F28": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "G28": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "H28": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "I28": {
+     "formula": "3",
+     "border": "1px solid #000"
+    },
+    "N28": {
+     "formula": "Aislamiento 1. (mm)",
+     "border": "1px solid #000"
+    },
+    "O28": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "P28": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "Q28": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "R28": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "S28": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "T28": {
+     "formula": "=Tablas!C231",
+     "border": "1px solid #000"
+    },
+    "Y28": {
+     "formula": "Espesor Refrigeración (mm)",
+     "border": "1px solid #000"
+    },
+    "AE28": {
+     "formula": "6",
+     "border": "1px solid #000"
+    },
+    "C29": {
+     "formula": "Aislamiento (0,25 mm)",
+     "border": "1px solid #000"
+    },
+    "D29": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "E29": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "F29": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "G29": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "H29": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "I29": {
+     "formula": "2",
+     "border": "1px solid #000"
+    },
+    "N29": {
+     "formula": "Aislamiento 2. (mm)",
+     "border": "1px solid #000"
+    },
+    "O29": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "P29": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "Q29": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "R29": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "S29": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "T29": {
+     "formula": "=Tablas!C232",
+     "border": "1px solid #000"
+    },
+    "Y29": {
+     "formula": "# refrigeraciones",
+     "border": "1px solid #000"
+    },
+    "AE29": {
+     "formula": "2",
+     "border": "1px solid #000"
+    },
+    "C30": {
+     "formula": "Cuña en redondo (mm)",
+     "border": "1px solid #000"
+    },
+    "D30": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "E30": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "F30": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "G30": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "H30": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "I30": {
+     "formula": "6",
+     "border": "1px solid #000"
+    },
+    "N30": {
+     "formula": "Aislamiento 3. (mm)",
+     "border": "1px solid #000"
+    },
+    "O30": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "P30": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "Q30": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "R30": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "S30": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "T30": {
+     "formula": "0",
+     "border": "1px solid #000"
+    },
+    "Y30": {
+     "formula": "Gradiente (°k)",
+     "border": "1px solid #000"
+    },
+    "AE30": {
+     "formula": "=AE28*AE29+I22/100+8.3",
+     "border": "1px solid #000"
+    },
+    "C32": {
+     "formula": "Núcleo y Espiras BT",
+     "textColor": "#651b8d",
+     "border": "1px solid #000"
+    },
+    "N32": {
+     "formula": "Resistencia",
+     "textColor": "#67188b",
+     "border": "1px solid #000"
+    },
+    "Y32": {
+     "formula": "Pesos",
+     "textColor": "#77129b",
+     "border": "1px solid #000"
+    },
+    "C33": {
+     "formula": "Grado chapa magnética",
+     "border": "1px solid #000"
+    },
+    "I33": {
+     "formula": "M0 0,75",
+     "border": "1px solid #000"
+    },
+    "N33": {
+     "formula": "Resistencia BT (mohms)",
+     "border": "1px solid #000"
+    },
+    "T33": {
+     "formula": "115",
+     "border": "1px solid #000"
+    },
+    "Y33": {
+     "formula": "Peso fibra (kg)",
+     "border": "1px solid #000"
+    },
+    "AE33": {
+     "formula": "16,708",
+     "border": "1px solid #000"
+    },
+    "C34": {
+     "formula": "Fleje",
+     "border": "1px solid #000"
+    },
+    "I34": {
+     "formula": "100",
+     "border": "1px solid #000"
+    },
+    "N34": {
+     "formula": "Largo terminales (mm)",
+     "border": "1px solid #000"
+    },
+    "T34": {
+     "formula": "200",
+     "border": "1px solid #000"
+    },
+    "Y34": {
+     "formula": "Peso papel formaleta (kg)",
+     "border": "1px solid #000"
+    },
+    "AE34": {
+     "formula": "0,320046",
+     "border": "1px solid #000"
+    },
+    "C35": {
+     "formula": "Grueso un bloque",
+     "border": "1px solid #000"
+    },
+    "I35": {
+     "formula": "80",
+     "border": "1px solid #000"
+    },
+    "N35": {
+     "formula": "Espesor lado BT (cm)",
+     "border": "1px solid #000"
+    },
+    "T35": {
+     "formula": "30,13",
+     "border": "1px solid #000"
+    },
+    "Y35": {
+     "formula": "Peso cuña formaleta (kg)",
+     "border": "1px solid #000"
+    },
+    "AE35": {
+     "formula": "0,012",
+     "border": "1px solid #000"
+    },
+    "C36": {
+     "formula": "Factor apilamiento",
+     "border": "1px solid #000"
+    },
+    "I36": {
+     "formula": "0.95",
+     "border": "1px solid #000"
+    },
+    "N36": {
+     "formula": "Espesor frontal BT (cm)",
+     "border": "1px solid #000"
+    },
+    "T36": {
+     "formula": "23",
+     "border": "1px solid #000"
+    },
+    "Y36": {
+     "formula": "Peso aislamiento 1 (kg)",
+     "border": "1px solid #000"
+    },
+    "AE36": {
+     "formula": "0,01248",
+     "border": "1px solid #000"
+    },
+    "C37": {
+     "formula": "Número de capas",
+     "border": "1px solid #000"
+    },
+    "I37": {
+     "formula": "10",
+     "border": "1px solid #000"
+    },
+    "N37": {
+     "formula": "Lm (cm)",
+     "border": "1px solid #000"
+    },
+    "T37": {
+     "formula": "36",
+     "border": "1px solid #000"
+    },
+    "Y37": {
+     "formula": "Peso aislamiento 2 (kg)",
+     "border": "1px solid #000"
+    },
+    "AE37": {
+     "formula": "0,0075",
+     "border": "1px solid #000"
+    },
+    "C38": {
+     "formula": "Número de espiras/ capa",
+     "border": "1px solid #000"
+    },
+    "I38": {
+     "formula": "1",
+     "border": "1px solid #000"
+    },
+    "Y38": {
+     "formula": "Peso aislamiento 3 (kg)",
+     "border": "1px solid #000"
+    },
+    "AE38": {
+     "formula": "0",
+     "border": "1px solid #000"
+    },
+    "C39": {
+     "formula": "Inducción (T)",
+     "border": "1px solid #000"
+    },
+    "I39": {
+     "formula": "=Q14*10^6/(2.22*I34*I35*I36*I37*I38*10^3)",
+     "border": "1px solid #000"
+    },
+    "Y39": {
+     "formula": "Peso cuña refrigeración (kg)",
+     "border": "1px solid #000"
+    },
+    "AE39": {
+     "formula": "0,072",
+     "border": "1px solid #000"
+    },
+    "Y40": {
+     "formula": "Peso conductor 1. (kg)",
+     "border": "1px solid #000"
+    },
+    "AE40": {
+     "formula": "6,912",
+     "border": "1px solid #000"
+    },
+    "Y41": {
+     "formula": "Peso conductor 2. (kg)",
+     "border": "1px solid #000"
+    },
+    "AE41": {
+     "formula": "2,272",
+     "border": "1px solid #000"
+    },
+    "Y42": {
+     "formula": "Peso Núcleo (kg)",
+     "border": "1px solid #000"
+    },
+    "AE42": {
+     "formula": "115.2",
+     "border": "1px solid #000"
+    },
+    "L13": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "AH29": {
+     "formula": "=AE28*AE29"
+    },
+    "J13": {
+     "formula": "Voltaje Primario [V]",
+     "bold": true,
+     "border": "1px solid #000"
+    },
+    "K13": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "M13": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "N13": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "O13": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "P13": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "Q13": {
+     "formula": "7620",
+     "border": "1px solid #000"
+    },
+    "J14": {
+     "formula": "Voltaje Secundario [V]",
+     "bold": true,
+     "border": "1px solid #000"
+    },
+    "K14": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "M14": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "N14": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "O14": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "P14": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "Q14": {
+     "formula": "240",
+     "border": "1px solid #000"
+    },
+    "J15": {
+     "formula": "Posiciones del cambiador",
+     "bold": true,
+     "border": "1px solid #000"
+    },
+    "K15": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "L15": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "M15": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "N15": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "O15": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "P15": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "Q15": {
+     "formula": "7",
+     "border": "1px solid #000"
+    },
+    "J16": {
+     "formula": "Posición nominal TAP",
+     "bold": true,
+     "border": "1px solid #000"
+    },
+    "K16": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "L16": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "M16": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "N16": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "O16": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "P16": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "Q16": {
+     "formula": "3",
+     "border": "1px solid #000"
+    },
+    "J17": {
+     "formula": "% derivación TAP",
+     "bold": true,
+     "border": "1px solid #000"
+    },
+    "K17": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "L17": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "M17": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "N17": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "O17": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "P17": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "Q17": {
+     "formula": "2.5",
+     "border": "1px solid #000"
+    },
+    "B44": {
+     "formula": "DRAW:FRONTAL:NUCLEO:H53,H54"
+    },
+    "I44": {
+     "formula": "DRAW:SUPERIOR:NUCLEO,BOBINA:,H54:S55"
+    },
+    "N44": {
+     "formula": "DRAW:FRONTAL:TANQUE,NUCLEO,BOBINA:H53,H54::AD53,AD55"
+    },
+    "V44": {
+     "formula": "DRAW:SUPERIOR:TANQUE,NUCLEO,BOBINA:,H54:S55:,AD55"
+    },
+    "B52": {
+     "formula": "Núcleo"
+    },
+    "M52": {
+     "formula": "Bobina"
+    },
+    "X52": {
+     "formula": "Tanque"
+    },
+    "B53": {
+     "formula": "Alto (mm)"
+    },
+    "H53": {
+     "formula": "340"
+    },
+    "M53": {
+     "formula": "Alto (mm)"
+    },
+    "S53": {
+     "formula": "180,00"
+    },
+    "X53": {
+     "formula": "Alto (mm)"
+    },
+    "AD53": {
+     "formula": "800"
+    },
+    "B54": {
+     "formula": "Ancho (mm)"
+    },
+    "H54": {
+     "formula": "340"
+    },
+    "M54": {
+     "formula": "Ancho (mm)"
+    },
+    "S54": {
+     "formula": "179,08"
+    },
+    "X54": {
+     "formula": "Ancho (mm)"
+    },
+    "AD54": {
+     "formula": "493,5"
+    },
+    "B55": {
+     "formula": "Diagonal (mm)"
+    },
+    "H55": {
+     "formula": "353,52"
+    },
+    "M55": {
+     "formula": "Profundidad (mm)"
+    },
+    "S55": {
+     "formula": "320"
+    },
+    "X55": {
+     "formula": "Diámetro (mm)"
+    },
+    "AD55": {
+     "formula": "433"
+    },
+    "Q10": {
+     "formula": "",
+     "goTo": {
+      "conditionCells": [
+       "I23"
+      ]
+     }
+    },
+    "B57": {
+     "formula": "Superior"
+    },
+    "K57": {
+     "formula": "Inferior"
+    },
+    "B58": {
+     "formula": "Fleje"
+    },
+    "D58": {
+     "formula": "[mm]"
+    },
+    "F58": {
+     "formula": "Grueso"
+    },
+    "H58": {
+     "formula": "[mm]"
+    },
+    "K58": {
+     "formula": "Fleje"
+    },
+    "M58": {
+     "formula": "[mm]"
+    },
+    "O58": {
+     "formula": "Grueso"
+    },
+    "Q58": {
+     "formula": "[mm]"
+    },
+    "B59": {
+     "formula": "B1"
+    },
+    "D59": {
+     "formula": "300"
+    },
+    "F59": {
+     "formula": "S1"
+    },
+    "H59": {
+     "formula": "259.8"
+    },
+    "K59": {
+     "formula": "B1"
+    },
+    "M59": {
+     "formula": "300"
+    },
+    "O59": {
+     "formula": "S1"
+    },
+    "Q59": {
+     "formula": "259.8"
+    },
+    "B60": {
+     "formula": "B2"
+    },
+    "D60": {
+     "formula": "260"
+    },
+    "F60": {
+     "formula": "S2"
+    },
+    "H60": {
+     "formula": "74.8"
+    },
+    "K60": {
+     "formula": "B2"
+    },
+    "M60": {
+     "formula": "260"
+    },
+    "O60": {
+     "formula": "S2"
+    },
+    "Q60": {
+     "formula": "74.8"
+    },
+    "B61": {
+     "formula": "B3"
+    },
+    "D61": {
+     "formula": "230"
+    },
+    "F61": {
+     "formula": "S3"
+    },
+    "H61": {
+     "formula": "21.5"
+    },
+    "K61": {
+     "formula": "B3"
+    },
+    "M61": {
+     "formula": "230"
+    },
+    "O61": {
+     "formula": "S3"
+    },
+    "Q61": {
+     "formula": "21.5"
+    },
+    "B62": {
+     "formula": "B4"
+    },
+    "D62": {
+     "formula": "200"
+    },
+    "F62": {
+     "formula": "S4"
+    },
+    "H62": {
+     "formula": "15.5"
+    },
+    "K62": {
+     "formula": "B4"
+    },
+    "M62": {
+     "formula": "200"
+    },
+    "O62": {
+     "formula": "S4"
+    },
+    "Q62": {
+     "formula": "15.5"
+    },
+    "B63": {
+     "formula": "B5"
+    },
+    "D63": {
+     "formula": "180"
+    },
+    "F63": {
+     "formula": "S5"
+    },
+    "H63": {
+     "formula": "3,00"
+    },
+    "K63": {
+     "formula": "B5"
+    },
+    "M63": {
+     "formula": "180"
+    },
+    "O63": {
+     "formula": "S5"
+    },
+    "B64": {
+     "formula": "B6"
+    },
+    "D64": {
+     "formula": "150"
+    },
+    "F64": {
+     "formula": "S6"
+    },
+    "K64": {
+     "formula": "B6"
+    },
+    "M64": {
+     "formula": "150"
+    },
+    "O64": {
+     "formula": "S6"
+    },
+    "B65": {
+     "formula": "B7"
+    },
+    "D65": {
+     "formula": "130"
+    },
+    "F65": {
+     "formula": "S7"
+    },
+    "K65": {
+     "formula": "B7"
+    },
+    "M65": {
+     "formula": "130"
+    },
+    "O65": {
+     "formula": "S7"
+    },
+    "B66": {
+     "formula": "B8"
+    },
+    "D66": {
+     "formula": "100"
+    },
+    "F66": {
+     "formula": "S8"
+    },
+    "H66": {
+     "formula": "1,00"
+    },
+    "K66": {
+     "formula": "B8"
+    },
+    "M66": {
+     "formula": "100"
+    },
+    "O66": {
+     "formula": "S8"
+    },
+    "B67": {
+     "formula": "B9"
+    },
+    "D67": {
+     "formula": "80"
+    },
+    "F67": {
+     "formula": "S9"
+    },
+    "K67": {
+     "formula": "B9"
+    },
+    "M67": {
+     "formula": "80"
+    },
+    "O67": {
+     "formula": "S9"
+    },
+    "B68": {
+     "formula": "B10"
+    },
+    "D68": {
+     "formula": "60"
+    },
+    "F68": {
+     "formula": "S10"
+    },
+    "K68": {
+     "formula": "B10"
+    },
+    "M68": {
+     "formula": "60"
+    },
+    "O68": {
+     "formula": "S10"
+    },
+    "D56": {
+     "formula": "300"
+    },
+    "E56": {
+     "formula": "500"
+    },
+    "F56": {
+     "formula": "Ancho y Alto"
+    },
+    "G56": {
+     "formula": "100"
+    },
+    "H56": {
+     "formula": "60"
+    },
+    "I56": {
+     "formula": "100"
+    },
+    "K73": {
+     "formula": "DRAW:BOBINADO:D56:D59,D60,D61,D62:M59,M60,M61,M62:H59,H60,H61,H62:Q59,Q60,Q61,Q62:E56:G56:H56:I56"
+    },
+    "C56": {
+     "formula": "Diametros"
+    },
+    "J56": {
+     "formula": "Separacion"
+    }
+   },
+   "cellsStyles": {
+    "columnWidths": {
+     "0": 15,
+     "1": 112.5,
+     "2": 127.5,
+     "3": 91.25,
+     "4": 77.5,
+     "5": 178.75,
+     "6": 62,
+     "7": 102.5,
+     "8": 85,
+     "9": 163.75,
+     "10": 475.75,
+     "11": 60,
+     "12": 63.75,
+     "13": 40,
+     "14": 40,
+     "15": 40,
+     "16": 65,
+     "17": 40,
+     "18": 40,
+     "19": 40,
+     "20": 40,
+     "21": 40,
+     "22": 40,
+     "23": 40,
+     "24": 40,
+     "25": 40,
+     "26": 40,
+     "27": 40,
+     "28": 40,
+     "29": 40,
+     "30": 40,
+     "31": 40,
+     "32": 40
+    },
+    "rowHeights": {
+     "0": 24,
+     "1": 24,
+     "2": 24,
+     "3": 24,
+     "4": 24,
+     "5": 24,
+     "72": 367
+    },
+    "hiddenRows": [],
+    "hiddenColumns": [],
+    "freezeRow": 7,
+    "freezeColumn": 0,
+    "mergedCells": [
+     {
+      "startCell": "C2",
+      "endCell": "G2",
+      "rowSpan": 1,
+      "colSpan": 5
+     },
+     {
+      "startCell": "H2",
+      "endCell": "I2",
+      "rowSpan": 1,
+      "colSpan": 2
+     },
+     {
+      "startCell": "C3",
+      "endCell": "I3",
+      "rowSpan": 1,
+      "colSpan": 7
+     },
+     {
+      "startCell": "C5",
+      "endCell": "G5",
+      "rowSpan": 1,
+      "colSpan": 5
+     },
+     {
+      "startCell": "H5",
+      "endCell": "I5",
+      "rowSpan": 1,
+      "colSpan": 2
+     },
+     {
+      "startCell": "C6",
+      "endCell": "I6",
+      "rowSpan": 1,
+      "colSpan": 7
+     },
+     {
+      "startCell": "K2",
+      "endCell": "O2",
+      "rowSpan": 1,
+      "colSpan": 5
+     },
+     {
+      "startCell": "P2",
+      "endCell": "Q2",
+      "rowSpan": 1,
+      "colSpan": 2
+     },
+     {
+      "startCell": "K3",
+      "endCell": "Q3",
+      "rowSpan": 1,
+      "colSpan": 7
+     },
+     {
+      "startCell": "K5",
+      "endCell": "O5",
+      "rowSpan": 1,
+      "colSpan": 5
+     },
+     {
+      "startCell": "P5",
+      "endCell": "Q5",
+      "rowSpan": 1,
+      "colSpan": 2
+     },
+     {
+      "startCell": "K6",
+      "endCell": "Q6",
+      "rowSpan": 1,
+      "colSpan": 7
+     },
+     {
+      "startCell": "S2",
+      "endCell": "W2",
+      "rowSpan": 1,
+      "colSpan": 5
+     },
+     {
+      "startCell": "X2",
+      "endCell": "Y2",
+      "rowSpan": 1,
+      "colSpan": 2
+     },
+     {
+      "startCell": "S3",
+      "endCell": "Y3",
+      "rowSpan": 1,
+      "colSpan": 7
+     },
+     {
+      "startCell": "S5",
+      "endCell": "W5",
+      "rowSpan": 1,
+      "colSpan": 5
+     },
+     {
+      "startCell": "X5",
+      "endCell": "Y5",
+      "rowSpan": 1,
+      "colSpan": 2
+     },
+     {
+      "startCell": "S6",
+      "endCell": "Y6",
+      "rowSpan": 1,
+      "colSpan": 7
+     },
+     {
+      "startCell": "AA5",
+      "endCell": "AE5",
+      "rowSpan": 1,
+      "colSpan": 5
+     },
+     {
+      "startCell": "AF5",
+      "endCell": "AG5",
+      "rowSpan": 1,
+      "colSpan": 2
+     },
+     {
+      "startCell": "AA6",
+      "endCell": "AG6",
+      "rowSpan": 1,
+      "colSpan": 7
+     },
+     {
+      "startCell": "C9",
+      "endCell": "O9",
+      "rowSpan": 1,
+      "colSpan": 13
+     },
+     {
+      "startCell": "C11",
+      "endCell": "F11",
+      "rowSpan": 1,
+      "colSpan": 4
+     },
+     {
+      "startCell": "C13",
+      "endCell": "F13",
+      "rowSpan": 1,
+      "colSpan": 4
+     },
+     {
+      "startCell": "C14",
+      "endCell": "F14",
+      "rowSpan": 1,
+      "colSpan": 4
+     },
+     {
+      "startCell": "C15",
+      "endCell": "F15",
+      "rowSpan": 1,
+      "colSpan": 4
+     },
+     {
+      "startCell": "C16",
+      "endCell": "F16",
+      "rowSpan": 1,
+      "colSpan": 4
+     },
+     {
+      "startCell": "C17",
+      "endCell": "F17",
+      "rowSpan": 1,
+      "colSpan": 4
+     },
+     {
+      "startCell": "C19",
+      "endCell": "G19",
+      "rowSpan": 1,
+      "colSpan": 5
+     },
+     {
+      "startCell": "C21",
+      "endCell": "H21",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "C22",
+      "endCell": "H22",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "C23",
+      "endCell": "H23",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "C24",
+      "endCell": "H24",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "C25",
+      "endCell": "H25",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "I22",
+      "endCell": "K22",
+      "rowSpan": 1,
+      "colSpan": 3
+     },
+     {
+      "startCell": "I23",
+      "endCell": "K23",
+      "rowSpan": 1,
+      "colSpan": 3
+     },
+     {
+      "startCell": "I24",
+      "endCell": "K24",
+      "rowSpan": 1,
+      "colSpan": 3
+     },
+     {
+      "startCell": "I25",
+      "endCell": "K25",
+      "rowSpan": 1,
+      "colSpan": 3
+     },
+     {
+      "startCell": "N21",
+      "endCell": "T21",
+      "rowSpan": 1,
+      "colSpan": 7
+     },
+     {
+      "startCell": "N22",
+      "endCell": "T22",
+      "rowSpan": 1,
+      "colSpan": 7
+     },
+     {
+      "startCell": "N23",
+      "endCell": "T23",
+      "rowSpan": 1,
+      "colSpan": 7
+     },
+     {
+      "startCell": "N24",
+      "endCell": "T24",
+      "rowSpan": 1,
+      "colSpan": 7
+     },
+     {
+      "startCell": "N25",
+      "endCell": "T25",
+      "rowSpan": 1,
+      "colSpan": 7
+     },
+     {
+      "startCell": "U22",
+      "endCell": "V22",
+      "rowSpan": 1,
+      "colSpan": 2
+     },
+     {
+      "startCell": "U23",
+      "endCell": "V23",
+      "rowSpan": 1,
+      "colSpan": 2
+     },
+     {
+      "startCell": "U24",
+      "endCell": "V24",
+      "rowSpan": 1,
+      "colSpan": 2
+     },
+     {
+      "startCell": "U25",
+      "endCell": "V25",
+      "rowSpan": 1,
+      "colSpan": 2
+     },
+     {
+      "startCell": "Y21",
+      "endCell": "AD21",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "Y22",
+      "endCell": "AD22",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "Y23",
+      "endCell": "AD23",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "Y24",
+      "endCell": "AD24",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "Y25",
+      "endCell": "AD25",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "AE22",
+      "endCell": "AF22",
+      "rowSpan": 1,
+      "colSpan": 2
+     },
+     {
+      "startCell": "AE23",
+      "endCell": "AF23",
+      "rowSpan": 1,
+      "colSpan": 2
+     },
+     {
+      "startCell": "AE24",
+      "endCell": "AF24",
+      "rowSpan": 1,
+      "colSpan": 2
+     },
+     {
+      "startCell": "AE25",
+      "endCell": "AF25",
+      "rowSpan": 1,
+      "colSpan": 2
+     },
+     {
+      "startCell": "C27",
+      "endCell": "H27",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "C28",
+      "endCell": "H28",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "C29",
+      "endCell": "H29",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "C30",
+      "endCell": "H30",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "I28",
+      "endCell": "K28",
+      "rowSpan": 1,
+      "colSpan": 3
+     },
+     {
+      "startCell": "I29",
+      "endCell": "K29",
+      "rowSpan": 1,
+      "colSpan": 3
+     },
+     {
+      "startCell": "I30",
+      "endCell": "K30",
+      "rowSpan": 1,
+      "colSpan": 3
+     },
+     {
+      "startCell": "N27",
+      "endCell": "S27",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "N28",
+      "endCell": "S28",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "N29",
+      "endCell": "S29",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "T28",
+      "endCell": "V28",
+      "rowSpan": 1,
+      "colSpan": 3
+     },
+     {
+      "startCell": "T29",
+      "endCell": "V29",
+      "rowSpan": 1,
+      "colSpan": 3
+     },
+     {
+      "startCell": "T30",
+      "endCell": "V30",
+      "rowSpan": 1,
+      "colSpan": 3
+     },
+     {
+      "startCell": "N30",
+      "endCell": "S30",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "Y27",
+      "endCell": "AD27",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "Y28",
+      "endCell": "AD28",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "Y29",
+      "endCell": "AD29",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "Y30",
+      "endCell": "AD30",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "AE28",
+      "endCell": "AF28",
+      "rowSpan": 1,
+      "colSpan": 2
+     },
+     {
+      "startCell": "AE29",
+      "endCell": "AF29",
+      "rowSpan": 1,
+      "colSpan": 2
+     },
+     {
+      "startCell": "AE30",
+      "endCell": "AF30",
+      "rowSpan": 1,
+      "colSpan": 2
+     },
+     {
+      "startCell": "C32",
+      "endCell": "H32",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "C33",
+      "endCell": "H33",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "C34",
+      "endCell": "H34",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "C35",
+      "endCell": "H35",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "C36",
+      "endCell": "H36",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "C37",
+      "endCell": "H37",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "C38",
+      "endCell": "H38",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "C39",
+      "endCell": "H39",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "I33",
+      "endCell": "K33",
+      "rowSpan": 1,
+      "colSpan": 3
+     },
+     {
+      "startCell": "I34",
+      "endCell": "K34",
+      "rowSpan": 1,
+      "colSpan": 3
+     },
+     {
+      "startCell": "I35",
+      "endCell": "K35",
+      "rowSpan": 1,
+      "colSpan": 3
+     },
+     {
+      "startCell": "I36",
+      "endCell": "K36",
+      "rowSpan": 1,
+      "colSpan": 3
+     },
+     {
+      "startCell": "I37",
+      "endCell": "K37",
+      "rowSpan": 1,
+      "colSpan": 3
+     },
+     {
+      "startCell": "I38",
+      "endCell": "K38",
+      "rowSpan": 1,
+      "colSpan": 3
+     },
+     {
+      "startCell": "I39",
+      "endCell": "K39",
+      "rowSpan": 1,
+      "colSpan": 3
+     },
+     {
+      "startCell": "N32",
+      "endCell": "S32",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "N33",
+      "endCell": "S33",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "N34",
+      "endCell": "S34",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "N35",
+      "endCell": "S35",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "N36",
+      "endCell": "S36",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "N37",
+      "endCell": "S37",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "T33",
+      "endCell": "V33",
+      "rowSpan": 1,
+      "colSpan": 3
+     },
+     {
+      "startCell": "T34",
+      "endCell": "V34",
+      "rowSpan": 1,
+      "colSpan": 3
+     },
+     {
+      "startCell": "T35",
+      "endCell": "V35",
+      "rowSpan": 1,
+      "colSpan": 3
+     },
+     {
+      "startCell": "T36",
+      "endCell": "V36",
+      "rowSpan": 1,
+      "colSpan": 3
+     },
+     {
+      "startCell": "T37",
+      "endCell": "V37",
+      "rowSpan": 1,
+      "colSpan": 3
+     },
+     {
+      "startCell": "Y32",
+      "endCell": "AD32",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "Y33",
+      "endCell": "AD33",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "Y34",
+      "endCell": "AD34",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "Y35",
+      "endCell": "AD35",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "Y36",
+      "endCell": "AD36",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "Y37",
+      "endCell": "AD37",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "Y38",
+      "endCell": "AD38",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "Y39",
+      "endCell": "AD39",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "Y40",
+      "endCell": "AD40",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "Y41",
+      "endCell": "AD41",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "Y42",
+      "endCell": "AD42",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "AE33",
+      "endCell": "AF33",
+      "rowSpan": 1,
+      "colSpan": 2
+     },
+     {
+      "startCell": "AE34",
+      "endCell": "AF34",
+      "rowSpan": 1,
+      "colSpan": 2
+     },
+     {
+      "startCell": "AE35",
+      "endCell": "AF35",
+      "rowSpan": 1,
+      "colSpan": 2
+     },
+     {
+      "startCell": "AE36",
+      "endCell": "AF36",
+      "rowSpan": 1,
+      "colSpan": 2
+     },
+     {
+      "startCell": "AE37",
+      "endCell": "AF37",
+      "rowSpan": 1,
+      "colSpan": 2
+     },
+     {
+      "startCell": "AE38",
+      "endCell": "AF38",
+      "rowSpan": 1,
+      "colSpan": 2
+     },
+     {
+      "startCell": "AE39",
+      "endCell": "AF39",
+      "rowSpan": 1,
+      "colSpan": 2
+     },
+     {
+      "startCell": "AE40",
+      "endCell": "AF40",
+      "rowSpan": 1,
+      "colSpan": 2
+     },
+     {
+      "startCell": "AE41",
+      "endCell": "AF41",
+      "rowSpan": 1,
+      "colSpan": 2
+     },
+     {
+      "startCell": "AE42",
+      "endCell": "AF42",
+      "rowSpan": 1,
+      "colSpan": 2
+     },
+     {
+      "startCell": "J13",
+      "endCell": "P13",
+      "rowSpan": 1,
+      "colSpan": 7
+     },
+     {
+      "startCell": "J14",
+      "endCell": "P14",
+      "rowSpan": 1,
+      "colSpan": 7
+     },
+     {
+      "startCell": "J15",
+      "endCell": "P15",
+      "rowSpan": 1,
+      "colSpan": 7
+     },
+     {
+      "startCell": "J16",
+      "endCell": "P16",
+      "rowSpan": 1,
+      "colSpan": 7
+     },
+     {
+      "startCell": "J17",
+      "endCell": "P17",
+      "rowSpan": 1,
+      "colSpan": 7
+     },
+     {
+      "startCell": "B44",
+      "endCell": "G49",
+      "rowSpan": 6,
+      "colSpan": 6
+     },
+     {
+      "startCell": "I44",
+      "endCell": "L50",
+      "rowSpan": 7,
+      "colSpan": 4
+     },
+     {
+      "startCell": "N44",
+      "endCell": "T50",
+      "rowSpan": 7,
+      "colSpan": 7
+     },
+     {
+      "startCell": "V44",
+      "endCell": "AB50",
+      "rowSpan": 7,
+      "colSpan": 7
+     },
+     {
+      "startCell": "B52",
+      "endCell": "G52",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "B53",
+      "endCell": "G53",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "B54",
+      "endCell": "G54",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "B55",
+      "endCell": "G55",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "M52",
+      "endCell": "R52",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "M53",
+      "endCell": "R53",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "M54",
+      "endCell": "R54",
+      "rowSpan": 1,
+      "colSpan": 6
+     },
+     {
+      "startCell": "M55",
+      "endCell": "R55",
+      "rowSpan": 1,
+      "colSpan": 6
+     }
+    ],
+    "namedRanges": [],
+    "semiFinishedZones": [],
+    "itemCatalogTables": []
+   }
+  },
+  {
+   "name": "Tablas",
+   "cells": {
+    "A1": {
+     "formula": "Item",
+     "bold": true
+    },
+    "B10": {
+     "formula": "=SUM(B2:B9)",
+     "border": "1px solid #000"
+    },
+    "B2": {
+     "formula": "Altura (msnm)",
+     "border": "1px solid #000"
+    },
+    "C2": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "B3": {
+     "formula": "1000",
+     "border": "1px solid #000"
+    },
+    "C3": {
+     "formula": "1,1",
+     "border": "1px solid #000"
+    },
+    "B4": {
+     "formula": "1500",
+     "border": "1px solid #000"
+    },
+    "C4": {
+     "formula": "1,2",
+     "border": "1px solid #000"
+    },
+    "B5": {
+     "formula": "2000",
+     "border": "1px solid #000"
+    },
+    "C5": {
+     "formula": "1,3",
+     "border": "1px solid #000"
+    },
+    "B6": {
+     "formula": "2500",
+     "border": "1px solid #000"
+    },
+    "C6": {
+     "formula": "1,5",
+     "border": "1px solid #000"
+    },
+    "B7": {
+     "formula": "3000",
+     "border": "1px solid #000"
+    },
+    "C7": {
+     "formula": "1,8",
+     "border": "1px solid #000"
+    },
+    "B8": {
+     "formula": "3500",
+     "border": "1px solid #000"
+    },
+    "C8": {
+     "formula": "2,2",
+     "border": "1px solid #000"
+    },
+    "B9": {
+     "formula": "4000",
+     "border": "1px solid #000"
+    },
+    "C9": {
+     "formula": "2,3",
+     "border": "1px solid #000"
+    },
+    "C10": {
+     "formula": "2,5",
+     "border": "1px solid #000"
+    },
+    "B14": {
+     "formula": "h",
+     "border": "1px solid #000"
+    },
+    "C14": {
+     "formula": "Ih/I",
+     "border": "1px solid #000"
+    },
+    "D14": {
+     "formula": "(Ih/I)^2",
+     "border": "1px solid #000"
+    },
+    "E14": {
+     "formula": "h^2",
+     "border": "1px solid #000"
+    },
+    "F14": {
+     "formula": "(Ih/I)^2*h^2",
+     "border": "1px solid #000"
+    },
+    "G14": {
+     "formula": "h^0,8",
+     "border": "1px solid #000"
+    },
+    "H14": {
+     "formula": "(Ih/I)^2*h^0,8",
+     "border": "1px solid #000"
+    },
+    "J14": {
+     "formula": "h",
+     "border": "1px solid #000"
+    },
+    "K14": {
+     "formula": "Ih/I",
+     "border": "1px solid #000"
+    },
+    "M14": {
+     "formula": "h",
+     "border": "1px solid #000"
+    },
+    "N14": {
+     "formula": "Ih/I",
+     "border": "1px solid #000"
+    },
+    "P14": {
+     "formula": "h",
+     "border": "1px solid #000"
+    },
+    "Q14": {
+     "formula": "Ih/I",
+     "border": "1px solid #000"
+    },
+    "S14": {
+     "formula": "h",
+     "border": "1px solid #000"
+    },
+    "T14": {
+     "formula": "Ih/I",
+     "border": "1px solid #000"
+    },
+    "V14": {
+     "formula": "h",
+     "border": "1px solid #000"
+    },
+    "W14": {
+     "formula": "Ih/I",
+     "border": "1px solid #000"
+    },
+    "Y14": {
+     "formula": "h",
+     "border": "1px solid #000"
+    },
+    "Z14": {
+     "formula": "Ih/I",
+     "border": "1px solid #000"
+    },
+    "B15": {
+     "formula": "1",
+     "border": "1px solid #000"
+    },
+    "C15": {
+     "formula": "1,000",
+     "border": "1px solid #000"
+    },
+    "D15": {
+     "formula": "1,000",
+     "border": "1px solid #000"
+    },
+    "E15": {
+     "formula": "1,000",
+     "border": "1px solid #000"
+    },
+    "F15": {
+     "formula": "1,000",
+     "border": "1px solid #000"
+    },
+    "G15": {
+     "formula": "1,000",
+     "border": "1px solid #000"
+    },
+    "H15": {
+     "formula": "1,000",
+     "border": "1px solid #000"
+    },
+    "J15": {
+     "formula": "1",
+     "border": "1px solid #000"
+    },
+    "K15": {
+     "formula": "1,000",
+     "border": "1px solid #000"
+    },
+    "M15": {
+     "formula": "1",
+     "border": "1px solid #000"
+    },
+    "N15": {
+     "formula": "1,000",
+     "border": "1px solid #000"
+    },
+    "P15": {
+     "formula": "1",
+     "border": "1px solid #000"
+    },
+    "Q15": {
+     "formula": "1,000",
+     "border": "1px solid #000"
+    },
+    "S15": {
+     "formula": "1",
+     "border": "1px solid #000"
+    },
+    "T15": {
+     "formula": "1,000",
+     "border": "1px solid #000"
+    },
+    "V15": {
+     "formula": "1",
+     "border": "1px solid #000"
+    },
+    "W15": {
+     "formula": "1,000",
+     "border": "1px solid #000"
+    },
+    "Y15": {
+     "formula": "1",
+     "border": "1px solid #000"
+    },
+    "Z15": {
+     "formula": "1,000",
+     "border": "1px solid #000"
+    },
+    "B16": {
+     "formula": "3",
+     "border": "1px solid #000"
+    },
+    "C16": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "D16": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "E16": {
+     "formula": "9,000",
+     "border": "1px solid #000"
+    },
+    "F16": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "G16": {
+     "formula": "2,408",
+     "border": "1px solid #000"
+    },
+    "H16": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "J16": {
+     "formula": "3",
+     "border": "1px solid #000"
+    },
+    "K16": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "M16": {
+     "formula": "3",
+     "border": "1px solid #000"
+    },
+    "N16": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "P16": {
+     "formula": "3",
+     "border": "1px solid #000"
+    },
+    "Q16": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "S16": {
+     "formula": "3",
+     "border": "1px solid #000"
+    },
+    "T16": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "V16": {
+     "formula": "3",
+     "border": "1px solid #000"
+    },
+    "W16": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "Y16": {
+     "formula": "3",
+     "border": "1px solid #000"
+    },
+    "Z16": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "B17": {
+     "formula": "5",
+     "border": "1px solid #000"
+    },
+    "C17": {
+     "formula": "0,200",
+     "border": "1px solid #000"
+    },
+    "D17": {
+     "formula": "0,040",
+     "border": "1px solid #000"
+    },
+    "E17": {
+     "formula": "25,000",
+     "border": "1px solid #000"
+    },
+    "F17": {
+     "formula": "1,000",
+     "border": "1px solid #000"
+    },
+    "G17": {
+     "formula": "3,624",
+     "border": "1px solid #000"
+    },
+    "H17": {
+     "formula": "0,145",
+     "border": "1px solid #000"
+    },
+    "J17": {
+     "formula": "5",
+     "border": "1px solid #000"
+    },
+    "K17": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "M17": {
+     "formula": "5",
+     "border": "1px solid #000"
+    },
+    "N17": {
+     "formula": "0,200",
+     "border": "1px solid #000"
+    },
+    "P17": {
+     "formula": "5",
+     "border": "1px solid #000"
+    },
+    "Q17": {
+     "formula": "0,220",
+     "border": "1px solid #000"
+    },
+    "S17": {
+     "formula": "5",
+     "border": "1px solid #000"
+    },
+    "T17": {
+     "formula": "0,300",
+     "border": "1px solid #000"
+    },
+    "V17": {
+     "formula": "5",
+     "border": "1px solid #000"
+    },
+    "W17": {
+     "formula": "0,600",
+     "border": "1px solid #000"
+    },
+    "Y17": {
+     "formula": "5",
+     "border": "1px solid #000"
+    },
+    "Z17": {
+     "formula": "0,650",
+     "border": "1px solid #000"
+    },
+    "B18": {
+     "formula": "7",
+     "border": "1px solid #000"
+    },
+    "C18": {
+     "formula": "0,130",
+     "border": "1px solid #000"
+    },
+    "D18": {
+     "formula": "0,017",
+     "border": "1px solid #000"
+    },
+    "E18": {
+     "formula": "49,000",
+     "border": "1px solid #000"
+    },
+    "F18": {
+     "formula": "0,828",
+     "border": "1px solid #000"
+    },
+    "G18": {
+     "formula": "4,743",
+     "border": "1px solid #000"
+    },
+    "H18": {
+     "formula": "0,080",
+     "border": "1px solid #000"
+    },
+    "J18": {
+     "formula": "7",
+     "border": "1px solid #000"
+    },
+    "K18": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "M18": {
+     "formula": "7",
+     "border": "1px solid #000"
+    },
+    "N18": {
+     "formula": "0,130",
+     "border": "1px solid #000"
+    },
+    "P18": {
+     "formula": "7",
+     "border": "1px solid #000"
+    },
+    "Q18": {
+     "formula": "0,150",
+     "border": "1px solid #000"
+    },
+    "S18": {
+     "formula": "7",
+     "border": "1px solid #000"
+    },
+    "T18": {
+     "formula": "0,130",
+     "border": "1px solid #000"
+    },
+    "V18": {
+     "formula": "7",
+     "border": "1px solid #000"
+    },
+    "W18": {
+     "formula": "0,130",
+     "border": "1px solid #000"
+    },
+    "Y18": {
+     "formula": "7",
+     "border": "1px solid #000"
+    },
+    "Z18": {
+     "formula": "0,110",
+     "border": "1px solid #000"
+    },
+    "B19": {
+     "formula": "9",
+     "border": "1px solid #000"
+    },
+    "C19": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "D19": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "E19": {
+     "formula": "81,000",
+     "border": "1px solid #000"
+    },
+    "F19": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "G19": {
+     "formula": "5,800",
+     "border": "1px solid #000"
+    },
+    "H19": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "J19": {
+     "formula": "9",
+     "border": "1px solid #000"
+    },
+    "K19": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "M19": {
+     "formula": "9",
+     "border": "1px solid #000"
+    },
+    "N19": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "P19": {
+     "formula": "9",
+     "border": "1px solid #000"
+    },
+    "Q19": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "S19": {
+     "formula": "9",
+     "border": "1px solid #000"
+    },
+    "T19": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "V19": {
+     "formula": "9",
+     "border": "1px solid #000"
+    },
+    "W19": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "Y19": {
+     "formula": "9",
+     "border": "1px solid #000"
+    },
+    "Z19": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "B20": {
+     "formula": "11",
+     "border": "1px solid #000"
+    },
+    "C20": {
+     "formula": "0,070",
+     "border": "1px solid #000"
+    },
+    "D20": {
+     "formula": "0,005",
+     "border": "1px solid #000"
+    },
+    "E20": {
+     "formula": "121,000",
+     "border": "1px solid #000"
+    },
+    "F20": {
+     "formula": "0,593",
+     "border": "1px solid #000"
+    },
+    "G20": {
+     "formula": "6,809",
+     "border": "1px solid #000"
+    },
+    "H20": {
+     "formula": "0,033",
+     "border": "1px solid #000"
+    },
+    "J20": {
+     "formula": "11",
+     "border": "1px solid #000"
+    },
+    "K20": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "M20": {
+     "formula": "11",
+     "border": "1px solid #000"
+    },
+    "N20": {
+     "formula": "0,070",
+     "border": "1px solid #000"
+    },
+    "P20": {
+     "formula": "11",
+     "border": "1px solid #000"
+    },
+    "Q20": {
+     "formula": "0,010",
+     "border": "1px solid #000"
+    },
+    "S20": {
+     "formula": "11",
+     "border": "1px solid #000"
+    },
+    "T20": {
+     "formula": "0,070",
+     "border": "1px solid #000"
+    },
+    "V20": {
+     "formula": "11",
+     "border": "1px solid #000"
+    },
+    "W20": {
+     "formula": "0,800",
+     "border": "1px solid #000"
+    },
+    "Y20": {
+     "formula": "11",
+     "border": "1px solid #000"
+    },
+    "Z20": {
+     "formula": "0,070",
+     "border": "1px solid #000"
+    },
+    "B21": {
+     "formula": "13",
+     "border": "1px solid #000"
+    },
+    "C21": {
+     "formula": "0,050",
+     "border": "1px solid #000"
+    },
+    "D21": {
+     "formula": "0,003",
+     "border": "1px solid #000"
+    },
+    "E21": {
+     "formula": "169,000",
+     "border": "1px solid #000"
+    },
+    "F21": {
+     "formula": "0,423",
+     "border": "1px solid #000"
+    },
+    "G21": {
+     "formula": "7,783",
+     "border": "1px solid #000"
+    },
+    "H21": {
+     "formula": "0,019",
+     "border": "1px solid #000"
+    },
+    "J21": {
+     "formula": "13",
+     "border": "1px solid #000"
+    },
+    "K21": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "M21": {
+     "formula": "13",
+     "border": "1px solid #000"
+    },
+    "N21": {
+     "formula": "0,050",
+     "border": "1px solid #000"
+    },
+    "P21": {
+     "formula": "13",
+     "border": "1px solid #000"
+    },
+    "Q21": {
+     "formula": "0,060",
+     "border": "1px solid #000"
+    },
+    "S21": {
+     "formula": "13",
+     "border": "1px solid #000"
+    },
+    "T21": {
+     "formula": "0,060",
+     "border": "1px solid #000"
+    },
+    "V21": {
+     "formula": "13",
+     "border": "1px solid #000"
+    },
+    "W21": {
+     "formula": "0,050",
+     "border": "1px solid #000"
+    },
+    "Y21": {
+     "formula": "13",
+     "border": "1px solid #000"
+    },
+    "Z21": {
+     "formula": "0,050",
+     "border": "1px solid #000"
+    },
+    "B22": {
+     "formula": "15",
+     "border": "1px solid #000"
+    },
+    "C22": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "D22": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "E22": {
+     "formula": "225,000",
+     "border": "1px solid #000"
+    },
+    "F22": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "G22": {
+     "formula": "8,727",
+     "border": "1px solid #000"
+    },
+    "H22": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "J22": {
+     "formula": "15",
+     "border": "1px solid #000"
+    },
+    "K22": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "M22": {
+     "formula": "15",
+     "border": "1px solid #000"
+    },
+    "N22": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "P22": {
+     "formula": "15",
+     "border": "1px solid #000"
+    },
+    "Q22": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "S22": {
+     "formula": "15",
+     "border": "1px solid #000"
+    },
+    "T22": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "V22": {
+     "formula": "15",
+     "border": "1px solid #000"
+    },
+    "W22": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "Y22": {
+     "formula": "15",
+     "border": "1px solid #000"
+    },
+    "Z22": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "B23": {
+     "formula": "17",
+     "border": "1px solid #000"
+    },
+    "C23": {
+     "formula": "0,030",
+     "border": "1px solid #000"
+    },
+    "D23": {
+     "formula": "0,001",
+     "border": "1px solid #000"
+    },
+    "E23": {
+     "formula": "289,000",
+     "border": "1px solid #000"
+    },
+    "F23": {
+     "formula": "0,260",
+     "border": "1px solid #000"
+    },
+    "G23": {
+     "formula": "9,646",
+     "border": "1px solid #000"
+    },
+    "H23": {
+     "formula": "0,009",
+     "border": "1px solid #000"
+    },
+    "J23": {
+     "formula": "17",
+     "border": "1px solid #000"
+    },
+    "K23": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "M23": {
+     "formula": "17",
+     "border": "1px solid #000"
+    },
+    "N23": {
+     "formula": "0,030",
+     "border": "1px solid #000"
+    },
+    "P23": {
+     "formula": "17",
+     "border": "1px solid #000"
+    },
+    "Q23": {
+     "formula": "0,050",
+     "border": "1px solid #000"
+    },
+    "S23": {
+     "formula": "17",
+     "border": "1px solid #000"
+    },
+    "T23": {
+     "formula": "0,030",
+     "border": "1px solid #000"
+    },
+    "V23": {
+     "formula": "17",
+     "border": "1px solid #000"
+    },
+    "W23": {
+     "formula": "0,030",
+     "border": "1px solid #000"
+    },
+    "Y23": {
+     "formula": "17",
+     "border": "1px solid #000"
+    },
+    "Z23": {
+     "formula": "0,030",
+     "border": "1px solid #000"
+    },
+    "B24": {
+     "formula": "19",
+     "border": "1px solid #000"
+    },
+    "C24": {
+     "formula": "0,020",
+     "border": "1px solid #000"
+    },
+    "D24": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "E24": {
+     "formula": "361,000",
+     "border": "1px solid #000"
+    },
+    "F24": {
+     "formula": "0,144",
+     "border": "1px solid #000"
+    },
+    "G24": {
+     "formula": "10,544",
+     "border": "1px solid #000"
+    },
+    "H24": {
+     "formula": "0,004",
+     "border": "1px solid #000"
+    },
+    "J24": {
+     "formula": "19",
+     "border": "1px solid #000"
+    },
+    "K24": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "M24": {
+     "formula": "19",
+     "border": "1px solid #000"
+    },
+    "N24": {
+     "formula": "0,020",
+     "border": "1px solid #000"
+    },
+    "P24": {
+     "formula": "19",
+     "border": "1px solid #000"
+    },
+    "Q24": {
+     "formula": "0,020",
+     "border": "1px solid #000"
+    },
+    "S24": {
+     "formula": "19",
+     "border": "1px solid #000"
+    },
+    "T24": {
+     "formula": "0,020",
+     "border": "1px solid #000"
+    },
+    "V24": {
+     "formula": "19",
+     "border": "1px solid #000"
+    },
+    "W24": {
+     "formula": "0,020",
+     "border": "1px solid #000"
+    },
+    "Y24": {
+     "formula": "19",
+     "border": "1px solid #000"
+    },
+    "Z24": {
+     "formula": "0,020",
+     "border": "1px solid #000"
+    },
+    "B25": {
+     "formula": "21",
+     "border": "1px solid #000"
+    },
+    "C25": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "D25": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "E25": {
+     "formula": "441,000",
+     "border": "1px solid #000"
+    },
+    "F25": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "G25": {
+     "formula": "11,423",
+     "border": "1px solid #000"
+    },
+    "H25": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "J25": {
+     "formula": "21",
+     "border": "1px solid #000"
+    },
+    "K25": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "M25": {
+     "formula": "21",
+     "border": "1px solid #000"
+    },
+    "N25": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "P25": {
+     "formula": "21",
+     "border": "1px solid #000"
+    },
+    "Q25": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "S25": {
+     "formula": "21",
+     "border": "1px solid #000"
+    },
+    "T25": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "V25": {
+     "formula": "21",
+     "border": "1px solid #000"
+    },
+    "W25": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "Y25": {
+     "formula": "21",
+     "border": "1px solid #000"
+    },
+    "Z25": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "B26": {
+     "formula": "23",
+     "border": "1px solid #000"
+    },
+    "C26": {
+     "formula": "0,010",
+     "border": "1px solid #000"
+    },
+    "D26": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "E26": {
+     "formula": "529,000",
+     "border": "1px solid #000"
+    },
+    "F26": {
+     "formula": "0,053",
+     "border": "1px solid #000"
+    },
+    "G26": {
+     "formula": "12,285",
+     "border": "1px solid #000"
+    },
+    "H26": {
+     "formula": "0,001",
+     "border": "1px solid #000"
+    },
+    "J26": {
+     "formula": "23",
+     "border": "1px solid #000"
+    },
+    "K26": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "M26": {
+     "formula": "23",
+     "border": "1px solid #000"
+    },
+    "N26": {
+     "formula": "0,010",
+     "border": "1px solid #000"
+    },
+    "P26": {
+     "formula": "23",
+     "border": "1px solid #000"
+    },
+    "Q26": {
+     "formula": "0,010",
+     "border": "1px solid #000"
+    },
+    "S26": {
+     "formula": "23",
+     "border": "1px solid #000"
+    },
+    "T26": {
+     "formula": "0,010",
+     "border": "1px solid #000"
+    },
+    "V26": {
+     "formula": "23",
+     "border": "1px solid #000"
+    },
+    "W26": {
+     "formula": "0,010",
+     "border": "1px solid #000"
+    },
+    "Y26": {
+     "formula": "23",
+     "border": "1px solid #000"
+    },
+    "Z26": {
+     "formula": "0,010",
+     "border": "1px solid #000"
+    },
+    "B27": {
+     "formula": "25",
+     "border": "1px solid #000"
+    },
+    "C27": {
+     "formula": "0,060",
+     "border": "1px solid #000"
+    },
+    "D27": {
+     "formula": "0,004",
+     "border": "1px solid #000"
+    },
+    "E27": {
+     "formula": "625,000",
+     "border": "1px solid #000"
+    },
+    "F27": {
+     "formula": "2,250",
+     "border": "1px solid #000"
+    },
+    "G27": {
+     "formula": "13,133",
+     "border": "1px solid #000"
+    },
+    "H27": {
+     "formula": "0,047",
+     "border": "1px solid #000"
+    },
+    "J27": {
+     "formula": "25",
+     "border": "1px solid #000"
+    },
+    "K27": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "M27": {
+     "formula": "25",
+     "border": "1px solid #000"
+    },
+    "N27": {
+     "formula": "0,060",
+     "border": "1px solid #000"
+    },
+    "P27": {
+     "formula": "25",
+     "border": "1px solid #000"
+    },
+    "Q27": {
+     "formula": "0,100",
+     "border": "1px solid #000"
+    },
+    "S27": {
+     "formula": "25",
+     "border": "1px solid #000"
+    },
+    "T27": {
+     "formula": "0,100",
+     "border": "1px solid #000"
+    },
+    "V27": {
+     "formula": "25",
+     "border": "1px solid #000"
+    },
+    "W27": {
+     "formula": "0,005",
+     "border": "1px solid #000"
+    },
+    "Y27": {
+     "formula": "25",
+     "border": "1px solid #000"
+    },
+    "Z27": {
+     "formula": "0,005",
+     "border": "1px solid #000"
+    },
+    "B28": {
+     "formula": "27",
+     "border": "1px solid #000"
+    },
+    "C28": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "D28": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "E28": {
+     "formula": "729,000",
+     "border": "1px solid #000"
+    },
+    "F28": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "G28": {
+     "formula": "13,967",
+     "border": "1px solid #000"
+    },
+    "H28": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "J28": {
+     "formula": "27",
+     "border": "1px solid #000"
+    },
+    "K28": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "M28": {
+     "formula": "27",
+     "border": "1px solid #000"
+    },
+    "N28": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "P28": {
+     "formula": "27",
+     "border": "1px solid #000"
+    },
+    "Q28": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "S28": {
+     "formula": "27",
+     "border": "1px solid #000"
+    },
+    "T28": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "V28": {
+     "formula": "27",
+     "border": "1px solid #000"
+    },
+    "W28": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "Y28": {
+     "formula": "27",
+     "border": "1px solid #000"
+    },
+    "Z28": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "B29": {
+     "formula": "29",
+     "border": "1px solid #000"
+    },
+    "C29": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "D29": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "E29": {
+     "formula": "841,000",
+     "border": "1px solid #000"
+    },
+    "F29": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "G29": {
+     "formula": "14,788",
+     "border": "1px solid #000"
+    },
+    "H29": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "J29": {
+     "formula": "29",
+     "border": "1px solid #000"
+    },
+    "K29": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "M29": {
+     "formula": "29",
+     "border": "1px solid #000"
+    },
+    "N29": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "P29": {
+     "formula": "29",
+     "border": "1px solid #000"
+    },
+    "Q29": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "S29": {
+     "formula": "29",
+     "border": "1px solid #000"
+    },
+    "T29": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "V29": {
+     "formula": "29",
+     "border": "1px solid #000"
+    },
+    "W29": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "Y29": {
+     "formula": "29",
+     "border": "1px solid #000"
+    },
+    "Z29": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "B30": {
+     "formula": "31",
+     "border": "1px solid #000"
+    },
+    "C30": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "D30": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "E30": {
+     "formula": "961,000",
+     "border": "1px solid #000"
+    },
+    "F30": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "G30": {
+     "formula": "15,599",
+     "border": "1px solid #000"
+    },
+    "H30": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "J30": {
+     "formula": "31",
+     "border": "1px solid #000"
+    },
+    "K30": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "M30": {
+     "formula": "31",
+     "border": "1px solid #000"
+    },
+    "N30": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "P30": {
+     "formula": "31",
+     "border": "1px solid #000"
+    },
+    "Q30": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "S30": {
+     "formula": "31",
+     "border": "1px solid #000"
+    },
+    "T30": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "V30": {
+     "formula": "31",
+     "border": "1px solid #000"
+    },
+    "W30": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "Y30": {
+     "formula": "31",
+     "border": "1px solid #000"
+    },
+    "Z30": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "B31": {
+     "formula": "33",
+     "border": "1px solid #000"
+    },
+    "C31": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "D31": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "E31": {
+     "formula": "1089,000",
+     "border": "1px solid #000"
+    },
+    "F31": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "G31": {
+     "formula": "16,399",
+     "border": "1px solid #000"
+    },
+    "H31": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "J31": {
+     "formula": "33",
+     "border": "1px solid #000"
+    },
+    "K31": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "M31": {
+     "formula": "33",
+     "border": "1px solid #000"
+    },
+    "N31": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "P31": {
+     "formula": "33",
+     "border": "1px solid #000"
+    },
+    "Q31": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "S31": {
+     "formula": "33",
+     "border": "1px solid #000"
+    },
+    "T31": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "V31": {
+     "formula": "33",
+     "border": "1px solid #000"
+    },
+    "W31": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "Y31": {
+     "formula": "33",
+     "border": "1px solid #000"
+    },
+    "Z31": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "B32": {
+     "formula": "35",
+     "border": "1px solid #000"
+    },
+    "C32": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "D32": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "E32": {
+     "formula": "1225,000",
+     "border": "1px solid #000"
+    },
+    "F32": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "G32": {
+     "formula": "17,189",
+     "border": "1px solid #000"
+    },
+    "H32": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "J32": {
+     "formula": "35",
+     "border": "1px solid #000"
+    },
+    "K32": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "M32": {
+     "formula": "35",
+     "border": "1px solid #000"
+    },
+    "N32": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "P32": {
+     "formula": "35",
+     "border": "1px solid #000"
+    },
+    "Q32": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "S32": {
+     "formula": "35",
+     "border": "1px solid #000"
+    },
+    "T32": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "V32": {
+     "formula": "35",
+     "border": "1px solid #000"
+    },
+    "W32": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "Y32": {
+     "formula": "35",
+     "border": "1px solid #000"
+    },
+    "Z32": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "B33": {
+     "formula": "37",
+     "border": "1px solid #000"
+    },
+    "C33": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "D33": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "E33": {
+     "formula": "1369,000",
+     "border": "1px solid #000"
+    },
+    "F33": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "G33": {
+     "formula": "17,971",
+     "border": "1px solid #000"
+    },
+    "H33": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "J33": {
+     "formula": "37",
+     "border": "1px solid #000"
+    },
+    "K33": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "M33": {
+     "formula": "37",
+     "border": "1px solid #000"
+    },
+    "N33": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "P33": {
+     "formula": "37",
+     "border": "1px solid #000"
+    },
+    "Q33": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "S33": {
+     "formula": "37",
+     "border": "1px solid #000"
+    },
+    "T33": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "V33": {
+     "formula": "37",
+     "border": "1px solid #000"
+    },
+    "W33": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "Y33": {
+     "formula": "37",
+     "border": "1px solid #000"
+    },
+    "Z33": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "B34": {
+     "formula": "39",
+     "border": "1px solid #000"
+    },
+    "C34": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "D34": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "E34": {
+     "formula": "1521,000",
+     "border": "1px solid #000"
+    },
+    "F34": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "G34": {
+     "formula": "18,744",
+     "border": "1px solid #000"
+    },
+    "H34": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "J34": {
+     "formula": "39",
+     "border": "1px solid #000"
+    },
+    "K34": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "M34": {
+     "formula": "39",
+     "border": "1px solid #000"
+    },
+    "N34": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "P34": {
+     "formula": "39",
+     "border": "1px solid #000"
+    },
+    "Q34": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "S34": {
+     "formula": "39",
+     "border": "1px solid #000"
+    },
+    "T34": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "V34": {
+     "formula": "39",
+     "border": "1px solid #000"
+    },
+    "W34": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "Y34": {
+     "formula": "39",
+     "border": "1px solid #000"
+    },
+    "Z34": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "B35": {
+     "formula": "41",
+     "border": "1px solid #000"
+    },
+    "C35": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "D35": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "E35": {
+     "formula": "1681,000",
+     "border": "1px solid #000"
+    },
+    "F35": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "G35": {
+     "formula": "19,509",
+     "border": "1px solid #000"
+    },
+    "H35": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "J35": {
+     "formula": "41",
+     "border": "1px solid #000"
+    },
+    "K35": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "M35": {
+     "formula": "41",
+     "border": "1px solid #000"
+    },
+    "N35": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "P35": {
+     "formula": "41",
+     "border": "1px solid #000"
+    },
+    "Q35": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "S35": {
+     "formula": "41",
+     "border": "1px solid #000"
+    },
+    "T35": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "V35": {
+     "formula": "41",
+     "border": "1px solid #000"
+    },
+    "W35": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "Y35": {
+     "formula": "41",
+     "border": "1px solid #000"
+    },
+    "Z35": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "B36": {
+     "formula": "43",
+     "border": "1px solid #000"
+    },
+    "C36": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "D36": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "E36": {
+     "formula": "1849,000",
+     "border": "1px solid #000"
+    },
+    "F36": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "G36": {
+     "formula": "20,266",
+     "border": "1px solid #000"
+    },
+    "H36": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "J36": {
+     "formula": "43",
+     "border": "1px solid #000"
+    },
+    "K36": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "M36": {
+     "formula": "43",
+     "border": "1px solid #000"
+    },
+    "N36": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "P36": {
+     "formula": "43",
+     "border": "1px solid #000"
+    },
+    "Q36": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "S36": {
+     "formula": "43",
+     "border": "1px solid #000"
+    },
+    "T36": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "V36": {
+     "formula": "43",
+     "border": "1px solid #000"
+    },
+    "W36": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "Y36": {
+     "formula": "43",
+     "border": "1px solid #000"
+    },
+    "Z36": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "B37": {
+     "formula": "45",
+     "border": "1px solid #000"
+    },
+    "C37": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "D37": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "E37": {
+     "formula": "2025,000",
+     "border": "1px solid #000"
+    },
+    "F37": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "G37": {
+     "formula": "21,017",
+     "border": "1px solid #000"
+    },
+    "H37": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "J37": {
+     "formula": "45",
+     "border": "1px solid #000"
+    },
+    "K37": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "M37": {
+     "formula": "45",
+     "border": "1px solid #000"
+    },
+    "N37": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "P37": {
+     "formula": "45",
+     "border": "1px solid #000"
+    },
+    "Q37": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "S37": {
+     "formula": "45",
+     "border": "1px solid #000"
+    },
+    "T37": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "V37": {
+     "formula": "45",
+     "border": "1px solid #000"
+    },
+    "W37": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "Y37": {
+     "formula": "45",
+     "border": "1px solid #000"
+    },
+    "Z37": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "B38": {
+     "formula": "47",
+     "border": "1px solid #000"
+    },
+    "C38": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "D38": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "E38": {
+     "formula": "2209,000",
+     "border": "1px solid #000"
+    },
+    "F38": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "G38": {
+     "formula": "21,761",
+     "border": "1px solid #000"
+    },
+    "H38": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "J38": {
+     "formula": "47",
+     "border": "1px solid #000"
+    },
+    "K38": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "M38": {
+     "formula": "47",
+     "border": "1px solid #000"
+    },
+    "N38": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "P38": {
+     "formula": "47",
+     "border": "1px solid #000"
+    },
+    "Q38": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "S38": {
+     "formula": "47",
+     "border": "1px solid #000"
+    },
+    "T38": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "V38": {
+     "formula": "47",
+     "border": "1px solid #000"
+    },
+    "W38": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "Y38": {
+     "formula": "47",
+     "border": "1px solid #000"
+    },
+    "Z38": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "B39": {
+     "formula": "49",
+     "border": "1px solid #000"
+    },
+    "C39": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "D39": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "E39": {
+     "formula": "2401,000",
+     "border": "1px solid #000"
+    },
+    "F39": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "G39": {
+     "formula": "22,499",
+     "border": "1px solid #000"
+    },
+    "H39": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "J39": {
+     "formula": "49",
+     "border": "1px solid #000"
+    },
+    "K39": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "M39": {
+     "formula": "49",
+     "border": "1px solid #000"
+    },
+    "N39": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "P39": {
+     "formula": "49",
+     "border": "1px solid #000"
+    },
+    "Q39": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "S39": {
+     "formula": "49",
+     "border": "1px solid #000"
+    },
+    "T39": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "V39": {
+     "formula": "49",
+     "border": "1px solid #000"
+    },
+    "W39": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "Y39": {
+     "formula": "49",
+     "border": "1px solid #000"
+    },
+    "Z39": {
+     "formula": "0,000",
+     "border": "1px solid #000"
+    },
+    "D40": {
+     "formula": "1,0693000",
+     "border": "1px solid #000"
+    },
+    "F40": {
+     "formula": "6,55090",
+     "border": "1px solid #000"
+    },
+    "H40": {
+     "formula": "1,3393468",
+     "border": "1px solid #000"
+    },
+    "B44": {
+     "formula": "Tabla 1.",
+     "border": "1px solid #000"
+    },
+    "B45": {
+     "formula": "T",
+     "border": "1px solid #000"
+    },
+    "C45": {
+     "formula": "M0 0,75",
+     "border": "1px solid #000"
+    },
+    "D45": {
+     "formula": "M0 0,85",
+     "border": "1px solid #000"
+    },
+    "E45": {
+     "formula": "M1",
+     "border": "1px solid #000"
+    },
+    "F45": {
+     "formula": "M4",
+     "border": "1px solid #000"
+    },
+    "G45": {
+     "formula": "AYFA-N",
+     "border": "1px solid #000"
+    },
+    "H45": {
+     "formula": "AYFA-NE",
+     "border": "1px solid #000"
+    },
+    "I45": {
+     "formula": "M3"
+    },
+    "B46": {
+     "formula": "9,0",
+     "border": "1px solid #000"
+    },
+    "C46": {
+     "formula": "0,4",
+     "border": "1px solid #000"
+    },
+    "D46": {
+     "formula": "0,5",
+     "border": "1px solid #000"
+    },
+    "E46": {
+     "formula": "0,6",
+     "border": "1px solid #000"
+    },
+    "F46": {
+     "formula": "0,7",
+     "border": "1px solid #000"
+    },
+    "G46": {
+     "formula": "0,02",
+     "border": "1px solid #000"
+    },
+    "H46": {
+     "formula": "0,01",
+     "border": "1px solid #000"
+    },
+    "B47": {
+     "formula": "9,1",
+     "border": "1px solid #000"
+    },
+    "C47": {
+     "formula": "0,41",
+     "border": "1px solid #000"
+    },
+    "D47": {
+     "formula": "0,52",
+     "border": "1px solid #000"
+    },
+    "E47": {
+     "formula": "0,61",
+     "border": "1px solid #000"
+    },
+    "F47": {
+     "formula": "0,72",
+     "border": "1px solid #000"
+    },
+    "G47": {
+     "formula": "0,03",
+     "border": "1px solid #000"
+    },
+    "H47": {
+     "formula": "0,02",
+     "border": "1px solid #000"
+    },
+    "B48": {
+     "formula": "9,2",
+     "border": "1px solid #000"
+    },
+    "C48": {
+     "formula": "0,42",
+     "border": "1px solid #000"
+    },
+    "D48": {
+     "formula": "0,54",
+     "border": "1px solid #000"
+    },
+    "E48": {
+     "formula": "0,62",
+     "border": "1px solid #000"
+    },
+    "F48": {
+     "formula": "0,74",
+     "border": "1px solid #000"
+    },
+    "G48": {
+     "formula": "0,04",
+     "border": "1px solid #000"
+    },
+    "H48": {
+     "formula": "0,03",
+     "border": "1px solid #000"
+    },
+    "B49": {
+     "formula": "9,3",
+     "border": "1px solid #000"
+    },
+    "C49": {
+     "formula": "0,43",
+     "border": "1px solid #000"
+    },
+    "D49": {
+     "formula": "0,56",
+     "border": "1px solid #000"
+    },
+    "E49": {
+     "formula": "0,63",
+     "border": "1px solid #000"
+    },
+    "F49": {
+     "formula": "0,76",
+     "border": "1px solid #000"
+    },
+    "G49": {
+     "formula": "0,05",
+     "border": "1px solid #000"
+    },
+    "H49": {
+     "formula": "0,04",
+     "border": "1px solid #000"
+    },
+    "B50": {
+     "formula": "9,4",
+     "border": "1px solid #000"
+    },
+    "C50": {
+     "formula": "0,44",
+     "border": "1px solid #000"
+    },
+    "D50": {
+     "formula": "0,58",
+     "border": "1px solid #000"
+    },
+    "E50": {
+     "formula": "0,64",
+     "border": "1px solid #000"
+    },
+    "F50": {
+     "formula": "0,78",
+     "border": "1px solid #000"
+    },
+    "G50": {
+     "formula": "0,06",
+     "border": "1px solid #000"
+    },
+    "H50": {
+     "formula": "0,05",
+     "border": "1px solid #000"
+    },
+    "B51": {
+     "formula": "9,5",
+     "border": "1px solid #000"
+    },
+    "C51": {
+     "formula": "0,45",
+     "border": "1px solid #000"
+    },
+    "D51": {
+     "formula": "0,6",
+     "border": "1px solid #000"
+    },
+    "E51": {
+     "formula": "0,65",
+     "border": "1px solid #000"
+    },
+    "F51": {
+     "formula": "0,8",
+     "border": "1px solid #000"
+    },
+    "G51": {
+     "formula": "0,07",
+     "border": "1px solid #000"
+    },
+    "H51": {
+     "formula": "0,06",
+     "border": "1px solid #000"
+    },
+    "B52": {
+     "formula": "9,6",
+     "border": "1px solid #000"
+    },
+    "C52": {
+     "formula": "0,46",
+     "border": "1px solid #000"
+    },
+    "D52": {
+     "formula": "0,62",
+     "border": "1px solid #000"
+    },
+    "E52": {
+     "formula": "0,66",
+     "border": "1px solid #000"
+    },
+    "F52": {
+     "formula": "0,82",
+     "border": "1px solid #000"
+    },
+    "G52": {
+     "formula": "0,08",
+     "border": "1px solid #000"
+    },
+    "H52": {
+     "formula": "0,07",
+     "border": "1px solid #000"
+    },
+    "B53": {
+     "formula": "9,7",
+     "border": "1px solid #000"
+    },
+    "C53": {
+     "formula": "0,47",
+     "border": "1px solid #000"
+    },
+    "D53": {
+     "formula": "0,64",
+     "border": "1px solid #000"
+    },
+    "E53": {
+     "formula": "0,67",
+     "border": "1px solid #000"
+    },
+    "F53": {
+     "formula": "0,84",
+     "border": "1px solid #000"
+    },
+    "G53": {
+     "formula": "0,09",
+     "border": "1px solid #000"
+    },
+    "H53": {
+     "formula": "0,08",
+     "border": "1px solid #000"
+    },
+    "B54": {
+     "formula": "9,8",
+     "border": "1px solid #000"
+    },
+    "C54": {
+     "formula": "0,48",
+     "border": "1px solid #000"
+    },
+    "D54": {
+     "formula": "0,66",
+     "border": "1px solid #000"
+    },
+    "E54": {
+     "formula": "0,68",
+     "border": "1px solid #000"
+    },
+    "F54": {
+     "formula": "0,86",
+     "border": "1px solid #000"
+    },
+    "G54": {
+     "formula": "0,1",
+     "border": "1px solid #000"
+    },
+    "H54": {
+     "formula": "0,09",
+     "border": "1px solid #000"
+    },
+    "B55": {
+     "formula": "9,9",
+     "border": "1px solid #000"
+    },
+    "C55": {
+     "formula": "0,49",
+     "border": "1px solid #000"
+    },
+    "D55": {
+     "formula": "0,68",
+     "border": "1px solid #000"
+    },
+    "E55": {
+     "formula": "0,69",
+     "border": "1px solid #000"
+    },
+    "F55": {
+     "formula": "0,88",
+     "border": "1px solid #000"
+    },
+    "G55": {
+     "formula": "0,11",
+     "border": "1px solid #000"
+    },
+    "H55": {
+     "formula": "0,1",
+     "border": "1px solid #000"
+    },
+    "B56": {
+     "formula": "10,0",
+     "border": "1px solid #000"
+    },
+    "C56": {
+     "formula": "0,5",
+     "border": "1px solid #000"
+    },
+    "D56": {
+     "formula": "0,7",
+     "border": "1px solid #000"
+    },
+    "E56": {
+     "formula": "0,7",
+     "border": "1px solid #000"
+    },
+    "F56": {
+     "formula": "0,9",
+     "border": "1px solid #000"
+    },
+    "G56": {
+     "formula": "0,12",
+     "border": "1px solid #000"
+    },
+    "H56": {
+     "formula": "0,11",
+     "border": "1px solid #000"
+    },
+    "B57": {
+     "formula": "10,1",
+     "border": "1px solid #000"
+    },
+    "C57": {
+     "formula": "0,51",
+     "border": "1px solid #000"
+    },
+    "D57": {
+     "formula": "0,72",
+     "border": "1px solid #000"
+    },
+    "E57": {
+     "formula": "0,71",
+     "border": "1px solid #000"
+    },
+    "F57": {
+     "formula": "0,92",
+     "border": "1px solid #000"
+    },
+    "G57": {
+     "formula": "0,13",
+     "border": "1px solid #000"
+    },
+    "H57": {
+     "formula": "0,12",
+     "border": "1px solid #000"
+    },
+    "B58": {
+     "formula": "10,2",
+     "border": "1px solid #000"
+    },
+    "C58": {
+     "formula": "0,52",
+     "border": "1px solid #000"
+    },
+    "D58": {
+     "formula": "0,74",
+     "border": "1px solid #000"
+    },
+    "E58": {
+     "formula": "0,72",
+     "border": "1px solid #000"
+    },
+    "F58": {
+     "formula": "0,94",
+     "border": "1px solid #000"
+    },
+    "G58": {
+     "formula": "0,14",
+     "border": "1px solid #000"
+    },
+    "H58": {
+     "formula": "0,13",
+     "border": "1px solid #000"
+    },
+    "B59": {
+     "formula": "10,3",
+     "border": "1px solid #000"
+    },
+    "C59": {
+     "formula": "0,53",
+     "border": "1px solid #000"
+    },
+    "D59": {
+     "formula": "0,76",
+     "border": "1px solid #000"
+    },
+    "E59": {
+     "formula": "0,73",
+     "border": "1px solid #000"
+    },
+    "F59": {
+     "formula": "0,96",
+     "border": "1px solid #000"
+    },
+    "G59": {
+     "formula": "0,15",
+     "border": "1px solid #000"
+    },
+    "H59": {
+     "formula": "0,14",
+     "border": "1px solid #000"
+    },
+    "B60": {
+     "formula": "10,4",
+     "border": "1px solid #000"
+    },
+    "C60": {
+     "formula": "0,54",
+     "border": "1px solid #000"
+    },
+    "D60": {
+     "formula": "0,78",
+     "border": "1px solid #000"
+    },
+    "E60": {
+     "formula": "0,74",
+     "border": "1px solid #000"
+    },
+    "F60": {
+     "formula": "0,98",
+     "border": "1px solid #000"
+    },
+    "G60": {
+     "formula": "0,16",
+     "border": "1px solid #000"
+    },
+    "H60": {
+     "formula": "0,15",
+     "border": "1px solid #000"
+    },
+    "B61": {
+     "formula": "10,5",
+     "border": "1px solid #000"
+    },
+    "C61": {
+     "formula": "0,55",
+     "border": "1px solid #000"
+    },
+    "D61": {
+     "formula": "0,8",
+     "border": "1px solid #000"
+    },
+    "E61": {
+     "formula": "0,75",
+     "border": "1px solid #000"
+    },
+    "F61": {
+     "formula": "1",
+     "border": "1px solid #000"
+    },
+    "G61": {
+     "formula": "0,17",
+     "border": "1px solid #000"
+    },
+    "H61": {
+     "formula": "0,16",
+     "border": "1px solid #000"
+    },
+    "B62": {
+     "formula": "10,6",
+     "border": "1px solid #000"
+    },
+    "C62": {
+     "formula": "0,56",
+     "border": "1px solid #000"
+    },
+    "D62": {
+     "formula": "0,82",
+     "border": "1px solid #000"
+    },
+    "E62": {
+     "formula": "0,76",
+     "border": "1px solid #000"
+    },
+    "F62": {
+     "formula": "1,02",
+     "border": "1px solid #000"
+    },
+    "G62": {
+     "formula": "0,18",
+     "border": "1px solid #000"
+    },
+    "H62": {
+     "formula": "0,17",
+     "border": "1px solid #000"
+    },
+    "B63": {
+     "formula": "10,7",
+     "border": "1px solid #000"
+    },
+    "C63": {
+     "formula": "0,57",
+     "border": "1px solid #000"
+    },
+    "D63": {
+     "formula": "0,84",
+     "border": "1px solid #000"
+    },
+    "E63": {
+     "formula": "0,77",
+     "border": "1px solid #000"
+    },
+    "F63": {
+     "formula": "1,04",
+     "border": "1px solid #000"
+    },
+    "G63": {
+     "formula": "0,19",
+     "border": "1px solid #000"
+    },
+    "H63": {
+     "formula": "0,18",
+     "border": "1px solid #000"
+    },
+    "B64": {
+     "formula": "10,8",
+     "border": "1px solid #000"
+    },
+    "C64": {
+     "formula": "0,58",
+     "border": "1px solid #000"
+    },
+    "D64": {
+     "formula": "0,86",
+     "border": "1px solid #000"
+    },
+    "E64": {
+     "formula": "0,78",
+     "border": "1px solid #000"
+    },
+    "F64": {
+     "formula": "1,06",
+     "border": "1px solid #000"
+    },
+    "G64": {
+     "formula": "0,2",
+     "border": "1px solid #000"
+    },
+    "H64": {
+     "formula": "0,19",
+     "border": "1px solid #000"
+    },
+    "B65": {
+     "formula": "10,9",
+     "border": "1px solid #000"
+    },
+    "C65": {
+     "formula": "0,59",
+     "border": "1px solid #000"
+    },
+    "D65": {
+     "formula": "0,88",
+     "border": "1px solid #000"
+    },
+    "E65": {
+     "formula": "0,79",
+     "border": "1px solid #000"
+    },
+    "F65": {
+     "formula": "1,08",
+     "border": "1px solid #000"
+    },
+    "G65": {
+     "formula": "0,21",
+     "border": "1px solid #000"
+    },
+    "H65": {
+     "formula": "0,2",
+     "border": "1px solid #000"
+    },
+    "B66": {
+     "formula": "11,0",
+     "border": "1px solid #000"
+    },
+    "C66": {
+     "formula": "0,6",
+     "border": "1px solid #000"
+    },
+    "D66": {
+     "formula": "0,9",
+     "border": "1px solid #000"
+    },
+    "E66": {
+     "formula": "0,8",
+     "border": "1px solid #000"
+    },
+    "F66": {
+     "formula": "1,1",
+     "border": "1px solid #000"
+    },
+    "G66": {
+     "formula": "0,22",
+     "border": "1px solid #000"
+    },
+    "H66": {
+     "formula": "0,21",
+     "border": "1px solid #000"
+    },
+    "B67": {
+     "formula": "11,1",
+     "border": "1px solid #000"
+    },
+    "C67": {
+     "formula": "0,61",
+     "border": "1px solid #000"
+    },
+    "D67": {
+     "formula": "0,92",
+     "border": "1px solid #000"
+    },
+    "E67": {
+     "formula": "0,81",
+     "border": "1px solid #000"
+    },
+    "F67": {
+     "formula": "1,12",
+     "border": "1px solid #000"
+    },
+    "G67": {
+     "formula": "0,23",
+     "border": "1px solid #000"
+    },
+    "H67": {
+     "formula": "0,22",
+     "border": "1px solid #000"
+    },
+    "B68": {
+     "formula": "11,2",
+     "border": "1px solid #000"
+    },
+    "C68": {
+     "formula": "0,62",
+     "border": "1px solid #000"
+    },
+    "D68": {
+     "formula": "0,94",
+     "border": "1px solid #000"
+    },
+    "E68": {
+     "formula": "0,82",
+     "border": "1px solid #000"
+    },
+    "F68": {
+     "formula": "1,14",
+     "border": "1px solid #000"
+    },
+    "G68": {
+     "formula": "0,24",
+     "border": "1px solid #000"
+    },
+    "H68": {
+     "formula": "0,23",
+     "border": "1px solid #000"
+    },
+    "B69": {
+     "formula": "11,3",
+     "border": "1px solid #000"
+    },
+    "C69": {
+     "formula": "0,63",
+     "border": "1px solid #000"
+    },
+    "D69": {
+     "formula": "0,96",
+     "border": "1px solid #000"
+    },
+    "E69": {
+     "formula": "0,83",
+     "border": "1px solid #000"
+    },
+    "F69": {
+     "formula": "1,16",
+     "border": "1px solid #000"
+    },
+    "G69": {
+     "formula": "0,25",
+     "border": "1px solid #000"
+    },
+    "H69": {
+     "formula": "0,24",
+     "border": "1px solid #000"
+    },
+    "B70": {
+     "formula": "11,4",
+     "border": "1px solid #000"
+    },
+    "C70": {
+     "formula": "0,64",
+     "border": "1px solid #000"
+    },
+    "D70": {
+     "formula": "0,98",
+     "border": "1px solid #000"
+    },
+    "E70": {
+     "formula": "0,84",
+     "border": "1px solid #000"
+    },
+    "F70": {
+     "formula": "1,18",
+     "border": "1px solid #000"
+    },
+    "G70": {
+     "formula": "0,26",
+     "border": "1px solid #000"
+    },
+    "H70": {
+     "formula": "0,25",
+     "border": "1px solid #000"
+    },
+    "B71": {
+     "formula": "11,5",
+     "border": "1px solid #000"
+    },
+    "C71": {
+     "formula": "0,65",
+     "border": "1px solid #000"
+    },
+    "D71": {
+     "formula": "1",
+     "border": "1px solid #000"
+    },
+    "E71": {
+     "formula": "0,85",
+     "border": "1px solid #000"
+    },
+    "F71": {
+     "formula": "1,2",
+     "border": "1px solid #000"
+    },
+    "G71": {
+     "formula": "0,27",
+     "border": "1px solid #000"
+    },
+    "H71": {
+     "formula": "0,26",
+     "border": "1px solid #000"
+    },
+    "B72": {
+     "formula": "11,6",
+     "border": "1px solid #000"
+    },
+    "C72": {
+     "formula": "0,66",
+     "border": "1px solid #000"
+    },
+    "D72": {
+     "formula": "1,02",
+     "border": "1px solid #000"
+    },
+    "E72": {
+     "formula": "0,86",
+     "border": "1px solid #000"
+    },
+    "F72": {
+     "formula": "1,22",
+     "border": "1px solid #000"
+    },
+    "G72": {
+     "formula": "0,28",
+     "border": "1px solid #000"
+    },
+    "H72": {
+     "formula": "0,27",
+     "border": "1px solid #000"
+    },
+    "B73": {
+     "formula": "11,7",
+     "border": "1px solid #000"
+    },
+    "C73": {
+     "formula": "0,67",
+     "border": "1px solid #000"
+    },
+    "D73": {
+     "formula": "1,04",
+     "border": "1px solid #000"
+    },
+    "E73": {
+     "formula": "0,87",
+     "border": "1px solid #000"
+    },
+    "F73": {
+     "formula": "1,24",
+     "border": "1px solid #000"
+    },
+    "G73": {
+     "formula": "0,29",
+     "border": "1px solid #000"
+    },
+    "H73": {
+     "formula": "0,28",
+     "border": "1px solid #000"
+    },
+    "B74": {
+     "formula": "11,8",
+     "border": "1px solid #000"
+    },
+    "C74": {
+     "formula": "0,68",
+     "border": "1px solid #000"
+    },
+    "D74": {
+     "formula": "1,06",
+     "border": "1px solid #000"
+    },
+    "E74": {
+     "formula": "0,88",
+     "border": "1px solid #000"
+    },
+    "F74": {
+     "formula": "1,26",
+     "border": "1px solid #000"
+    },
+    "G74": {
+     "formula": "0,3",
+     "border": "1px solid #000"
+    },
+    "H74": {
+     "formula": "0,29",
+     "border": "1px solid #000"
+    },
+    "B75": {
+     "formula": "11,9",
+     "border": "1px solid #000"
+    },
+    "C75": {
+     "formula": "0,69",
+     "border": "1px solid #000"
+    },
+    "D75": {
+     "formula": "1,08",
+     "border": "1px solid #000"
+    },
+    "E75": {
+     "formula": "0,89",
+     "border": "1px solid #000"
+    },
+    "F75": {
+     "formula": "1,28",
+     "border": "1px solid #000"
+    },
+    "G75": {
+     "formula": "0,31",
+     "border": "1px solid #000"
+    },
+    "H75": {
+     "formula": "0,3",
+     "border": "1px solid #000"
+    },
+    "B76": {
+     "formula": "12,0",
+     "border": "1px solid #000"
+    },
+    "C76": {
+     "formula": "0,7",
+     "border": "1px solid #000"
+    },
+    "D76": {
+     "formula": "1,1",
+     "border": "1px solid #000"
+    },
+    "E76": {
+     "formula": "0,9",
+     "border": "1px solid #000"
+    },
+    "F76": {
+     "formula": "1,3",
+     "border": "1px solid #000"
+    },
+    "G76": {
+     "formula": "0,32",
+     "border": "1px solid #000"
+    },
+    "H76": {
+     "formula": "0,31",
+     "border": "1px solid #000"
+    },
+    "B77": {
+     "formula": "12,1",
+     "border": "1px solid #000"
+    },
+    "C77": {
+     "formula": "0,71",
+     "border": "1px solid #000"
+    },
+    "D77": {
+     "formula": "1,12",
+     "border": "1px solid #000"
+    },
+    "E77": {
+     "formula": "0,91",
+     "border": "1px solid #000"
+    },
+    "F77": {
+     "formula": "1,32",
+     "border": "1px solid #000"
+    },
+    "G77": {
+     "formula": "0,33",
+     "border": "1px solid #000"
+    },
+    "H77": {
+     "formula": "0,32",
+     "border": "1px solid #000"
+    },
+    "B78": {
+     "formula": "12,2",
+     "border": "1px solid #000"
+    },
+    "C78": {
+     "formula": "0,72",
+     "border": "1px solid #000"
+    },
+    "D78": {
+     "formula": "1,14",
+     "border": "1px solid #000"
+    },
+    "E78": {
+     "formula": "0,92",
+     "border": "1px solid #000"
+    },
+    "F78": {
+     "formula": "1,34",
+     "border": "1px solid #000"
+    },
+    "G78": {
+     "formula": "0,34",
+     "border": "1px solid #000"
+    },
+    "H78": {
+     "formula": "0,33",
+     "border": "1px solid #000"
+    },
+    "B79": {
+     "formula": "12,3",
+     "border": "1px solid #000"
+    },
+    "C79": {
+     "formula": "0,73",
+     "border": "1px solid #000"
+    },
+    "D79": {
+     "formula": "1,16",
+     "border": "1px solid #000"
+    },
+    "E79": {
+     "formula": "0,93",
+     "border": "1px solid #000"
+    },
+    "F79": {
+     "formula": "1,36",
+     "border": "1px solid #000"
+    },
+    "G79": {
+     "formula": "0,35",
+     "border": "1px solid #000"
+    },
+    "H79": {
+     "formula": "0,34",
+     "border": "1px solid #000"
+    },
+    "B80": {
+     "formula": "12,4",
+     "border": "1px solid #000"
+    },
+    "C80": {
+     "formula": "0,74",
+     "border": "1px solid #000"
+    },
+    "D80": {
+     "formula": "1,18",
+     "border": "1px solid #000"
+    },
+    "E80": {
+     "formula": "0,94",
+     "border": "1px solid #000"
+    },
+    "F80": {
+     "formula": "1,38",
+     "border": "1px solid #000"
+    },
+    "G80": {
+     "formula": "0,36",
+     "border": "1px solid #000"
+    },
+    "H80": {
+     "formula": "0,35",
+     "border": "1px solid #000"
+    },
+    "B81": {
+     "formula": "12,5",
+     "border": "1px solid #000"
+    },
+    "C81": {
+     "formula": "0,75",
+     "border": "1px solid #000"
+    },
+    "D81": {
+     "formula": "1,2",
+     "border": "1px solid #000"
+    },
+    "E81": {
+     "formula": "0,95",
+     "border": "1px solid #000"
+    },
+    "F81": {
+     "formula": "1,4",
+     "border": "1px solid #000"
+    },
+    "G81": {
+     "formula": "0,37",
+     "border": "1px solid #000"
+    },
+    "H81": {
+     "formula": "0,36",
+     "border": "1px solid #000"
+    },
+    "B82": {
+     "formula": "12,6",
+     "border": "1px solid #000"
+    },
+    "C82": {
+     "formula": "0,76",
+     "border": "1px solid #000"
+    },
+    "D82": {
+     "formula": "1,22",
+     "border": "1px solid #000"
+    },
+    "E82": {
+     "formula": "0,96",
+     "border": "1px solid #000"
+    },
+    "F82": {
+     "formula": "1,42",
+     "border": "1px solid #000"
+    },
+    "G82": {
+     "formula": "0,38",
+     "border": "1px solid #000"
+    },
+    "H82": {
+     "formula": "0,37",
+     "border": "1px solid #000"
+    },
+    "B83": {
+     "formula": "12,7",
+     "border": "1px solid #000"
+    },
+    "C83": {
+     "formula": "0,77",
+     "border": "1px solid #000"
+    },
+    "D83": {
+     "formula": "1,24",
+     "border": "1px solid #000"
+    },
+    "E83": {
+     "formula": "0,97",
+     "border": "1px solid #000"
+    },
+    "F83": {
+     "formula": "1,44",
+     "border": "1px solid #000"
+    },
+    "G83": {
+     "formula": "0,39",
+     "border": "1px solid #000"
+    },
+    "H83": {
+     "formula": "0,38",
+     "border": "1px solid #000"
+    },
+    "B84": {
+     "formula": "12,8",
+     "border": "1px solid #000"
+    },
+    "C84": {
+     "formula": "0,78",
+     "border": "1px solid #000"
+    },
+    "D84": {
+     "formula": "1,26",
+     "border": "1px solid #000"
+    },
+    "E84": {
+     "formula": "0,98",
+     "border": "1px solid #000"
+    },
+    "F84": {
+     "formula": "1,46",
+     "border": "1px solid #000"
+    },
+    "G84": {
+     "formula": "0,4",
+     "border": "1px solid #000"
+    },
+    "H84": {
+     "formula": "0,39",
+     "border": "1px solid #000"
+    },
+    "B85": {
+     "formula": "12,9",
+     "border": "1px solid #000"
+    },
+    "C85": {
+     "formula": "0,79",
+     "border": "1px solid #000"
+    },
+    "D85": {
+     "formula": "1,28",
+     "border": "1px solid #000"
+    },
+    "E85": {
+     "formula": "0,99",
+     "border": "1px solid #000"
+    },
+    "F85": {
+     "formula": "1,48",
+     "border": "1px solid #000"
+    },
+    "G85": {
+     "formula": "0,41",
+     "border": "1px solid #000"
+    },
+    "H85": {
+     "formula": "0,4",
+     "border": "1px solid #000"
+    },
+    "B86": {
+     "formula": "13,0",
+     "border": "1px solid #000"
+    },
+    "C86": {
+     "formula": "0,8",
+     "border": "1px solid #000"
+    },
+    "D86": {
+     "formula": "1,3",
+     "border": "1px solid #000"
+    },
+    "E86": {
+     "formula": "1",
+     "border": "1px solid #000"
+    },
+    "F86": {
+     "formula": "1,5",
+     "border": "1px solid #000"
+    },
+    "G86": {
+     "formula": "0,42",
+     "border": "1px solid #000"
+    },
+    "H86": {
+     "formula": "0,41",
+     "border": "1px solid #000"
+    },
+    "B87": {
+     "formula": "13,1",
+     "border": "1px solid #000"
+    },
+    "C87": {
+     "formula": "0,81",
+     "border": "1px solid #000"
+    },
+    "D87": {
+     "formula": "1,32",
+     "border": "1px solid #000"
+    },
+    "E87": {
+     "formula": "1,01",
+     "border": "1px solid #000"
+    },
+    "F87": {
+     "formula": "1,52",
+     "border": "1px solid #000"
+    },
+    "G87": {
+     "formula": "0,43",
+     "border": "1px solid #000"
+    },
+    "H87": {
+     "formula": "0,42",
+     "border": "1px solid #000"
+    },
+    "B88": {
+     "formula": "13,2",
+     "border": "1px solid #000"
+    },
+    "C88": {
+     "formula": "0,82",
+     "border": "1px solid #000"
+    },
+    "D88": {
+     "formula": "1,34",
+     "border": "1px solid #000"
+    },
+    "E88": {
+     "formula": "1,02",
+     "border": "1px solid #000"
+    },
+    "F88": {
+     "formula": "1,54",
+     "border": "1px solid #000"
+    },
+    "G88": {
+     "formula": "0,44",
+     "border": "1px solid #000"
+    },
+    "H88": {
+     "formula": "0,43",
+     "border": "1px solid #000"
+    },
+    "B89": {
+     "formula": "13,3",
+     "border": "1px solid #000"
+    },
+    "C89": {
+     "formula": "0,83",
+     "border": "1px solid #000"
+    },
+    "D89": {
+     "formula": "1,36",
+     "border": "1px solid #000"
+    },
+    "E89": {
+     "formula": "1,03",
+     "border": "1px solid #000"
+    },
+    "F89": {
+     "formula": "1,56",
+     "border": "1px solid #000"
+    },
+    "G89": {
+     "formula": "0,45",
+     "border": "1px solid #000"
+    },
+    "H89": {
+     "formula": "0,44",
+     "border": "1px solid #000"
+    },
+    "B90": {
+     "formula": "13,4",
+     "border": "1px solid #000"
+    },
+    "C90": {
+     "formula": "0,84",
+     "border": "1px solid #000"
+    },
+    "D90": {
+     "formula": "1,38",
+     "border": "1px solid #000"
+    },
+    "E90": {
+     "formula": "1,04",
+     "border": "1px solid #000"
+    },
+    "F90": {
+     "formula": "1,58",
+     "border": "1px solid #000"
+    },
+    "G90": {
+     "formula": "0,46",
+     "border": "1px solid #000"
+    },
+    "H90": {
+     "formula": "0,45",
+     "border": "1px solid #000"
+    },
+    "B91": {
+     "formula": "13,5",
+     "border": "1px solid #000"
+    },
+    "C91": {
+     "formula": "0,85",
+     "border": "1px solid #000"
+    },
+    "D91": {
+     "formula": "1,4",
+     "border": "1px solid #000"
+    },
+    "E91": {
+     "formula": "1,05",
+     "border": "1px solid #000"
+    },
+    "F91": {
+     "formula": "1,6",
+     "border": "1px solid #000"
+    },
+    "G91": {
+     "formula": "0,47",
+     "border": "1px solid #000"
+    },
+    "H91": {
+     "formula": "0,46",
+     "border": "1px solid #000"
+    },
+    "B92": {
+     "formula": "13,6",
+     "border": "1px solid #000"
+    },
+    "C92": {
+     "formula": "0,86",
+     "border": "1px solid #000"
+    },
+    "D92": {
+     "formula": "1,42",
+     "border": "1px solid #000"
+    },
+    "E92": {
+     "formula": "1,06",
+     "border": "1px solid #000"
+    },
+    "F92": {
+     "formula": "1,62",
+     "border": "1px solid #000"
+    },
+    "G92": {
+     "formula": "0,48",
+     "border": "1px solid #000"
+    },
+    "H92": {
+     "formula": "0,47",
+     "border": "1px solid #000"
+    },
+    "B93": {
+     "formula": "13,7",
+     "border": "1px solid #000"
+    },
+    "C93": {
+     "formula": "0,87",
+     "border": "1px solid #000"
+    },
+    "D93": {
+     "formula": "1,44",
+     "border": "1px solid #000"
+    },
+    "E93": {
+     "formula": "1,07",
+     "border": "1px solid #000"
+    },
+    "F93": {
+     "formula": "1,64",
+     "border": "1px solid #000"
+    },
+    "G93": {
+     "formula": "0,49",
+     "border": "1px solid #000"
+    },
+    "H93": {
+     "formula": "0,48",
+     "border": "1px solid #000"
+    },
+    "B94": {
+     "formula": "13,8",
+     "border": "1px solid #000"
+    },
+    "C94": {
+     "formula": "0,88",
+     "border": "1px solid #000"
+    },
+    "D94": {
+     "formula": "1,46",
+     "border": "1px solid #000"
+    },
+    "E94": {
+     "formula": "1,08",
+     "border": "1px solid #000"
+    },
+    "F94": {
+     "formula": "1,66",
+     "border": "1px solid #000"
+    },
+    "G94": {
+     "formula": "0,5",
+     "border": "1px solid #000"
+    },
+    "H94": {
+     "formula": "0,49",
+     "border": "1px solid #000"
+    },
+    "B95": {
+     "formula": "13,9",
+     "border": "1px solid #000"
+    },
+    "C95": {
+     "formula": "0,89",
+     "border": "1px solid #000"
+    },
+    "D95": {
+     "formula": "1,48",
+     "border": "1px solid #000"
+    },
+    "E95": {
+     "formula": "1,09",
+     "border": "1px solid #000"
+    },
+    "F95": {
+     "formula": "1,68",
+     "border": "1px solid #000"
+    },
+    "G95": {
+     "formula": "0,51",
+     "border": "1px solid #000"
+    },
+    "H95": {
+     "formula": "0,5",
+     "border": "1px solid #000"
+    },
+    "B96": {
+     "formula": "14.0",
+     "border": "1px solid #000"
+    },
+    "C96": {
+     "formula": "0.9",
+     "border": "1px solid #000"
+    },
+    "D96": {
+     "formula": "1,5",
+     "border": "1px solid #000"
+    },
+    "E96": {
+     "formula": "1,1",
+     "border": "1px solid #000"
+    },
+    "F96": {
+     "formula": "1,7",
+     "border": "1px solid #000"
+    },
+    "G96": {
+     "formula": "0,52",
+     "border": "1px solid #000"
+    },
+    "H96": {
+     "formula": "0,51",
+     "border": "1px solid #000"
+    },
+    "B97": {
+     "formula": "14.1",
+     "border": "1px solid #000"
+    },
+    "C97": {
+     "formula": "0.91",
+     "border": "1px solid #000"
+    },
+    "D97": {
+     "formula": "1,52",
+     "border": "1px solid #000"
+    },
+    "E97": {
+     "formula": "1,11",
+     "border": "1px solid #000"
+    },
+    "F97": {
+     "formula": "1,72",
+     "border": "1px solid #000"
+    },
+    "G97": {
+     "formula": "0,53",
+     "border": "1px solid #000"
+    },
+    "H97": {
+     "formula": "0,52",
+     "border": "1px solid #000"
+    },
+    "B98": {
+     "formula": "14.2",
+     "border": "1px solid #000"
+    },
+    "C98": {
+     "formula": "0.92",
+     "border": "1px solid #000"
+    },
+    "D98": {
+     "formula": "1,54",
+     "border": "1px solid #000"
+    },
+    "E98": {
+     "formula": "1,12",
+     "border": "1px solid #000"
+    },
+    "F98": {
+     "formula": "1,74",
+     "border": "1px solid #000"
+    },
+    "G98": {
+     "formula": "0,54",
+     "border": "1px solid #000"
+    },
+    "H98": {
+     "formula": "0,53",
+     "border": "1px solid #000"
+    },
+    "B99": {
+     "formula": "14.3",
+     "border": "1px solid #000"
+    },
+    "C99": {
+     "formula": "0.93",
+     "border": "1px solid #000"
+    },
+    "D99": {
+     "formula": "1,56",
+     "border": "1px solid #000"
+    },
+    "E99": {
+     "formula": "1,13",
+     "border": "1px solid #000"
+    },
+    "F99": {
+     "formula": "1,76",
+     "border": "1px solid #000"
+    },
+    "G99": {
+     "formula": "0,55",
+     "border": "1px solid #000"
+    },
+    "H99": {
+     "formula": "0,54",
+     "border": "1px solid #000"
+    },
+    "B100": {
+     "formula": "14.4",
+     "border": "1px solid #000"
+    },
+    "C100": {
+     "formula": "0.94",
+     "border": "1px solid #000"
+    },
+    "D100": {
+     "formula": "1,58",
+     "border": "1px solid #000"
+    },
+    "E100": {
+     "formula": "1,14",
+     "border": "1px solid #000"
+    },
+    "F100": {
+     "formula": "1,78",
+     "border": "1px solid #000"
+    },
+    "G100": {
+     "formula": "0,56",
+     "border": "1px solid #000"
+    },
+    "H100": {
+     "formula": "0,55",
+     "border": "1px solid #000"
+    },
+    "B101": {
+     "formula": "14.5",
+     "border": "1px solid #000"
+    },
+    "C101": {
+     "formula": "0.95",
+     "border": "1px solid #000"
+    },
+    "D101": {
+     "formula": "1,6",
+     "border": "1px solid #000"
+    },
+    "E101": {
+     "formula": "1,15",
+     "border": "1px solid #000"
+    },
+    "F101": {
+     "formula": "1,8",
+     "border": "1px solid #000"
+    },
+    "G101": {
+     "formula": "0,57",
+     "border": "1px solid #000"
+    },
+    "H101": {
+     "formula": "0,56",
+     "border": "1px solid #000"
+    },
+    "B102": {
+     "formula": "14.6",
+     "border": "1px solid #000"
+    },
+    "C102": {
+     "formula": "0.96",
+     "border": "1px solid #000"
+    },
+    "D102": {
+     "formula": "1,62",
+     "border": "1px solid #000"
+    },
+    "E102": {
+     "formula": "1,16",
+     "border": "1px solid #000"
+    },
+    "F102": {
+     "formula": "1,82",
+     "border": "1px solid #000"
+    },
+    "G102": {
+     "formula": "0,58",
+     "border": "1px solid #000"
+    },
+    "H102": {
+     "formula": "0,57",
+     "border": "1px solid #000"
+    },
+    "B103": {
+     "formula": "14.7",
+     "border": "1px solid #000"
+    },
+    "C103": {
+     "formula": "0.97",
+     "border": "1px solid #000"
+    },
+    "D103": {
+     "formula": "1,64",
+     "border": "1px solid #000"
+    },
+    "E103": {
+     "formula": "1,17",
+     "border": "1px solid #000"
+    },
+    "F103": {
+     "formula": "1,84",
+     "border": "1px solid #000"
+    },
+    "G103": {
+     "formula": "0,59",
+     "border": "1px solid #000"
+    },
+    "H103": {
+     "formula": "0,58",
+     "border": "1px solid #000"
+    },
+    "B104": {
+     "formula": "14.8",
+     "border": "1px solid #000"
+    },
+    "C104": {
+     "formula": "0.98",
+     "border": "1px solid #000"
+    },
+    "D104": {
+     "formula": "1,66",
+     "border": "1px solid #000"
+    },
+    "E104": {
+     "formula": "1,18",
+     "border": "1px solid #000"
+    },
+    "F104": {
+     "formula": "1,86",
+     "border": "1px solid #000"
+    },
+    "G104": {
+     "formula": "0,6",
+     "border": "1px solid #000"
+    },
+    "H104": {
+     "formula": "0,59",
+     "border": "1px solid #000"
+    },
+    "B105": {
+     "formula": "14.9",
+     "border": "1px solid #000"
+    },
+    "C105": {
+     "formula": "0.99",
+     "border": "1px solid #000"
+    },
+    "D105": {
+     "formula": "1,68",
+     "border": "1px solid #000"
+    },
+    "E105": {
+     "formula": "1,19",
+     "border": "1px solid #000"
+    },
+    "F105": {
+     "formula": "1,88",
+     "border": "1px solid #000"
+    },
+    "G105": {
+     "formula": "0,61",
+     "border": "1px solid #000"
+    },
+    "H105": {
+     "formula": "0,6",
+     "border": "1px solid #000"
+    },
+    "B106": {
+     "formula": "15,0",
+     "border": "1px solid #000"
+    },
+    "C106": {
+     "formula": "1",
+     "border": "1px solid #000"
+    },
+    "D106": {
+     "formula": "1,7",
+     "border": "1px solid #000"
+    },
+    "E106": {
+     "formula": "1,2",
+     "border": "1px solid #000"
+    },
+    "F106": {
+     "formula": "1,9",
+     "border": "1px solid #000"
+    },
+    "G106": {
+     "formula": "0,62",
+     "border": "1px solid #000"
+    },
+    "H106": {
+     "formula": "0,61",
+     "border": "1px solid #000"
+    },
+    "B107": {
+     "formula": "15,1",
+     "border": "1px solid #000"
+    },
+    "C107": {
+     "formula": "1,01",
+     "border": "1px solid #000"
+    },
+    "D107": {
+     "formula": "1,72",
+     "border": "1px solid #000"
+    },
+    "E107": {
+     "formula": "1,21",
+     "border": "1px solid #000"
+    },
+    "F107": {
+     "formula": "1,92",
+     "border": "1px solid #000"
+    },
+    "G107": {
+     "formula": "0,63",
+     "border": "1px solid #000"
+    },
+    "H107": {
+     "formula": "0,62",
+     "border": "1px solid #000"
+    },
+    "B108": {
+     "formula": "15,2",
+     "border": "1px solid #000"
+    },
+    "C108": {
+     "formula": "1,02",
+     "border": "1px solid #000"
+    },
+    "D108": {
+     "formula": "1,74",
+     "border": "1px solid #000"
+    },
+    "E108": {
+     "formula": "1,22",
+     "border": "1px solid #000"
+    },
+    "F108": {
+     "formula": "1,94",
+     "border": "1px solid #000"
+    },
+    "G108": {
+     "formula": "0,64",
+     "border": "1px solid #000"
+    },
+    "H108": {
+     "formula": "0,63",
+     "border": "1px solid #000"
+    },
+    "B109": {
+     "formula": "15,3",
+     "border": "1px solid #000"
+    },
+    "C109": {
+     "formula": "1,03",
+     "border": "1px solid #000"
+    },
+    "D109": {
+     "formula": "1,76",
+     "border": "1px solid #000"
+    },
+    "E109": {
+     "formula": "1,23",
+     "border": "1px solid #000"
+    },
+    "F109": {
+     "formula": "1,96",
+     "border": "1px solid #000"
+    },
+    "G109": {
+     "formula": "0,65",
+     "border": "1px solid #000"
+    },
+    "H109": {
+     "formula": "0,64",
+     "border": "1px solid #000"
+    },
+    "B110": {
+     "formula": "15,4",
+     "border": "1px solid #000"
+    },
+    "C110": {
+     "formula": "1,04",
+     "border": "1px solid #000"
+    },
+    "D110": {
+     "formula": "1,78",
+     "border": "1px solid #000"
+    },
+    "E110": {
+     "formula": "1,24",
+     "border": "1px solid #000"
+    },
+    "F110": {
+     "formula": "1,98",
+     "border": "1px solid #000"
+    },
+    "G110": {
+     "formula": "0,66",
+     "border": "1px solid #000"
+    },
+    "H110": {
+     "formula": "0,65",
+     "border": "1px solid #000"
+    },
+    "B111": {
+     "formula": "15,5",
+     "border": "1px solid #000"
+    },
+    "C111": {
+     "formula": "1,05",
+     "border": "1px solid #000"
+    },
+    "D111": {
+     "formula": "1,8",
+     "border": "1px solid #000"
+    },
+    "E111": {
+     "formula": "1,25",
+     "border": "1px solid #000"
+    },
+    "F111": {
+     "formula": "2",
+     "border": "1px solid #000"
+    },
+    "G111": {
+     "formula": "0,67",
+     "border": "1px solid #000"
+    },
+    "H111": {
+     "formula": "0,66",
+     "border": "1px solid #000"
+    },
+    "B112": {
+     "formula": "15,6",
+     "border": "1px solid #000"
+    },
+    "C112": {
+     "formula": "1,06",
+     "border": "1px solid #000"
+    },
+    "D112": {
+     "formula": "1,82",
+     "border": "1px solid #000"
+    },
+    "E112": {
+     "formula": "1,26",
+     "border": "1px solid #000"
+    },
+    "F112": {
+     "formula": "2,02",
+     "border": "1px solid #000"
+    },
+    "G112": {
+     "formula": "0,68",
+     "border": "1px solid #000"
+    },
+    "H112": {
+     "formula": "0,67",
+     "border": "1px solid #000"
+    },
+    "B113": {
+     "formula": "15,7",
+     "border": "1px solid #000"
+    },
+    "C113": {
+     "formula": "1,07",
+     "border": "1px solid #000"
+    },
+    "D113": {
+     "formula": "1,84",
+     "border": "1px solid #000"
+    },
+    "E113": {
+     "formula": "1,27",
+     "border": "1px solid #000"
+    },
+    "F113": {
+     "formula": "2,04",
+     "border": "1px solid #000"
+    },
+    "G113": {
+     "formula": "0,69",
+     "border": "1px solid #000"
+    },
+    "H113": {
+     "formula": "0,68",
+     "border": "1px solid #000"
+    },
+    "B114": {
+     "formula": "15,8",
+     "border": "1px solid #000"
+    },
+    "C114": {
+     "formula": "1,08",
+     "border": "1px solid #000"
+    },
+    "D114": {
+     "formula": "1,86",
+     "border": "1px solid #000"
+    },
+    "E114": {
+     "formula": "1,28",
+     "border": "1px solid #000"
+    },
+    "F114": {
+     "formula": "2,06",
+     "border": "1px solid #000"
+    },
+    "G114": {
+     "formula": "0,7",
+     "border": "1px solid #000"
+    },
+    "H114": {
+     "formula": "0,69",
+     "border": "1px solid #000"
+    },
+    "B115": {
+     "formula": "15,9",
+     "border": "1px solid #000"
+    },
+    "C115": {
+     "formula": "1,09",
+     "border": "1px solid #000"
+    },
+    "D115": {
+     "formula": "1,88",
+     "border": "1px solid #000"
+    },
+    "E115": {
+     "formula": "1,29",
+     "border": "1px solid #000"
+    },
+    "F115": {
+     "formula": "2,08",
+     "border": "1px solid #000"
+    },
+    "G115": {
+     "formula": "0,71",
+     "border": "1px solid #000"
+    },
+    "H115": {
+     "formula": "0,7",
+     "border": "1px solid #000"
+    },
+    "B116": {
+     "formula": "16,0",
+     "border": "1px solid #000"
+    },
+    "C116": {
+     "formula": "1,1",
+     "border": "1px solid #000"
+    },
+    "D116": {
+     "formula": "1,9",
+     "border": "1px solid #000"
+    },
+    "E116": {
+     "formula": "1,3",
+     "border": "1px solid #000"
+    },
+    "F116": {
+     "formula": "2,1",
+     "border": "1px solid #000"
+    },
+    "G116": {
+     "formula": "0,72",
+     "border": "1px solid #000"
+    },
+    "H116": {
+     "formula": "0,71",
+     "border": "1px solid #000"
+    },
+    "B117": {
+     "formula": "16,1",
+     "border": "1px solid #000"
+    },
+    "C117": {
+     "formula": "1,11",
+     "border": "1px solid #000"
+    },
+    "D117": {
+     "formula": "1,92",
+     "border": "1px solid #000"
+    },
+    "E117": {
+     "formula": "1,31",
+     "border": "1px solid #000"
+    },
+    "F117": {
+     "formula": "2,12",
+     "border": "1px solid #000"
+    },
+    "G117": {
+     "formula": "0,73",
+     "border": "1px solid #000"
+    },
+    "H117": {
+     "formula": "0,72",
+     "border": "1px solid #000"
+    },
+    "B118": {
+     "formula": "16,2",
+     "border": "1px solid #000"
+    },
+    "C118": {
+     "formula": "1,12",
+     "border": "1px solid #000"
+    },
+    "D118": {
+     "formula": "1,94",
+     "border": "1px solid #000"
+    },
+    "E118": {
+     "formula": "1,32",
+     "border": "1px solid #000"
+    },
+    "F118": {
+     "formula": "2,14",
+     "border": "1px solid #000"
+    },
+    "G118": {
+     "formula": "0,74",
+     "border": "1px solid #000"
+    },
+    "H118": {
+     "formula": "0,73",
+     "border": "1px solid #000"
+    },
+    "B119": {
+     "formula": "16,3",
+     "border": "1px solid #000"
+    },
+    "C119": {
+     "formula": "1,13",
+     "border": "1px solid #000"
+    },
+    "D119": {
+     "formula": "1,96",
+     "border": "1px solid #000"
+    },
+    "E119": {
+     "formula": "1,33",
+     "border": "1px solid #000"
+    },
+    "F119": {
+     "formula": "2,16",
+     "border": "1px solid #000"
+    },
+    "G119": {
+     "formula": "0,75",
+     "border": "1px solid #000"
+    },
+    "H119": {
+     "formula": "0,74",
+     "border": "1px solid #000"
+    },
+    "B120": {
+     "formula": "16,4",
+     "border": "1px solid #000"
+    },
+    "C120": {
+     "formula": "1,14",
+     "border": "1px solid #000"
+    },
+    "D120": {
+     "formula": "1,98",
+     "border": "1px solid #000"
+    },
+    "E120": {
+     "formula": "1,34",
+     "border": "1px solid #000"
+    },
+    "F120": {
+     "formula": "2,18",
+     "border": "1px solid #000"
+    },
+    "G120": {
+     "formula": "0,76",
+     "border": "1px solid #000"
+    },
+    "H120": {
+     "formula": "0,75",
+     "border": "1px solid #000"
+    },
+    "B121": {
+     "formula": "16,5",
+     "border": "1px solid #000"
+    },
+    "C121": {
+     "formula": "1,15",
+     "border": "1px solid #000"
+    },
+    "D121": {
+     "formula": "2",
+     "border": "1px solid #000"
+    },
+    "E121": {
+     "formula": "1,35",
+     "border": "1px solid #000"
+    },
+    "F121": {
+     "formula": "2,2",
+     "border": "1px solid #000"
+    },
+    "G121": {
+     "formula": "0,77",
+     "border": "1px solid #000"
+    },
+    "H121": {
+     "formula": "0,76",
+     "border": "1px solid #000"
+    },
+    "B122": {
+     "formula": "16,6",
+     "border": "1px solid #000"
+    },
+    "C122": {
+     "formula": "1,16",
+     "border": "1px solid #000"
+    },
+    "D122": {
+     "formula": "2,02",
+     "border": "1px solid #000"
+    },
+    "E122": {
+     "formula": "1,36",
+     "border": "1px solid #000"
+    },
+    "F122": {
+     "formula": "2,22",
+     "border": "1px solid #000"
+    },
+    "G122": {
+     "formula": "0,78",
+     "border": "1px solid #000"
+    },
+    "H122": {
+     "formula": "0,77",
+     "border": "1px solid #000"
+    },
+    "B123": {
+     "formula": "16,7",
+     "border": "1px solid #000"
+    },
+    "C123": {
+     "formula": "1,17",
+     "border": "1px solid #000"
+    },
+    "D123": {
+     "formula": "2,04",
+     "border": "1px solid #000"
+    },
+    "E123": {
+     "formula": "1,37",
+     "border": "1px solid #000"
+    },
+    "F123": {
+     "formula": "2,24",
+     "border": "1px solid #000"
+    },
+    "G123": {
+     "formula": "0,79",
+     "border": "1px solid #000"
+    },
+    "H123": {
+     "formula": "0,78",
+     "border": "1px solid #000"
+    },
+    "B124": {
+     "formula": "16,8",
+     "border": "1px solid #000"
+    },
+    "C124": {
+     "formula": "1,18",
+     "border": "1px solid #000"
+    },
+    "D124": {
+     "formula": "2,06",
+     "border": "1px solid #000"
+    },
+    "E124": {
+     "formula": "1,38",
+     "border": "1px solid #000"
+    },
+    "F124": {
+     "formula": "2,26",
+     "border": "1px solid #000"
+    },
+    "G124": {
+     "formula": "0,8",
+     "border": "1px solid #000"
+    },
+    "H124": {
+     "formula": "0,79",
+     "border": "1px solid #000"
+    },
+    "B125": {
+     "formula": "16,9",
+     "border": "1px solid #000"
+    },
+    "C125": {
+     "formula": "1,19",
+     "border": "1px solid #000"
+    },
+    "D125": {
+     "formula": "2,08",
+     "border": "1px solid #000"
+    },
+    "E125": {
+     "formula": "1,39",
+     "border": "1px solid #000"
+    },
+    "F125": {
+     "formula": "2,28",
+     "border": "1px solid #000"
+    },
+    "G125": {
+     "formula": "0,81",
+     "border": "1px solid #000"
+    },
+    "H125": {
+     "formula": "0,8",
+     "border": "1px solid #000"
+    },
+    "B126": {
+     "formula": "17,0",
+     "border": "1px solid #000"
+    },
+    "C126": {
+     "formula": "1,2",
+     "border": "1px solid #000"
+    },
+    "D126": {
+     "formula": "2,1",
+     "border": "1px solid #000"
+    },
+    "E126": {
+     "formula": "1,4",
+     "border": "1px solid #000"
+    },
+    "F126": {
+     "formula": "2,3",
+     "border": "1px solid #000"
+    },
+    "G126": {
+     "formula": "0,82",
+     "border": "1px solid #000"
+    },
+    "H126": {
+     "formula": "0,81",
+     "border": "1px solid #000"
+    },
+    "B127": {
+     "formula": "17,1",
+     "border": "1px solid #000"
+    },
+    "C127": {
+     "formula": "1,21",
+     "border": "1px solid #000"
+    },
+    "D127": {
+     "formula": "2,12",
+     "border": "1px solid #000"
+    },
+    "E127": {
+     "formula": "1,41",
+     "border": "1px solid #000"
+    },
+    "F127": {
+     "formula": "2,32",
+     "border": "1px solid #000"
+    },
+    "G127": {
+     "formula": "0,83",
+     "border": "1px solid #000"
+    },
+    "H127": {
+     "formula": "0,82",
+     "border": "1px solid #000"
+    },
+    "B128": {
+     "formula": "17,2",
+     "border": "1px solid #000"
+    },
+    "C128": {
+     "formula": "1,22",
+     "border": "1px solid #000"
+    },
+    "D128": {
+     "formula": "2,14",
+     "border": "1px solid #000"
+    },
+    "E128": {
+     "formula": "1,42",
+     "border": "1px solid #000"
+    },
+    "F128": {
+     "formula": "2,34",
+     "border": "1px solid #000"
+    },
+    "G128": {
+     "formula": "0,84",
+     "border": "1px solid #000"
+    },
+    "H128": {
+     "formula": "0,83",
+     "border": "1px solid #000"
+    },
+    "B129": {
+     "formula": "17,3",
+     "border": "1px solid #000"
+    },
+    "C129": {
+     "formula": "1,23",
+     "border": "1px solid #000"
+    },
+    "D129": {
+     "formula": "2,16",
+     "border": "1px solid #000"
+    },
+    "E129": {
+     "formula": "1,43",
+     "border": "1px solid #000"
+    },
+    "F129": {
+     "formula": "2,36",
+     "border": "1px solid #000"
+    },
+    "G129": {
+     "formula": "0,85",
+     "border": "1px solid #000"
+    },
+    "H129": {
+     "formula": "0,84",
+     "border": "1px solid #000"
+    },
+    "B130": {
+     "formula": "17,4",
+     "border": "1px solid #000"
+    },
+    "C130": {
+     "formula": "1,24",
+     "border": "1px solid #000"
+    },
+    "D130": {
+     "formula": "2,18",
+     "border": "1px solid #000"
+    },
+    "E130": {
+     "formula": "1,44",
+     "border": "1px solid #000"
+    },
+    "F130": {
+     "formula": "2,38",
+     "border": "1px solid #000"
+    },
+    "G130": {
+     "formula": "0,86",
+     "border": "1px solid #000"
+    },
+    "H130": {
+     "formula": "0,85",
+     "border": "1px solid #000"
+    },
+    "B131": {
+     "formula": "17,5",
+     "border": "1px solid #000"
+    },
+    "C131": {
+     "formula": "1,25",
+     "border": "1px solid #000"
+    },
+    "D131": {
+     "formula": "2,2",
+     "border": "1px solid #000"
+    },
+    "E131": {
+     "formula": "1,45",
+     "border": "1px solid #000"
+    },
+    "F131": {
+     "formula": "2,4",
+     "border": "1px solid #000"
+    },
+    "G131": {
+     "formula": "0,87",
+     "border": "1px solid #000"
+    },
+    "H131": {
+     "formula": "0,86",
+     "border": "1px solid #000"
+    },
+    "B132": {
+     "formula": "17,6",
+     "border": "1px solid #000"
+    },
+    "C132": {
+     "formula": "1,26",
+     "border": "1px solid #000"
+    },
+    "D132": {
+     "formula": "2,22",
+     "border": "1px solid #000"
+    },
+    "E132": {
+     "formula": "1,46",
+     "border": "1px solid #000"
+    },
+    "F132": {
+     "formula": "2,42",
+     "border": "1px solid #000"
+    },
+    "G132": {
+     "formula": "0,88",
+     "border": "1px solid #000"
+    },
+    "H132": {
+     "formula": "0,87",
+     "border": "1px solid #000"
+    },
+    "B133": {
+     "formula": "17,7",
+     "border": "1px solid #000"
+    },
+    "C133": {
+     "formula": "1,27",
+     "border": "1px solid #000"
+    },
+    "D133": {
+     "formula": "2,24",
+     "border": "1px solid #000"
+    },
+    "E133": {
+     "formula": "1,47",
+     "border": "1px solid #000"
+    },
+    "F133": {
+     "formula": "2,44",
+     "border": "1px solid #000"
+    },
+    "G133": {
+     "formula": "0,89",
+     "border": "1px solid #000"
+    },
+    "H133": {
+     "formula": "0,88",
+     "border": "1px solid #000"
+    },
+    "B134": {
+     "formula": "17,8",
+     "border": "1px solid #000"
+    },
+    "C134": {
+     "formula": "1,28",
+     "border": "1px solid #000"
+    },
+    "D134": {
+     "formula": "2,26",
+     "border": "1px solid #000"
+    },
+    "E134": {
+     "formula": "1,48",
+     "border": "1px solid #000"
+    },
+    "F134": {
+     "formula": "2,46",
+     "border": "1px solid #000"
+    },
+    "G134": {
+     "formula": "0,9",
+     "border": "1px solid #000"
+    },
+    "H134": {
+     "formula": "0,89",
+     "border": "1px solid #000"
+    },
+    "B135": {
+     "formula": "17,9",
+     "border": "1px solid #000"
+    },
+    "C135": {
+     "formula": "1,29",
+     "border": "1px solid #000"
+    },
+    "D135": {
+     "formula": "2,28",
+     "border": "1px solid #000"
+    },
+    "E135": {
+     "formula": "1,49",
+     "border": "1px solid #000"
+    },
+    "F135": {
+     "formula": "2,48",
+     "border": "1px solid #000"
+    },
+    "G135": {
+     "formula": "0,91",
+     "border": "1px solid #000"
+    },
+    "H135": {
+     "formula": "0,9",
+     "border": "1px solid #000"
+    },
+    "B136": {
+     "formula": "18,0",
+     "border": "1px solid #000"
+    },
+    "C136": {
+     "formula": "1,3",
+     "border": "1px solid #000"
+    },
+    "D136": {
+     "formula": "2,3",
+     "border": "1px solid #000"
+    },
+    "E136": {
+     "formula": "1,5",
+     "border": "1px solid #000"
+    },
+    "F136": {
+     "formula": "2,5",
+     "border": "1px solid #000"
+    },
+    "G136": {
+     "formula": "0,92",
+     "border": "1px solid #000"
+    },
+    "H136": {
+     "formula": "0,91",
+     "border": "1px solid #000"
+    },
+    "B137": {
+     "formula": "18,1",
+     "border": "1px solid #000"
+    },
+    "C137": {
+     "formula": "1,31",
+     "border": "1px solid #000"
+    },
+    "D137": {
+     "formula": "2,32",
+     "border": "1px solid #000"
+    },
+    "E137": {
+     "formula": "1,51",
+     "border": "1px solid #000"
+    },
+    "F137": {
+     "formula": "2,52",
+     "border": "1px solid #000"
+    },
+    "G137": {
+     "formula": "0,93",
+     "border": "1px solid #000"
+    },
+    "H137": {
+     "formula": "0,92",
+     "border": "1px solid #000"
+    },
+    "B138": {
+     "formula": "18,2",
+     "border": "1px solid #000"
+    },
+    "C138": {
+     "formula": "1,32",
+     "border": "1px solid #000"
+    },
+    "D138": {
+     "formula": "2,34",
+     "border": "1px solid #000"
+    },
+    "E138": {
+     "formula": "1,52",
+     "border": "1px solid #000"
+    },
+    "F138": {
+     "formula": "2,54",
+     "border": "1px solid #000"
+    },
+    "G138": {
+     "formula": "0,94",
+     "border": "1px solid #000"
+    },
+    "H138": {
+     "formula": "0,93",
+     "border": "1px solid #000"
+    },
+    "B139": {
+     "formula": "18,3",
+     "border": "1px solid #000"
+    },
+    "C139": {
+     "formula": "1,33",
+     "border": "1px solid #000"
+    },
+    "D139": {
+     "formula": "2,36",
+     "border": "1px solid #000"
+    },
+    "E139": {
+     "formula": "1,53",
+     "border": "1px solid #000"
+    },
+    "F139": {
+     "formula": "2,56",
+     "border": "1px solid #000"
+    },
+    "G139": {
+     "formula": "0,95",
+     "border": "1px solid #000"
+    },
+    "H139": {
+     "formula": "0,94",
+     "border": "1px solid #000"
+    },
+    "B140": {
+     "formula": "18,4",
+     "border": "1px solid #000"
+    },
+    "C140": {
+     "formula": "1,34",
+     "border": "1px solid #000"
+    },
+    "D140": {
+     "formula": "2,38",
+     "border": "1px solid #000"
+    },
+    "E140": {
+     "formula": "1,54",
+     "border": "1px solid #000"
+    },
+    "F140": {
+     "formula": "2,58",
+     "border": "1px solid #000"
+    },
+    "G140": {
+     "formula": "0,96",
+     "border": "1px solid #000"
+    },
+    "H140": {
+     "formula": "0,95",
+     "border": "1px solid #000"
+    },
+    "B141": {
+     "formula": "18,5",
+     "border": "1px solid #000"
+    },
+    "C141": {
+     "formula": "1,35",
+     "border": "1px solid #000"
+    },
+    "D141": {
+     "formula": "2,4",
+     "border": "1px solid #000"
+    },
+    "E141": {
+     "formula": "1,55",
+     "border": "1px solid #000"
+    },
+    "F141": {
+     "formula": "2,6",
+     "border": "1px solid #000"
+    },
+    "G141": {
+     "formula": "0,97",
+     "border": "1px solid #000"
+    },
+    "H141": {
+     "formula": "0,96",
+     "border": "1px solid #000"
+    },
+    "B142": {
+     "formula": "18,6",
+     "border": "1px solid #000"
+    },
+    "C142": {
+     "formula": "1,36",
+     "border": "1px solid #000"
+    },
+    "D142": {
+     "formula": "2,42",
+     "border": "1px solid #000"
+    },
+    "E142": {
+     "formula": "1,56",
+     "border": "1px solid #000"
+    },
+    "F142": {
+     "formula": "2,62",
+     "border": "1px solid #000"
+    },
+    "G142": {
+     "formula": "0,98",
+     "border": "1px solid #000"
+    },
+    "H142": {
+     "formula": "0,97",
+     "border": "1px solid #000"
+    },
+    "B143": {
+     "formula": "18,7",
+     "border": "1px solid #000"
+    },
+    "C143": {
+     "formula": "1,37",
+     "border": "1px solid #000"
+    },
+    "D143": {
+     "formula": "2,44",
+     "border": "1px solid #000"
+    },
+    "E143": {
+     "formula": "1,57",
+     "border": "1px solid #000"
+    },
+    "F143": {
+     "formula": "2,64",
+     "border": "1px solid #000"
+    },
+    "G143": {
+     "formula": "0,99",
+     "border": "1px solid #000"
+    },
+    "H143": {
+     "formula": "0,98",
+     "border": "1px solid #000"
+    },
+    "B144": {
+     "formula": "18,8",
+     "border": "1px solid #000"
+    },
+    "C144": {
+     "formula": "1,38",
+     "border": "1px solid #000"
+    },
+    "D144": {
+     "formula": "2,46",
+     "border": "1px solid #000"
+    },
+    "E144": {
+     "formula": "1,58",
+     "border": "1px solid #000"
+    },
+    "F144": {
+     "formula": "2,66",
+     "border": "1px solid #000"
+    },
+    "G144": {
+     "formula": "1",
+     "border": "1px solid #000"
+    },
+    "H144": {
+     "formula": "0,99",
+     "border": "1px solid #000"
+    },
+    "B145": {
+     "formula": "18,9",
+     "border": "1px solid #000"
+    },
+    "C145": {
+     "formula": "1,39",
+     "border": "1px solid #000"
+    },
+    "D145": {
+     "formula": "2,48",
+     "border": "1px solid #000"
+    },
+    "E145": {
+     "formula": "1,59",
+     "border": "1px solid #000"
+    },
+    "F145": {
+     "formula": "2,68",
+     "border": "1px solid #000"
+    },
+    "G145": {
+     "formula": "1,01",
+     "border": "1px solid #000"
+    },
+    "H145": {
+     "formula": "1",
+     "border": "1px solid #000"
+    },
+    "B146": {
+     "formula": "19,0",
+     "border": "1px solid #000"
+    },
+    "C146": {
+     "formula": "1,4",
+     "border": "1px solid #000"
+    },
+    "D146": {
+     "formula": "2,5",
+     "border": "1px solid #000"
+    },
+    "E146": {
+     "formula": "1,6",
+     "border": "1px solid #000"
+    },
+    "F146": {
+     "formula": "2,7",
+     "border": "1px solid #000"
+    },
+    "G146": {
+     "formula": "1,02",
+     "border": "1px solid #000"
+    },
+    "H146": {
+     "formula": "1,01",
+     "border": "1px solid #000"
+    },
+    "B147": {
+     "formula": "19,1",
+     "border": "1px solid #000"
+    },
+    "C147": {
+     "formula": "1,41",
+     "border": "1px solid #000"
+    },
+    "D147": {
+     "formula": "2,52",
+     "border": "1px solid #000"
+    },
+    "E147": {
+     "formula": "1,61",
+     "border": "1px solid #000"
+    },
+    "F147": {
+     "formula": "2,72",
+     "border": "1px solid #000"
+    },
+    "G147": {
+     "formula": "1,03",
+     "border": "1px solid #000"
+    },
+    "H147": {
+     "formula": "1,02",
+     "border": "1px solid #000"
+    },
+    "B148": {
+     "formula": "19,2",
+     "border": "1px solid #000"
+    },
+    "C148": {
+     "formula": "1,42",
+     "border": "1px solid #000"
+    },
+    "D148": {
+     "formula": "2,54",
+     "border": "1px solid #000"
+    },
+    "E148": {
+     "formula": "1,62",
+     "border": "1px solid #000"
+    },
+    "F148": {
+     "formula": "2,74",
+     "border": "1px solid #000"
+    },
+    "G148": {
+     "formula": "1,04",
+     "border": "1px solid #000"
+    },
+    "H148": {
+     "formula": "1,03",
+     "border": "1px solid #000"
+    },
+    "B149": {
+     "formula": "19,3",
+     "border": "1px solid #000"
+    },
+    "C149": {
+     "formula": "1,43",
+     "border": "1px solid #000"
+    },
+    "D149": {
+     "formula": "2,56",
+     "border": "1px solid #000"
+    },
+    "E149": {
+     "formula": "1,63",
+     "border": "1px solid #000"
+    },
+    "F149": {
+     "formula": "2,76",
+     "border": "1px solid #000"
+    },
+    "G149": {
+     "formula": "1,05",
+     "border": "1px solid #000"
+    },
+    "H149": {
+     "formula": "1,04",
+     "border": "1px solid #000"
+    },
+    "B150": {
+     "formula": "19,4",
+     "border": "1px solid #000"
+    },
+    "C150": {
+     "formula": "1,44",
+     "border": "1px solid #000"
+    },
+    "D150": {
+     "formula": "2,58",
+     "border": "1px solid #000"
+    },
+    "E150": {
+     "formula": "1,64",
+     "border": "1px solid #000"
+    },
+    "F150": {
+     "formula": "2,78",
+     "border": "1px solid #000"
+    },
+    "G150": {
+     "formula": "1,06",
+     "border": "1px solid #000"
+    },
+    "H150": {
+     "formula": "1,05",
+     "border": "1px solid #000"
+    },
+    "B151": {
+     "formula": "19,5",
+     "border": "1px solid #000"
+    },
+    "C151": {
+     "formula": "1,45",
+     "border": "1px solid #000"
+    },
+    "D151": {
+     "formula": "2,6",
+     "border": "1px solid #000"
+    },
+    "E151": {
+     "formula": "1,65",
+     "border": "1px solid #000"
+    },
+    "F151": {
+     "formula": "2,8",
+     "border": "1px solid #000"
+    },
+    "G151": {
+     "formula": "1,07",
+     "border": "1px solid #000"
+    },
+    "H151": {
+     "formula": "1,06",
+     "border": "1px solid #000"
+    },
+    "B152": {
+     "formula": "19,6",
+     "border": "1px solid #000"
+    },
+    "C152": {
+     "formula": "1,46",
+     "border": "1px solid #000"
+    },
+    "D152": {
+     "formula": "2,62",
+     "border": "1px solid #000"
+    },
+    "E152": {
+     "formula": "1,66",
+     "border": "1px solid #000"
+    },
+    "F152": {
+     "formula": "2,82",
+     "border": "1px solid #000"
+    },
+    "G152": {
+     "formula": "1,08",
+     "border": "1px solid #000"
+    },
+    "H152": {
+     "formula": "1,07",
+     "border": "1px solid #000"
+    },
+    "B153": {
+     "formula": "19,7",
+     "border": "1px solid #000"
+    },
+    "C153": {
+     "formula": "1,47",
+     "border": "1px solid #000"
+    },
+    "D153": {
+     "formula": "2,64",
+     "border": "1px solid #000"
+    },
+    "E153": {
+     "formula": "1,67",
+     "border": "1px solid #000"
+    },
+    "F153": {
+     "formula": "2,84",
+     "border": "1px solid #000"
+    },
+    "G153": {
+     "formula": "1,09",
+     "border": "1px solid #000"
+    },
+    "H153": {
+     "formula": "1,08",
+     "border": "1px solid #000"
+    },
+    "B154": {
+     "formula": "19,8",
+     "border": "1px solid #000"
+    },
+    "C154": {
+     "formula": "1,48",
+     "border": "1px solid #000"
+    },
+    "D154": {
+     "formula": "2,66",
+     "border": "1px solid #000"
+    },
+    "E154": {
+     "formula": "1,68",
+     "border": "1px solid #000"
+    },
+    "F154": {
+     "formula": "2,86",
+     "border": "1px solid #000"
+    },
+    "G154": {
+     "formula": "1,1",
+     "border": "1px solid #000"
+    },
+    "H154": {
+     "formula": "1,09",
+     "border": "1px solid #000"
+    },
+    "B155": {
+     "formula": "19,9",
+     "border": "1px solid #000"
+    },
+    "C155": {
+     "formula": "1,49",
+     "border": "1px solid #000"
+    },
+    "D155": {
+     "formula": "2,68",
+     "border": "1px solid #000"
+    },
+    "E155": {
+     "formula": "1,69",
+     "border": "1px solid #000"
+    },
+    "F155": {
+     "formula": "2,88",
+     "border": "1px solid #000"
+    },
+    "G155": {
+     "formula": "1,11",
+     "border": "1px solid #000"
+    },
+    "H155": {
+     "formula": "1,1",
+     "border": "1px solid #000"
+    },
+    "B156": {
+     "formula": "20,0",
+     "border": "1px solid #000"
+    },
+    "C156": {
+     "formula": "1,5",
+     "border": "1px solid #000"
+    },
+    "D156": {
+     "formula": "2,7",
+     "border": "1px solid #000"
+    },
+    "E156": {
+     "formula": "1,7",
+     "border": "1px solid #000"
+    },
+    "F156": {
+     "formula": "2,9",
+     "border": "1px solid #000"
+    },
+    "G156": {
+     "formula": "1,12",
+     "border": "1px solid #000"
+    },
+    "H156": {
+     "formula": "1,11",
+     "border": "1px solid #000"
+    },
+    "B160": {
+     "formula": "Tabla de alambres aluminio o cobre",
+     "border": "1px solid #000"
+    },
+    "C160": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "D160": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "E160": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "F160": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "B161": {
+     "formula": "Área",
+     "border": "1px solid #000"
+    },
+    "C161": {
+     "formula": "Conductor",
+     "border": "1px solid #000"
+    },
+    "D161": {
+     "formula": "Diamétro Aislado",
+     "border": "1px solid #000"
+    },
+    "E161": {
+     "formula": "Diámetro sin aislamiento",
+     "border": "1px solid #000"
+    },
+    "F161": {
+     "formula": "Aislamiento",
+     "border": "1px solid #000"
+    },
+    "B162": {
+     "formula": "0,163",
+     "border": "1px solid #000"
+    },
+    "C162": {
+     "formula": "25",
+     "border": "1px solid #000"
+    },
+    "D162": {
+     "formula": "0,511",
+     "border": "1px solid #000"
+    },
+    "E162": {
+     "formula": "0,455",
+     "border": "1px solid #000"
+    },
+    "F162": {
+     "formula": "0,056",
+     "border": "1px solid #000"
+    },
+    "B163": {
+     "formula": "0,205",
+     "border": "1px solid #000"
+    },
+    "C163": {
+     "formula": "24",
+     "border": "1px solid #000"
+    },
+    "D163": {
+     "formula": "0,569",
+     "border": "1px solid #000"
+    },
+    "E163": {
+     "formula": "0,511",
+     "border": "1px solid #000"
+    },
+    "F163": {
+     "formula": "0,058",
+     "border": "1px solid #000"
+    },
+    "B164": {
+     "formula": "0,259",
+     "border": "1px solid #000"
+    },
+    "C164": {
+     "formula": "23",
+     "border": "1px solid #000"
+    },
+    "D164": {
+     "formula": "0,632",
+     "border": "1px solid #000"
+    },
+    "E164": {
+     "formula": "0,574",
+     "border": "1px solid #000"
+    },
+    "F164": {
+     "formula": "0,058",
+     "border": "1px solid #000"
+    },
+    "B165": {
+     "formula": "0,324",
+     "border": "1px solid #000"
+    },
+    "C165": {
+     "formula": "22",
+     "border": "1px solid #000"
+    },
+    "D165": {
+     "formula": "0,704",
+     "border": "1px solid #000"
+    },
+    "E165": {
+     "formula": "0,643",
+     "border": "1px solid #000"
+    },
+    "F165": {
+     "formula": "0,061",
+     "border": "1px solid #000"
+    },
+    "B166": {
+     "formula": "0,412",
+     "border": "1px solid #000"
+    },
+    "C166": {
+     "formula": "21",
+     "border": "1px solid #000"
+    },
+    "D166": {
+     "formula": "0,787",
+     "border": "1px solid #000"
+    },
+    "E166": {
+     "formula": "0,724",
+     "border": "1px solid #000"
+    },
+    "F166": {
+     "formula": "0,063",
+     "border": "1px solid #000"
+    },
+    "B167": {
+     "formula": "0,519",
+     "border": "1px solid #000"
+    },
+    "C167": {
+     "formula": "20",
+     "border": "1px solid #000"
+    },
+    "D167": {
+     "formula": "0,879",
+     "border": "1px solid #000"
+    },
+    "E167": {
+     "formula": "0,813",
+     "border": "1px solid #000"
+    },
+    "F167": {
+     "formula": "0,066",
+     "border": "1px solid #000"
+    },
+    "B168": {
+     "formula": "0,653",
+     "border": "1px solid #000"
+    },
+    "C168": {
+     "formula": "19",
+     "border": "1px solid #000"
+    },
+    "D168": {
+     "formula": "0,983",
+     "border": "1px solid #000"
+    },
+    "E168": {
+     "formula": "0,912",
+     "border": "1px solid #000"
+    },
+    "F168": {
+     "formula": "0,071",
+     "border": "1px solid #000"
+    },
+    "B169": {
+     "formula": "0,823",
+     "border": "1px solid #000"
+    },
+    "C169": {
+     "formula": "18",
+     "border": "1px solid #000"
+    },
+    "D169": {
+     "formula": "1,097",
+     "border": "1px solid #000"
+    },
+    "E169": {
+     "formula": "1,024",
+     "border": "1px solid #000"
+    },
+    "F169": {
+     "formula": "0,073",
+     "border": "1px solid #000"
+    },
+    "B170": {
+     "formula": "1,04",
+     "border": "1px solid #000"
+    },
+    "C170": {
+     "formula": "17",
+     "border": "1px solid #000"
+    },
+    "D170": {
+     "formula": "1,227",
+     "border": "1px solid #000"
+    },
+    "E170": {
+     "formula": "1,151",
+     "border": "1px solid #000"
+    },
+    "F170": {
+     "formula": "0,076",
+     "border": "1px solid #000"
+    },
+    "B171": {
+     "formula": "1,307",
+     "border": "1px solid #000"
+    },
+    "C171": {
+     "formula": "16",
+     "border": "1px solid #000"
+    },
+    "D171": {
+     "formula": "1,367",
+     "border": "1px solid #000"
+    },
+    "E171": {
+     "formula": "1,29",
+     "border": "1px solid #000"
+    },
+    "F171": {
+     "formula": "0,077",
+     "border": "1px solid #000"
+    },
+    "B172": {
+     "formula": "1,651",
+     "border": "1px solid #000"
+    },
+    "C172": {
+     "formula": "15",
+     "border": "1px solid #000"
+    },
+    "D172": {
+     "formula": "1,529",
+     "border": "1px solid #000"
+    },
+    "E172": {
+     "formula": "1,45",
+     "border": "1px solid #000"
+    },
+    "F172": {
+     "formula": "0,079",
+     "border": "1px solid #000"
+    },
+    "B173": {
+     "formula": "2,082",
+     "border": "1px solid #000"
+    },
+    "C173": {
+     "formula": "14",
+     "border": "1px solid #000"
+    },
+    "D173": {
+     "formula": "1,709",
+     "border": "1px solid #000"
+    },
+    "E173": {
+     "formula": "1,628",
+     "border": "1px solid #000"
+    },
+    "F173": {
+     "formula": "0,081",
+     "border": "1px solid #000"
+    },
+    "B174": {
+     "formula": "2,627",
+     "border": "1px solid #000"
+    },
+    "C174": {
+     "formula": "13",
+     "border": "1px solid #000"
+    },
+    "D174": {
+     "formula": "1,913",
+     "border": "1px solid #000"
+    },
+    "E174": {
+     "formula": "1,829",
+     "border": "1px solid #000"
+    },
+    "F174": {
+     "formula": "0,084",
+     "border": "1px solid #000"
+    },
+    "B175": {
+     "formula": "3,307",
+     "border": "1px solid #000"
+    },
+    "C175": {
+     "formula": "12",
+     "border": "1px solid #000"
+    },
+    "D175": {
+     "formula": "2,139",
+     "border": "1px solid #000"
+    },
+    "E175": {
+     "formula": "2,052",
+     "border": "1px solid #000"
+    },
+    "F175": {
+     "formula": "0,087",
+     "border": "1px solid #000"
+    },
+    "B176": {
+     "formula": "4,169",
+     "border": "1px solid #000"
+    },
+    "C176": {
+     "formula": "11",
+     "border": "1px solid #000"
+    },
+    "D176": {
+     "formula": "2,39",
+     "border": "1px solid #000"
+    },
+    "E176": {
+     "formula": "2,304",
+     "border": "1px solid #000"
+    },
+    "F176": {
+     "formula": "0,086",
+     "border": "1px solid #000"
+    },
+    "B177": {
+     "formula": "5,261",
+     "border": "1px solid #000"
+    },
+    "C177": {
+     "formula": "10",
+     "border": "1px solid #000"
+    },
+    "D177": {
+     "formula": "2,68",
+     "border": "1px solid #000"
+    },
+    "E177": {
+     "formula": "2,588",
+     "border": "1px solid #000"
+    },
+    "F177": {
+     "formula": "0,092",
+     "border": "1px solid #000"
+    },
+    "B178": {
+     "formula": "6,631",
+     "border": "1px solid #000"
+    },
+    "C178": {
+     "formula": "9",
+     "border": "1px solid #000"
+    },
+    "D178": {
+     "formula": "2,99",
+     "border": "1px solid #000"
+    },
+    "E178": {
+     "formula": "2,906",
+     "border": "1px solid #000"
+    },
+    "F178": {
+     "formula": "0,084",
+     "border": "1px solid #000"
+    },
+    "B179": {
+     "formula": "8,367",
+     "border": "1px solid #000"
+    },
+    "C179": {
+     "formula": "8",
+     "border": "1px solid #000"
+    },
+    "D179": {
+     "formula": "3,36",
+     "border": "1px solid #000"
+    },
+    "E179": {
+     "formula": "3,264",
+     "border": "1px solid #000"
+    },
+    "F179": {
+     "formula": "0,096",
+     "border": "1px solid #000"
+    },
+    "B181": {
+     "formula": "Tabla de alambres rectángulares Aluminio",
+     "border": "1px solid #000"
+    },
+    "C181": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "D181": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "E181": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "F181": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "B182": {
+     "formula": "Área",
+     "border": "1px solid #000"
+    },
+    "C182": {
+     "formula": "Conductor",
+     "border": "1px solid #000"
+    },
+    "D182": {
+     "formula": "Ancho sin aislamiento",
+     "border": "1px solid #000"
+    },
+    "E182": {
+     "formula": "Alto sin aislamiento",
+     "border": "1px solid #000"
+    },
+    "F182": {
+     "formula": "Aislamiento",
+     "border": "1px solid #000"
+    },
+    "B183": {
+     "formula": "12",
+     "border": "1px solid #000"
+    },
+    "C183": {
+     "formula": "4*3",
+     "border": "1px solid #000"
+    },
+    "D183": {
+     "formula": "4",
+     "border": "1px solid #000"
+    },
+    "E183": {
+     "formula": "3",
+     "border": "1px solid #000"
+    },
+    "F183": {
+     "formula": "0,075",
+     "border": "1px solid #000"
+    },
+    "B184": {
+     "formula": "18",
+     "border": "1px solid #000"
+    },
+    "C184": {
+     "formula": "6*3",
+     "border": "1px solid #000"
+    },
+    "D184": {
+     "formula": "6",
+     "border": "1px solid #000"
+    },
+    "E184": {
+     "formula": "3",
+     "border": "1px solid #000"
+    },
+    "F184": {
+     "formula": "0,075",
+     "border": "1px solid #000"
+    },
+    "B185": {
+     "formula": "24",
+     "border": "1px solid #000"
+    },
+    "C185": {
+     "formula": "6*4",
+     "border": "1px solid #000"
+    },
+    "D185": {
+     "formula": "6",
+     "border": "1px solid #000"
+    },
+    "E185": {
+     "formula": "4",
+     "border": "1px solid #000"
+    },
+    "F185": {
+     "formula": "0,075",
+     "border": "1px solid #000"
+    },
+    "B186": {
+     "formula": "32",
+     "border": "1px solid #000"
+    },
+    "C186": {
+     "formula": "8*4",
+     "border": "1px solid #000"
+    },
+    "D186": {
+     "formula": "8",
+     "border": "1px solid #000"
+    },
+    "E186": {
+     "formula": "4",
+     "border": "1px solid #000"
+    },
+    "F186": {
+     "formula": "0,075",
+     "border": "1px solid #000"
+    },
+    "B187": {
+     "formula": "40",
+     "border": "1px solid #000"
+    },
+    "C187": {
+     "formula": "10*4",
+     "border": "1px solid #000"
+    },
+    "D187": {
+     "formula": "10",
+     "border": "1px solid #000"
+    },
+    "E187": {
+     "formula": "4",
+     "border": "1px solid #000"
+    },
+    "F187": {
+     "formula": "0,075",
+     "border": "1px solid #000"
+    },
+    "B189": {
+     "formula": "Tabla de alambres rectángulares Cobre",
+     "border": "1px solid #000"
+    },
+    "B190": {
+     "formula": "Área",
+     "border": "1px solid #000"
+    },
+    "C190": {
+     "formula": "Conductor",
+     "border": "1px solid #000"
+    },
+    "D190": {
+     "formula": "Ancho sin aislamiento",
+     "border": "1px solid #000"
+    },
+    "E190": {
+     "formula": "Alto sin aislamiento",
+     "border": "1px solid #000"
+    },
+    "F190": {
+     "formula": "Aislamiento",
+     "border": "1px solid #000"
+    },
+    "B191": {
+     "formula": "18",
+     "border": "1px solid #000"
+    },
+    "C191": {
+     "formula": "6*3",
+     "border": "1px solid #000"
+    },
+    "D191": {
+     "formula": "6",
+     "border": "1px solid #000"
+    },
+    "E191": {
+     "formula": "3",
+     "border": "1px solid #000"
+    },
+    "F191": {
+     "formula": "0,075",
+     "border": "1px solid #000"
+    },
+    "B192": {
+     "formula": "32",
+     "border": "1px solid #000"
+    },
+    "C192": {
+     "formula": "8*4",
+     "border": "1px solid #000"
+    },
+    "D192": {
+     "formula": "8",
+     "border": "1px solid #000"
+    },
+    "E192": {
+     "formula": "4",
+     "border": "1px solid #000"
+    },
+    "F192": {
+     "formula": "0,075",
+     "border": "1px solid #000"
+    },
+    "B193": {
+     "formula": "40",
+     "border": "1px solid #000"
+    },
+    "C193": {
+     "formula": "10*4",
+     "border": "1px solid #000"
+    },
+    "D193": {
+     "formula": "10",
+     "border": "1px solid #000"
+    },
+    "E193": {
+     "formula": "4",
+     "border": "1px solid #000"
+    },
+    "F193": {
+     "formula": "0,075",
+     "border": "1px solid #000"
+    },
+    "B195": {
+     "formula": "Tabla de alambres rectángulares + alambres Aluminio",
+     "border": "1px solid #000"
+    },
+    "B196": {
+     "formula": "Área",
+     "border": "1px solid #000"
+    },
+    "C196": {
+     "formula": "Conductor",
+     "border": "1px solid #000"
+    },
+    "D196": {
+     "formula": "Ancho sin aislamiento",
+     "border": "1px solid #000"
+    },
+    "E196": {
+     "formula": "Alto sin aislamiento",
+     "border": "1px solid #000"
+    },
+    "F196": {
+     "formula": "Aislamiento",
+     "border": "1px solid #000"
+    },
+    "B197": {
+     "formula": "18,631",
+     "border": "1px solid #000"
+    },
+    "C197": {
+     "formula": "4*3 + #9",
+     "border": "1px solid #000"
+    },
+    "D197": {
+     "formula": "6,906",
+     "border": "1px solid #000"
+    },
+    "E197": {
+     "formula": "3",
+     "border": "1px solid #000"
+    },
+    "F197": {
+     "formula": "0,159",
+     "border": "1px solid #000"
+    },
+    "B198": {
+     "formula": "24,631",
+     "border": "1px solid #000"
+    },
+    "C198": {
+     "formula": "6*3 +#9",
+     "border": "1px solid #000"
+    },
+    "D198": {
+     "formula": "8,906",
+     "border": "1px solid #000"
+    },
+    "E198": {
+     "formula": "3",
+     "border": "1px solid #000"
+    },
+    "F198": {
+     "formula": "0,159",
+     "border": "1px solid #000"
+    },
+    "B199": {
+     "formula": "32,367",
+     "border": "1px solid #000"
+    },
+    "C199": {
+     "formula": "6*4 + #8",
+     "border": "1px solid #000"
+    },
+    "D199": {
+     "formula": "9,264",
+     "border": "1px solid #000"
+    },
+    "E199": {
+     "formula": "4",
+     "border": "1px solid #000"
+    },
+    "F199": {
+     "formula": "0,171",
+     "border": "1px solid #000"
+    },
+    "B200": {
+     "formula": "40,367",
+     "border": "1px solid #000"
+    },
+    "C200": {
+     "formula": "8*4 + #8",
+     "border": "1px solid #000"
+    },
+    "D200": {
+     "formula": "11,264",
+     "border": "1px solid #000"
+    },
+    "E200": {
+     "formula": "4",
+     "border": "1px solid #000"
+    },
+    "F200": {
+     "formula": "0,171",
+     "border": "1px solid #000"
+    },
+    "K13": {
+     "formula": "1"
+    },
+    "N13": {
+     "formula": "2"
+    },
+    "Q13": {
+     "formula": "4"
+    },
+    "T13": {
+     "formula": "9"
+    },
+    "W13": {
+     "formula": "13"
+    },
+    "Z13": {
+     "formula": "20"
+    },
+    "B180": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "C180": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "D180": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "E180": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "F180": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "B202": {
+     "formula": "Tabla de alambres rectángulares + alambres Cobre",
+     "border": "1px solid #000"
+    },
+    "C202": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "D202": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "E202": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "F202": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "B203": {
+     "formula": "Área",
+     "border": "1px solid #000"
+    },
+    "C203": {
+     "formula": "Conductor",
+     "border": "1px solid #000"
+    },
+    "D203": {
+     "formula": "Ancho sin aislamiento",
+     "border": "1px solid #000"
+    },
+    "E203": {
+     "formula": "Alto sin aislamiento",
+     "border": "1px solid #000"
+    },
+    "F203": {
+     "formula": "Aislamiento",
+     "border": "1px solid #000"
+    },
+    "B204": {
+     "formula": "24,631",
+     "border": "1px solid #000"
+    },
+    "C204": {
+     "formula": "6*3 +#9",
+     "border": "1px solid #000"
+    },
+    "D204": {
+     "formula": "8,906",
+     "border": "1px solid #000"
+    },
+    "E204": {
+     "formula": "3",
+     "border": "1px solid #000"
+    },
+    "F204": {
+     "formula": "0,159",
+     "border": "1px solid #000"
+    },
+    "B205": {
+     "formula": "40,367",
+     "border": "1px solid #000"
+    },
+    "C205": {
+     "formula": "8*4 +#8",
+     "border": "1px solid #000"
+    },
+    "D205": {
+     "formula": "11,264",
+     "border": "1px solid #000"
+    },
+    "E205": {
+     "formula": "4",
+     "border": "1px solid #000"
+    },
+    "F205": {
+     "formula": "0,171",
+     "border": "1px solid #000"
+    },
+    "B206": {
+     "formula": "48,367",
+     "border": "1px solid #000"
+    },
+    "C206": {
+     "formula": "10*4 +#8",
+     "border": "1px solid #000"
+    },
+    "D206": {
+     "formula": "13,264",
+     "border": "1px solid #000"
+    },
+    "E206": {
+     "formula": "4",
+     "border": "1px solid #000"
+    },
+    "F206": {
+     "formula": "0,171",
+     "border": "1px solid #000"
+    },
+    "B208": {
+     "formula": "Tabla de Flejes Cobre",
+     "border": "1px solid #000"
+    },
+    "C208": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "D208": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "E208": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "B209": {
+     "formula": "Área",
+     "border": "1px solid #000"
+    },
+    "C209": {
+     "formula": "Conductor",
+     "border": "1px solid #000"
+    },
+    "D209": {
+     "formula": "Alto",
+     "border": "1px solid #000"
+    },
+    "E209": {
+     "formula": "Ancho",
+     "border": "1px solid #000"
+    },
+    "B210": {
+     "formula": "23,1",
+     "border": "1px solid #000"
+    },
+    "C210": {
+     "formula": "105*0,22",
+     "border": "1px solid #000"
+    },
+    "D210": {
+     "formula": "105",
+     "border": "1px solid #000"
+    },
+    "E210": {
+     "formula": "0,22",
+     "border": "1px solid #000"
+    },
+    "B211": {
+     "formula": "41,6",
+     "border": "1px solid #000"
+    },
+    "C211": {
+     "formula": "130*0,32",
+     "border": "1px solid #000"
+    },
+    "D211": {
+     "formula": "130",
+     "border": "1px solid #000"
+    },
+    "E211": {
+     "formula": "0,32",
+     "border": "1px solid #000"
+    },
+    "B212": {
+     "formula": "75",
+     "border": "1px solid #000"
+    },
+    "C212": {
+     "formula": "150*0,5",
+     "border": "1px solid #000"
+    },
+    "D212": {
+     "formula": "150",
+     "border": "1px solid #000"
+    },
+    "E212": {
+     "formula": "0,5",
+     "border": "1px solid #000"
+    },
+    "B213": {
+     "formula": "104",
+     "border": "1px solid #000"
+    },
+    "C213": {
+     "formula": "160*0,65",
+     "border": "1px solid #000"
+    },
+    "D213": {
+     "formula": "160",
+     "border": "1px solid #000"
+    },
+    "E213": {
+     "formula": "0,65",
+     "border": "1px solid #000"
+    },
+    "B214": {
+     "formula": "153",
+     "border": "1px solid #000"
+    },
+    "C214": {
+     "formula": "170*0,*9",
+     "border": "1px solid #000"
+    },
+    "D214": {
+     "formula": "170",
+     "border": "1px solid #000"
+    },
+    "E214": {
+     "formula": "0,9",
+     "border": "1px solid #000"
+    },
+    "B215": {
+     "formula": "760",
+     "border": "1px solid #000"
+    },
+    "C215": {
+     "formula": "380*2",
+     "border": "1px solid #000"
+    },
+    "D215": {
+     "formula": "380",
+     "border": "1px solid #000"
+    },
+    "E215": {
+     "formula": "2",
+     "border": "1px solid #000"
+    },
+    "B217": {
+     "formula": "Tabla de Flejes Aluminio",
+     "border": "1px solid #000"
+    },
+    "C217": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "D217": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "E217": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "B218": {
+     "formula": "Área",
+     "border": "1px solid #000"
+    },
+    "C218": {
+     "formula": "Conductor",
+     "border": "1px solid #000"
+    },
+    "D218": {
+     "formula": "Alto",
+     "border": "1px solid #000"
+    },
+    "E218": {
+     "formula": "Ancho",
+     "border": "1px solid #000"
+    },
+    "B219": {
+     "formula": "37,8",
+     "border": "1px solid #000"
+    },
+    "C219": {
+     "formula": "105*0,36",
+     "border": "1px solid #000"
+    },
+    "D219": {
+     "formula": "105",
+     "border": "1px solid #000"
+    },
+    "E219": {
+     "formula": "0,36",
+     "border": "1px solid #000"
+    },
+    "B220": {
+     "formula": "68,9",
+     "border": "1px solid #000"
+    },
+    "C220": {
+     "formula": "130*0,53",
+     "border": "1px solid #000"
+    },
+    "D220": {
+     "formula": "130",
+     "border": "1px solid #000"
+    },
+    "E220": {
+     "formula": "0,53",
+     "border": "1px solid #000"
+    },
+    "B221": {
+     "formula": "37,5",
+     "border": "1px solid #000"
+    },
+    "C221": {
+     "formula": "150*0,25",
+     "border": "1px solid #000"
+    },
+    "D221": {
+     "formula": "150",
+     "border": "1px solid #000"
+    },
+    "E221": {
+     "formula": "0,25",
+     "border": "1px solid #000"
+    },
+    "B222": {
+     "formula": "75",
+     "border": "1px solid #000"
+    },
+    "C222": {
+     "formula": "150*0,5",
+     "border": "1px solid #000"
+    },
+    "D222": {
+     "formula": "150",
+     "border": "1px solid #000"
+    },
+    "E222": {
+     "formula": "0,5",
+     "border": "1px solid #000"
+    },
+    "B223": {
+     "formula": "153",
+     "border": "1px solid #000"
+    },
+    "C223": {
+     "formula": "170*0,*9",
+     "border": "1px solid #000"
+    },
+    "D223": {
+     "formula": "170",
+     "border": "1px solid #000"
+    },
+    "E223": {
+     "formula": "0,9",
+     "border": "1px solid #000"
+    },
+    "B224": {
+     "formula": "126",
+     "border": "1px solid #000"
+    },
+    "C224": {
+     "formula": "210*0,6",
+     "border": "1px solid #000"
+    },
+    "D224": {
+     "formula": "210",
+     "border": "1px solid #000"
+    },
+    "E224": {
+     "formula": "0,6",
+     "border": "1px solid #000"
+    },
+    "B226": {
+     "formula": "Tabla Aislamientos",
+     "border": "1px solid #000"
+    },
+    "C226": {
+     "formula": "",
+     "border": "1px solid #000"
+    },
+    "B227": {
+     "formula": "Tipo",
+     "border": "1px solid #000"
+    },
+    "C227": {
+     "formula": "Espesor",
+     "border": "1px solid #000"
+    },
+    "B228": {
+     "formula": "Clase E",
+     "border": "1px solid #000"
+    },
+    "C228": {
+     "formula": "0,076",
+     "border": "1px solid #000"
+    },
+    "B229": {
+     "formula": "Clase E",
+     "border": "1px solid #000"
+    },
+    "C229": {
+     "formula": "0,013",
+     "border": "1px solid #000"
+    },
+    "B230": {
+     "formula": "Clase E",
+     "border": "1px solid #000"
+    },
+    "C230": {
+     "formula": "0,025",
+     "border": "1px solid #000"
+    },
+    "B231": {
+     "formula": "Clase H",
+     "border": "1px solid #000"
+    },
+    "C231": {
+     "formula": "0,022",
+     "border": "1px solid #000"
+    },
+    "B232": {
+     "formula": "Clase F",
+     "border": "1px solid #000"
+    },
+    "C232": {
+     "formula": "0,026",
+     "border": "1px solid #000"
+    }
+   },
+   "cellsStyles": {
+    "columnWidths": {
+     "0": 10,
+     "1": 64,
+     "2": 94,
+     "3": 139,
+     "4": 200,
+     "5": 102,
+     "6": 60,
+     "7": 113,
+     "9": 60,
+     "10": 60,
+     "11": 60,
+     "12": 60,
+     "13": 60,
+     "14": 60,
+     "15": 60,
+     "16": 60,
+     "17": 60,
+     "18": 60,
+     "19": 60,
+     "20": 60,
+     "21": 60,
+     "22": 60,
+     "23": 60,
+     "24": 60,
+     "25": 60
+    },
+    "rowHeights": {},
+    "hiddenRows": [],
+    "hiddenColumns": [],
+    "freezeRow": 0,
+    "freezeColumn": 0,
+    "mergedCells": [
+     {
+      "startCell": "B44",
+      "endCell": "I44",
+      "rowSpan": 1,
+      "colSpan": 8
+     },
+     {
+      "startCell": "B160",
+      "endCell": "F160",
+      "rowSpan": 1,
+      "colSpan": 5
+     },
+     {
+      "startCell": "B181",
+      "endCell": "F181",
+      "rowSpan": 1,
+      "colSpan": 5
+     },
+     {
+      "startCell": "B189",
+      "endCell": "F189",
+      "rowSpan": 1,
+      "colSpan": 5
+     },
+     {
+      "startCell": "B195",
+      "endCell": "F195",
+      "rowSpan": 1,
+      "colSpan": 5
+     },
+     {
+      "startCell": "B2",
+      "endCell": "C2",
+      "rowSpan": 1,
+      "colSpan": 2
+     },
+     {
+      "startCell": "B202",
+      "endCell": "F202",
+      "rowSpan": 1,
+      "colSpan": 5
+     },
+     {
+      "startCell": "B208",
+      "endCell": "E208",
+      "rowSpan": 1,
+      "colSpan": 4
+     },
+     {
+      "startCell": "B217",
+      "endCell": "E217",
+      "rowSpan": 1,
+      "colSpan": 4
+     },
+     {
+      "startCell": "B226",
+      "endCell": "C226",
+      "rowSpan": 1,
+      "colSpan": 2
+     }
+    ],
+    "namedRanges": [
+     {
+      "id": "nr-1775530248839",
+      "name": "Tabla aluminio",
+      "tags": [
+       "aluminio"
+      ],
+      "startCell": "J14",
+      "endCell": "J14"
+     }
+    ],
+    "semiFinishedZones": [],
+    "itemCatalogTables": []
+   }
+  }
+ ]
+}

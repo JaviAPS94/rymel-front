@@ -8,7 +8,6 @@ import {
   TbMathFunction,
   TbLogicAnd,
   TbArrowBigRightLines,
-  TbFileCode,
 } from "react-icons/tb";
 import BomTutorial from "./BomTutorial";
 
@@ -49,7 +48,7 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({
       id: "bom",
       title: "Resumen BOM",
       description:
-        "Cómo definir tablas catálogo, asignar zonas y generar la hoja resumen de materiales.",
+        "De dónde sale la configuración del BOM y cómo generar la hoja resumen de materiales.",
       component: BomTutorial,
     },
   ];
@@ -472,21 +471,12 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({
             "Permite navegar automáticamente a una tabla de referencia según el valor de una o varias celdas. Útil cuando una celda tiene un dropdown y quieres saltar a la tabla correspondiente.",
         },
         {
-          label: "Paso 1: Etiquetar rango como tabla",
+          label: "Viene de la plantilla",
           description:
-            'Selecciona el rango de celdas que forma la tabla → clic derecho → "Etiquetar rango como tabla". Asigna un nombre y uno o más tags (etiquetas) separados por coma.',
-          example:
-            'Nombre: "Tabla Aluminio", Tags: aluminio — Nombre: "Tabla Cobre 12AWG", Tags: cobre, 12awg',
+            "Las tablas etiquetadas y los enlaces GoTo los configura el administrador en la plantilla, desde project-admin. En tu hoja se usan tal como vienen.",
         },
         {
-          label: "Paso 2: Configurar enlace GoTo en una celda",
-          description:
-            'Haz clic derecho en la celda desde la que quieres navegar → "Configurar Ir a tabla (GoTo)". Agrega las celdas cuyo valor se usará como condición.',
-          example:
-            "Si la celda C2 tiene un dropdown con opciones [aluminio, cobre], agrega C2 como celda de condición.",
-        },
-        {
-          label: "Paso 3: Navegar",
+          label: "Navegar",
           description:
             'Haz clic derecho en la celda con GoTo configurado → "Ir a tabla". El sistema lee los valores de las celdas de condición y busca la tabla cuyas tags coincidan.',
           example:
@@ -503,68 +493,6 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({
           label: "Indicadores visuales",
           description:
             "Las celdas con GoTo configurado muestran un triángulo azul (esquina inferior izquierda). Las celdas inicio de tabla etiquetada muestran un triángulo verde (esquina superior izquierda).",
-        },
-        {
-          label: "Eliminar configuración",
-          description:
-            'Para quitar un GoTo: clic derecho → "Eliminar GoTo". Para quitar una tabla etiquetada: clic derecho → "Eliminar tabla etiquetada".',
-        },
-      ],
-    },
-    {
-      id: "template",
-      title: "GoTo en Plantillas",
-      icon: <TbFileCode className="w-6 h-6" />,
-      color: "amber",
-      items: [
-        {
-          label: "Estructura general",
-          description:
-            "Las plantillas multi-hoja usan el campo sheets[]. Cada hoja tiene cells (celdas) y cellsStyles (estilos + tablas etiquetadas).",
-          example:
-            '{ "sheets": [{ "name": "Hoja 1", "cells": {...}, "cellsStyles": {...} }] }',
-        },
-        {
-          label: "Definir una tabla etiquetada (namedRanges)",
-          description:
-            "Dentro de cellsStyles, agrega el array namedRanges con id, name, tags, startCell y endCell.",
-          example:
-            '"namedRanges": [{ "id": "nr_1", "name": "Tabla Aluminio", "tags": ["aluminio"], "startCell": "A1", "endCell": "C5" }]',
-        },
-        {
-          label: "Definir GoTo en una celda",
-          description:
-            "Dentro del objeto de la celda, agrega goTo con el array conditionCells indicando qué celdas leer.",
-          example:
-            '"B2": { "value": "aluminio", "formula": "", "computed": "aluminio", "options": ["aluminio", "cobre"], "goTo": { "conditionCells": ["B2"] } }',
-        },
-        {
-          label: "Campos de una celda",
-          description:
-            "value (texto visible), formula (fórmula si tiene), computed (valor calculado), options (dropdown), elementKey (variable de elemento), goTo (config de navegación).",
-          example:
-            '{ "value": "10", "formula": "=A1*2", "computed": 10, "elementKey": "voltaje" }',
-        },
-        {
-          label: "Campos de cellsStyles",
-          description:
-            "columnWidths, rowHeights, hiddenRows, hiddenColumns, freezeRow, freezeColumn, mergedCells, namedRanges.",
-          example:
-            '"cellsStyles": { "columnWidths": {"0": 120}, "rowHeights": {}, "freezeRow": 2, "namedRanges": [...] }',
-        },
-        {
-          label: "Ejemplo completo mínimo",
-          description:
-            "Hoja 1: celda B2 con dropdown y GoTo. Hoja 2: dos tablas etiquetadas con tags distintos. Al cambiar B2, el GoTo navega a la tabla correcta.",
-          example:
-            'Hoja1.B2: options=["aluminio","cobre"], goTo={conditionCells:["B2"]} → Hoja2.namedRanges: [{tags:["aluminio"], startCell:"A1"}, {tags:["cobre"], startCell:"A10"}]',
-        },
-        {
-          label: "Tags multi-condición en plantilla",
-          description:
-            "Si necesitas que la navegación dependa de 2+ celdas, agrega todas al array conditionCells y asegúrate de que la tabla tenga todos los tags correspondientes.",
-          example:
-            'goTo: {conditionCells: ["B2","B3"]} → namedRanges: [{tags: ["cobre","12awg"], startCell: "A10", endCell: "F15"}]',
         },
       ],
     },
