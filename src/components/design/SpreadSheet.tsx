@@ -25,6 +25,8 @@ import SheetTabs from "./SheetTabs";
 import CrossTabSelector from "./CrossTabSelector";
 import FunctionLibraryModal from "./FunctionLibraryModal";
 import TemplateLibraryModal from "./TemplateLibraryModal";
+import { TracePanel } from "./TracePanel";
+import { useDesignCellTrace } from "./cell-trace";
 import {
   Cell,
   CustomFunction,
@@ -1725,6 +1727,45 @@ const SpreadSheet = ({
         }) || [],
     [subTypeWithFunctions.designFunctions],
   );
+
+  // --- Rastreo de celdas ----------------------------------------------------
+  // El mismo del editor de plantillas del administrador: de qué se alimenta la
+  // celda activa y a quién alimenta, también entre hojas.
+  const [showTrace, setShowTrace] = useState(false);
+  const [fullTrace, setFullTrace] = useState(false);
+  const designFunctionCodes = useMemo(
+    () => customFunctions.map((func) => func.code),
+    [customFunctions],
+  );
+  const activeTraceSheet = sheets.find((sheet) => sheet.id === activeSheetId)?.name ?? "";
+  const trace = useDesignCellTrace(sheets, activeTraceSheet, selectedCell, {
+    enabled: showTrace,
+    full: fullTrace,
+    designFunctionCodes,
+  });
+  const traceOf = useMemo(() => {
+    if (!trace) return undefined;
+    return (cellRef: string) => {
+      const key = `${activeTraceSheet}!${cellRef}`;
+      if (trace.highlight.precedents.has(key)) return "precedent" as const;
+      if (trace.highlight.dependents.has(key)) return "dependent" as const;
+      return undefined;
+    };
+  }, [trace, activeTraceSheet]);
+
+  /** Lleva a una celda del rastreo; de un rango, a su primera celda. */
+  const goToTraced = ({ sheet: sheetName, ref }: { sheet: string; ref: string }) => {
+    const target = sheets.find((sheet) => sheet.name === sheetName);
+    if (!target) return;
+    const targetCell = ref.split(":")[0].replace(/\$/g, "");
+    const isCrossSheet = target.id !== activeSheetId;
+    // Igual que la navegación de GoTo: primero la hoja, luego la selección
+    if (isCrossSheet) setActiveSheetId(target.id);
+    setSelectedCell(targetCell);
+    selectionAnchorRef.current = targetCell;
+    setSelectedCells(new Set([targetCell]));
+    setTimeout(() => scrollToCellRef.current?.(targetCell), isCrossSheet ? 300 : 100);
+  };
 
   // --- Evaluación de fórmulas: motor compartido ---------------------------
 
@@ -3651,6 +3692,22 @@ const SpreadSheet = ({
             onSheetChange={handleTargetSheetChange}
           />
         )}
+
+        <div className="mt-1 flex justify-end">
+          <button
+            type="button"
+            onClick={() => setShowTrace((open) => !open)}
+            aria-pressed={showTrace}
+            title="De qué celdas depende la celda seleccionada y cuáles dependen de ella"
+            className={`rounded px-2 py-0.5 text-xs font-medium ${
+              showTrace
+                ? "bg-blue-600 text-white"
+                : "bg-white text-gray-700 ring-1 ring-gray-300 hover:bg-gray-50"
+            }`}
+          >
+            Rastreo
+          </button>
+        </div>
       </div>
 
       {/* Function Library Modal */}
@@ -3700,41 +3757,56 @@ const SpreadSheet = ({
           🔒 {readOnlyNotice}
         </div>
       )}
-      <SpreadSheetGrid
-        isReadOnlyCell={isProtected}
-        cells={cells}
-        selectedCell={selectedCell}
-        selectedCells={selectedCells}
-        isAddingToFormula={isAddingToFormula}
-        rangeSelectionStart={rangeSelectionStart}
-        getColumnWidth={getColumnWidth}
-        getRowHeight={getRowHeight}
-        handleCellClick={handleCellClick}
-        handleResizeStart={handleResizeStart}
-        hiddenRows={hiddenRows}
-        hiddenColumns={hiddenColumns}
-        hiddenCells={currentSheet?.hiddenCells || new Set<string>()}
-        freezeRow={currentSheet?.freezeRow || 0}
-        freezeColumn={currentSheet?.freezeColumn || 0}
-        mergedCells={currentSheet?.mergedCells || []}
-        onRowHeaderContextMenu={handleRowHeaderContextMenu}
-        onColumnHeaderContextMenu={handleColumnHeaderContextMenu}
-        onCellContextMenu={handleCellContextMenu}
-        onCellValueChange={handleDropdownCellChange}
-        editingCell={editingCell}
-        inlineCellValue={inlineCellValue}
-        onStartInlineEditing={handleStartInlineEditing}
-        onEditingDraft={handleEditingDraft}
-        onStopInlineEditing={handleStopInlineEditing}
-        onNavigateAfterEdit={handleNavigateAfterEdit}
-        onGridReady={handleGridReady}
-        zoom={zoom}
-        namedRangeStartCells={namedRangeStartCells}
-        cellZoneMap={cellZoneMap}
-        catalogCellMap={catalogCellMap}
-        cellItemLinkMap={cellItemLinkMap}
-        goToHighlightCell={goToHighlight}
-      />
+      <div className="flex min-h-0 flex-1">
+        <SpreadSheetGrid
+          isReadOnlyCell={isProtected}
+          cells={cells}
+          selectedCell={selectedCell}
+          selectedCells={selectedCells}
+          isAddingToFormula={isAddingToFormula}
+          rangeSelectionStart={rangeSelectionStart}
+          getColumnWidth={getColumnWidth}
+          getRowHeight={getRowHeight}
+          handleCellClick={handleCellClick}
+          handleResizeStart={handleResizeStart}
+          hiddenRows={hiddenRows}
+          hiddenColumns={hiddenColumns}
+          hiddenCells={currentSheet?.hiddenCells || new Set<string>()}
+          freezeRow={currentSheet?.freezeRow || 0}
+          freezeColumn={currentSheet?.freezeColumn || 0}
+          mergedCells={currentSheet?.mergedCells || []}
+          onRowHeaderContextMenu={handleRowHeaderContextMenu}
+          onColumnHeaderContextMenu={handleColumnHeaderContextMenu}
+          onCellContextMenu={handleCellContextMenu}
+          onCellValueChange={handleDropdownCellChange}
+          editingCell={editingCell}
+          inlineCellValue={inlineCellValue}
+          onStartInlineEditing={handleStartInlineEditing}
+          onEditingDraft={handleEditingDraft}
+          onStopInlineEditing={handleStopInlineEditing}
+          onNavigateAfterEdit={handleNavigateAfterEdit}
+          onGridReady={handleGridReady}
+          zoom={zoom}
+          namedRangeStartCells={namedRangeStartCells}
+          cellZoneMap={cellZoneMap}
+          catalogCellMap={catalogCellMap}
+          cellItemLinkMap={cellItemLinkMap}
+          goToHighlightCell={goToHighlight}
+          traceOf={traceOf}
+        />
+        {showTrace && trace && (
+          <aside className="w-72 shrink-0 border-l border-gray-200 bg-gray-50 p-2" aria-label="Rastreo">
+            <TracePanel
+              sheetName={activeTraceSheet}
+              activeRef={selectedCell}
+              trace={trace}
+              full={fullTrace}
+              onToggleFull={setFullTrace}
+              onNavigate={goToTraced}
+            />
+          </aside>
+        )}
+      </div>
 
       {/* Context Menu */}
       {contextMenu.visible && (

@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.9.2",
-    "@rymel/design-template": "github:JaviAPS94/rymel-design-template#v2.1.0",
+    "@rymel/design-template": "github:JaviAPS94/rymel-design-template#v2.2.0",
     "@rymel/formula-engine": "github:JaviAPS94/rymel-formula-engine#v1.8.0",
     "chart.js": "^4.4.8",
     "classnames": "^2.5.1",
