@@ -56,9 +56,8 @@ import { Sheet } from "../components/design/spreadsheet-types";
 import { extractMaterialTagValues } from "../components/design/materialTagUtils";
 import DesignCodePanel from "../components/design/DesignCodePanel";
 import { GenerateDesignCodeResponse } from "../store/apis/designCodeApi";
-import { BookOpen, Calculator, ClipboardList, DollarSign, FileText, PenTool, Plus, Save } from "lucide-react";
+import { BookOpen, Calculator, DollarSign, FileText, PenTool, Plus, Save } from "lucide-react";
 import InstructionsModal from "../components/design/InstructionsModal";
-import BomSummaryTab from "../components/design/bom/BomSummaryTab";
 
 const ElementsDesignPage = () => {
   const navigate = useNavigate();
@@ -850,7 +849,7 @@ const ElementsDesignPage = () => {
     return designCodePreview.code;
   }, [designCodePreview, disambiguationToken]);
 
-  const handleSaveDesignWithSubDesigns = () => {
+  const handleSaveDesignWithSubDesigns = async () => {
     const subDesignData: SubDesignData[] = designSheets.map((sheet) => {
       // Convert Sets to arrays for JSON serialization
       const serializableSheet = {
@@ -941,11 +940,9 @@ const ElementsDesignPage = () => {
         ...designData,
         id: designId,
       };
-      console.log(updatedDesignData);
-      //await updateDesign(updatedDesignData);
+      await updateDesign(updatedDesignData);
     } else {
-      console.log(designData);
-      //await saveDesignWithSubDesigns(designData);
+      await saveDesignWithSubDesigns(designData);
     }
   };
 
@@ -1040,22 +1037,6 @@ const ElementsDesignPage = () => {
             <div className="flex flex-col justify-center items-center py-12">
               <Skeleton count={10} className="w-3/4 h-96 mb-4" />
             </div>
-          )}
-        </>
-      ),
-    },
-    {
-      id: "bom",
-      label: "LISTA DE MATERIALES",
-      icon: <ClipboardList className="h-4 w-4" />,
-      content: (
-        <>
-          {selectedElements.length > 0 && subTypeWithFunctions && (
-            <BomSummaryTab
-              element={selectedElements[0]}
-              sheets={designSheets}
-              subTypeWithFunctions={subTypeWithFunctions}
-            />
           )}
         </>
       ),

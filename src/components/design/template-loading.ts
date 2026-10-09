@@ -146,6 +146,7 @@ export const toRuntimeSheet = (
     namedRanges: sheet.styles.namedRanges,
     semiFinishedZones: sheet.styles.semiFinishedZones,
     itemCatalogTables: sheet.styles.itemCatalogTables,
+    readOnlyZones: sheet.styles.readOnlyZones,
   };
 };
 

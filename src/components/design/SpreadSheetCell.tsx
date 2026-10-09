@@ -32,6 +32,8 @@ interface SpreadSheetCellProps {
   cells: CellGrid; // Add cells prop for graphics
   fontScale?: number; // Zoom scale factor (1.0 = 100%)
   isNamedRangeStart?: boolean; // Whether this cell is the start of a named range
+  /** Protegida por la plantilla: el diseñador no puede modificarla. */
+  isReadOnly?: boolean;
   zone?: {
     zoneId: string;
     code: string;
@@ -80,6 +82,7 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
   cells,
   fontScale = 1,
   isNamedRangeStart = false,
+  isReadOnly = false,
   zone,
   catalog,
   itemLink,
@@ -509,6 +512,17 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
           {cell.materialTag}
         </div>
       )}
+      {/* Celda protegida por la plantilla */}
+      {isReadOnly && !isHidden && (
+        <div
+          className="absolute bottom-0 right-0 z-20 px-0.5 select-none pointer-events-none text-gray-500"
+          style={{ fontSize: Math.max(8, Math.round(9 * fontScale)), lineHeight: 1 }}
+          title="Protegida por la plantilla: no se puede modificar"
+          data-read-only="true"
+        >
+          🔒︎
+        </div>
+      )}
       {/* Named range start indicator */}
       {isNamedRangeStart && !isHidden && (
         <div
@@ -611,6 +625,7 @@ export default React.memo(SpreadSheetCell, (prevProps, nextProps) => {
     prevProps.cell?.goTo?.conditionCells?.join() ===
       nextProps.cell?.goTo?.conditionCells?.join() &&
     prevProps.isNamedRangeStart === nextProps.isNamedRangeStart &&
+    prevProps.isReadOnly === nextProps.isReadOnly &&
     prevProps.zone?.zoneId === nextProps.zone?.zoneId &&
     prevProps.zone?.bg === nextProps.zone?.bg &&
     prevProps.zone?.code === nextProps.zone?.code &&
