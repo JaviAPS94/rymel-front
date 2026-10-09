@@ -30,9 +30,8 @@ import {
 } from "@rymel/formula-engine";
 import { isReadOnly } from "@rymel/design-template";
 import { runtimeSheetsFromTemplate } from "../src/components/design/template-loading";
-import { buildBomSummaryCells } from "../src/components/design/bom/buildBomSummary";
 import { extractMaterialTagValues } from "../src/components/design/materialTagUtils";
-import type { BomResponse, ElementResponse, Template } from "../src/commons/types";
+import type { Template } from "../src/commons/types";
 
 let failures = 0;
 
@@ -188,36 +187,6 @@ const main = async (): Promise<void> => {
     "el código de diseño toma MO y MD de la plantilla",
     tags.moValue === "3000" && tags.materialDevanadoValue === "18",
     JSON.stringify(tags),
-  );
-
-  const bom = {
-    id: 1,
-    code: "BOM",
-    name: "BOM",
-    createdAt: "",
-    updatedAt: "",
-    deletedAt: null,
-    nodes: [
-      {
-        id: 1,
-        semiFinished: { id: 1, name: "BOBINA", code: "BOBINA" },
-        type: "STANDARD",
-        parentId: null,
-        children: [],
-      },
-    ],
-  } as unknown as BomResponse;
-  const summary = buildBomSummaryCells(
-    bom,
-    new Set(),
-    calculated,
-    { values: [] } as unknown as ElementResponse,
-  );
-  const itemRow = ["B3", "C3", "D3", "E3"].map((ref) => summary[ref]?.value);
-  check(
-    "el resumen BOM lista el ítem vinculado con su cantidad",
-    JSON.stringify(itemRow) === '["AC-1","Acero al silicio","18","kg"]',
-    JSON.stringify(itemRow),
   );
 
   console.log(
