@@ -12,8 +12,12 @@ import { Cell, Sheet } from "../spreadsheet-types";
 import Button from "../../core/Button";
 import { Modal } from "../../core/Modal";
 import SpreadSheet from "../SpreadSheet";
-import { BOM_SUMMARY_COLUMN_WIDTHS, buildBomSummaryCells } from "./buildBomSummary";
-import { bomFingerprint } from "./bomFingerprint";
+import {
+  BOM_SUMMARY_COLUMN_WIDTHS,
+  bomFingerprint,
+  buildBomSummaryCells,
+  type BomSummaryCell,
+} from "@rymel/design-template";
 
 interface BomSummaryTabProps {
   element: ElementResponse;
@@ -24,6 +28,8 @@ interface BomSummaryTabProps {
 }
 
 type Cells = { [key: string]: Cell };
+// La lista tal como sale de la estructura, antes de editarla
+type GeneratedCells = { [key: string]: BomSummaryCell };
 
 // No design templates apply to the generated BOM workbook.
 const NO_TEMPLATES: Template[] = [];
@@ -60,7 +66,7 @@ const BomSummaryTab = ({ element, sheets, subTypeWithFunctions, designId }: BomS
     new Set(),
   );
   // La lista tal como sale de la estructura, sin editar: de ella sale la huella
-  const [generatedCells, setGeneratedCells] = useState<Cells | null>(null);
+  const [generatedCells, setGeneratedCells] = useState<GeneratedCells | null>(null);
   const [adjustment, setAdjustment] = useState<BomAdjustment | null>(null);
   const [staleNotice, setStaleNotice] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -102,7 +108,7 @@ const BomSummaryTab = ({ element, sheets, subTypeWithFunctions, designId }: BomS
       }
       try {
         const cells = buildBomSummaryCells(bom, new Set(saved.expandedNodes), sheets, element);
-        if ((await bomFingerprint(cells)) !== saved.baseFingerprint) {
+        if (bomFingerprint(cells) !== saved.baseFingerprint) {
           setStaleNotice(
             "La lista generada cambió desde que se hicieron estos ajustes (estructura BOM, hojas del diseño, accesorios o catálogo).",
           );
@@ -173,7 +179,7 @@ const BomSummaryTab = ({ element, sheets, subTypeWithFunctions, designId }: BomS
     // consola y en pantalla no ocurría nada: el usuario pulsaba «Generar» y se
     // quedaba mirando un panel vacío, sin saber si estaba cargando.
     const freshExpanded = new Set<number>();
-    let cells: Cells;
+    let cells: GeneratedCells;
     try {
       cells = buildBomSummaryCells(result.data, freshExpanded, sheets, element);
     } catch (err) {
@@ -214,7 +220,7 @@ const BomSummaryTab = ({ element, sheets, subTypeWithFunctions, designId }: BomS
     } else {
       next.add(nodeId);
     }
-    let freshCells: Cells;
+    let freshCells: GeneratedCells;
     try {
       freshCells = buildBomSummaryCells(bomData, next, sheets, element);
     } catch (err) {
@@ -256,7 +262,7 @@ const BomSummaryTab = ({ element, sheets, subTypeWithFunctions, designId }: BomS
       if (!bomData || !generatedCells) return;
       base = {
         bomId: bomData.id,
-        baseFingerprint: await bomFingerprint(generatedCells),
+        baseFingerprint: bomFingerprint(generatedCells),
         expandedNodes: Array.from(expandedChildNodes),
       };
     }

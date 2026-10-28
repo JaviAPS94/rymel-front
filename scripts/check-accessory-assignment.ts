@@ -16,7 +16,7 @@ import {
   addAccessoriesToElements,
   pickAccessories,
 } from "../src/components/norms/accessoryAssignment";
-import { buildBomSummaryCells } from "../src/components/design/bom/buildBomSummary";
+import { buildBomSummaryCells } from "@rymel/design-template";
 
 let failures = 0;
 const check = (name: string, ok: boolean, detail = ""): void => {

@@ -16,7 +16,7 @@
  */
 
 import { readFileSync, writeFileSync } from "node:fs";
-import { buildBomSummaryCells } from "../src/components/design/bom/buildBomSummary";
+import { buildBomSummaryCells } from "@rymel/design-template";
 import { extractMaterialTagValues } from "../src/components/design/materialTagUtils";
 import { runtimeSheetsFromTemplate } from "../src/components/design/template-loading";
 import type { BomNode, BomResponse, ElementResponse, Template } from "../src/commons/types";

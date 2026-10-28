@@ -30,7 +30,7 @@ import {
 } from "@rymel/formula-engine";
 import { isReadOnly } from "@rymel/design-template";
 import { runtimeSheetsFromTemplate } from "../src/components/design/template-loading";
-import { buildBomSummaryCells } from "../src/components/design/bom/buildBomSummary";
+import { buildBomSummaryCells } from "@rymel/design-template";
 import { extractMaterialTagValues } from "../src/components/design/materialTagUtils";
 import type { BomResponse, ElementResponse, Template } from "../src/commons/types";
 

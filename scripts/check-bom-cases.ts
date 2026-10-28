@@ -17,8 +17,7 @@
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { isDeepStrictEqual } from "node:util";
-import { buildBomSummaryCells } from "../src/components/design/bom/buildBomSummary";
-import { bomFingerprint } from "../src/components/design/bom/bomFingerprint";
+import { bomFingerprint, buildBomSummaryCells } from "@rymel/design-template";
 
 type Case = {
   sheets: never[];
@@ -54,13 +53,13 @@ for (const [name, value] of Object.entries(cases)) {
 const main = async () => {
   const first = Object.values(cases)[0];
   const cells = buildBomSummaryCells(first.bom, new Set(first.expanded), first.sheets, first.element);
-  const fingerprint = await bomFingerprint(cells);
+  const fingerprint = bomFingerprint(cells);
   const reordered = Object.fromEntries(Object.entries(cells).reverse());
   const changed = { ...cells, D3: { ...cells.D3, value: "999", formula: "999", computed: "999" } };
   const checks: [string, boolean][] = [
     ["la huella es SHA-256 en hexadecimal", /^[0-9a-f]{64}$/.test(fingerprint)],
-    ["la huella no depende del orden de las celdas", (await bomFingerprint(reordered)) === fingerprint],
-    ["la huella cambia si cambia una celda", (await bomFingerprint(changed)) !== fingerprint],
+    ["la huella no depende del orden de las celdas", (bomFingerprint(reordered)) === fingerprint],
+    ["la huella cambia si cambia una celda", (bomFingerprint(changed)) !== fingerprint],
   ];
   for (const [name, ok] of checks) {
     if (!ok) failures++;
