@@ -105,6 +105,10 @@ interface SpreadSheetProps {
   setShowTemplateLibrary: (show: boolean) => void;
   sheets: Sheet[];
   setSheets: React.Dispatch<React.SetStateAction<Sheet[]>>;
+  // Lets a parent intercept a cell click before the default selection/editing
+  // behavior runs (e.g. to implement custom per-cell affordances). Return
+  // true to mark the click as handled and skip the default behavior.
+  onCellClick?: (cellRef: string, cell: Cell | undefined) => boolean | void;
 }
 
 const SpreadSheet = ({
@@ -117,6 +121,7 @@ const SpreadSheet = ({
   onSheetsChange,
   showTemplateLibrary,
   setShowTemplateLibrary,
+  onCellClick,
   sheets = [],
   setSheets,
 }: SpreadSheetProps) => {
@@ -2828,6 +2833,10 @@ const SpreadSheet = ({
     if (event) {
       event.preventDefault();
       event.stopPropagation();
+    }
+
+    if (onCellClick && onCellClick(cellRef, cells[cellRef])) {
+      return;
     }
 
     // Check for multi-select modifiers (only in normal mode, not formula building)

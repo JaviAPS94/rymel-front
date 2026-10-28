@@ -12,6 +12,7 @@ import { semiFinishedApi } from "./apis/semiFinishedApi";
 import { designApi } from "./apis/designApi";
 import { designCodeApi } from "./apis/designCodeApi";
 import { authApi } from "./apis/authApi";
+import { billOfMaterialsApi } from "./apis/billOfMaterialsApi";
 
 let isRedirecting = false;
 
@@ -61,6 +62,7 @@ export const store = configureStore({
     [designApi.reducerPath]: designApi.reducer,
     [designCodeApi.reducerPath]: designCodeApi.reducer,
     [authApi.reducerPath]: authApi.reducer,
+    [billOfMaterialsApi.reducerPath]: billOfMaterialsApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()
@@ -74,7 +76,8 @@ export const store = configureStore({
       .concat(semiFinishedApi.middleware)
       .concat(designApi.middleware)
       .concat(designCodeApi.middleware)
-      .concat(authApi.middleware),
+      .concat(authApi.middleware)
+      .concat(billOfMaterialsApi.middleware),
 });
 
 setupListeners(store.dispatch);
@@ -102,6 +105,7 @@ export {
 } from "./apis/subTypeApi";
 export { useGetAccesoriesByNameMutation } from "./apis/accesoryApi";
 export { useGetSemiFinishedQuery } from "./apis/semiFinishedApi";
+export { useLazyGetBomByCodeQuery } from "./apis/billOfMaterialsApi";
 export { subTypeApi } from "./apis/subTypeApi";
 export {
   useGetDesignTypesQuery,
