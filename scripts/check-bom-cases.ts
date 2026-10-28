@@ -1,16 +1,18 @@
 /**
- * La lista del diseñador es la del admin, celda a celda.
+ * La lista de materiales en los casos que importan, celda a celda.
  *
- * `buildBomSummary` vive en los dos repositorios. El admin fija su copia con
- * `client-bom-cases.json`; este script pasa los mismos casos por la copia del
- * cliente. Si falla, las dos listas divergieron y hay que igualarlas.
+ * `fixtures/bom-cases.json` lleva los `sub_design` 90 y 91 con sus
+ * semielaborados hijos plegados y desplegados, un ítem que ya no existe, un
+ * catálogo borrado y los accesorios de la norma (completo con costos, sin
+ * cantidad ni unidad, y con la unidad en `unitMeasurement`). También
+ * comprueba la huella con la que se detecta que una lista ajustada quedó
+ * vieja.
  *
  * Uso:
- *   npx tsx scripts/check-bom-parity.ts <ruta a client-bom-cases.json> [--write]
+ *   npx tsx scripts/check-bom-cases.ts [--write]
  *
- * Con `--write` reescribe las celdas esperadas de cada caso con la salida del
- * cliente: es como se regenera la línea base cuando una regla cambia a
- * propósito, en los dos repositorios a la vez.
+ * Con `--write` reescribe las celdas esperadas con la salida actual: es como
+ * se regenera la línea base cuando una regla cambia a propósito.
  */
 
 import { readFileSync, writeFileSync } from "node:fs";
@@ -26,11 +28,7 @@ type Case = {
   cells: Record<string, unknown>;
 };
 
-const path = process.argv[2];
-if (!path) {
-  console.error("Falta la ruta a client-bom-cases.json");
-  process.exit(2);
-}
+const path = new URL("./fixtures/bom-cases.json", import.meta.url).pathname;
 
 const cases = JSON.parse(readFileSync(path, "utf8")) as Record<string, Case>;
 let failures = 0;
@@ -68,7 +66,7 @@ const main = async () => {
     if (!ok) failures++;
     console.log(`  ${ok ? "ok  " : "FALLA"} ${name}`);
   }
-  console.log(failures === 0 ? "\nIgual que el admin" : `\n${failures} comprobación(es) fallan`);
+  console.log(failures === 0 ? "\nIgual que la línea base" : `\n${failures} comprobación(es) fallan`);
   process.exit(failures === 0 ? 0 : 1);
 };
 main();
