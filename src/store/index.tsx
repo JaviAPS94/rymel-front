@@ -13,6 +13,7 @@ import { designApi } from "./apis/designApi";
 import { designCodeApi } from "./apis/designCodeApi";
 import { authApi } from "./apis/authApi";
 import { billOfMaterialsApi } from "./apis/billOfMaterialsApi";
+import { bomAdjustmentApi } from "./apis/bomAdjustmentApi";
 
 let isRedirecting = false;
 
@@ -63,6 +64,7 @@ export const store = configureStore({
     [designCodeApi.reducerPath]: designCodeApi.reducer,
     [authApi.reducerPath]: authApi.reducer,
     [billOfMaterialsApi.reducerPath]: billOfMaterialsApi.reducer,
+    [bomAdjustmentApi.reducerPath]: bomAdjustmentApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()
@@ -77,7 +79,8 @@ export const store = configureStore({
       .concat(designApi.middleware)
       .concat(designCodeApi.middleware)
       .concat(authApi.middleware)
-      .concat(billOfMaterialsApi.middleware),
+      .concat(billOfMaterialsApi.middleware)
+      .concat(bomAdjustmentApi.middleware),
 });
 
 setupListeners(store.dispatch);
@@ -106,6 +109,11 @@ export {
 export { useGetAccesoriesByNameMutation } from "./apis/accesoryApi";
 export { useGetSemiFinishedQuery } from "./apis/semiFinishedApi";
 export { useLazyGetBomByCodeQuery } from "./apis/billOfMaterialsApi";
+export {
+  useLazyGetBomAdjustmentQuery,
+  useSaveBomAdjustmentMutation,
+  useDeleteBomAdjustmentMutation,
+} from "./apis/bomAdjustmentApi";
 export { subTypeApi } from "./apis/subTypeApi";
 export {
   useGetDesignTypesQuery,

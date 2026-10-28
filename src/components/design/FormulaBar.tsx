@@ -21,6 +21,7 @@ interface FormulaBarProps {
   onToggleAddingToFormula: () => void;
   onHandleRangeSelection: () => void;
   onExitFormulaBuildingMode: () => void;
+  styleToolbar?: React.ReactNode;
 }
 
 const FormulaBar: React.FC<FormulaBarProps> = ({
@@ -41,6 +42,7 @@ const FormulaBar: React.FC<FormulaBarProps> = ({
   onToggleAddingToFormula,
   onHandleRangeSelection,
   onExitFormulaBuildingMode,
+  styleToolbar,
 }) => {
   return (
     <div className="flex flex-col gap-1">
@@ -68,8 +70,7 @@ const FormulaBar: React.FC<FormulaBarProps> = ({
         />
       </div>
       {/* Cell Style Toolbar */}
-      {typeof (window as any).onCellStyleToolbarRender === "function" &&
-        (window as any).onCellStyleToolbarRender()}
+      {styleToolbar}
       {isFormulaBuildingMode && (
         <div className="flex items-center gap-1.5 text-sm">
           <span className="text-blue-600 font-medium text-xs">

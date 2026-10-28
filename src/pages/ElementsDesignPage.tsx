@@ -1053,6 +1053,7 @@ const ElementsDesignPage = () => {
               element={selectedElements[0]}
               sheets={designSheets}
               subTypeWithFunctions={subTypeWithFunctions}
+              designId={designId ?? createdDesignId}
             />
           )}
         </>

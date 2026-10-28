@@ -109,6 +109,10 @@ interface SpreadSheetProps {
   // behavior runs (e.g. to implement custom per-cell affordances). Return
   // true to mark the click as handled and skip the default behavior.
   onCellClick?: (cellRef: string, cell: Cell | undefined) => boolean | void;
+  // Toda la hoja en solo lectura, con este aviso al intentar escribir. Las
+  // celdas se siguen seleccionando y `onCellClick` sigue llegando.
+  readOnly?: boolean;
+  readOnlyMessage?: string;
 }
 
 const SpreadSheet = ({
@@ -122,6 +126,8 @@ const SpreadSheet = ({
   showTemplateLibrary,
   setShowTemplateLibrary,
   onCellClick,
+  readOnly = false,
+  readOnlyMessage = "Esta hoja está en solo lectura.",
   sheets = [],
   setSheets,
 }: SpreadSheetProps) => {
@@ -519,8 +525,8 @@ const SpreadSheet = ({
     );
   }, [activeSheetId, selectedCells, setSheets, saveToHistoryImmediate]);
 
-  // Expose toolbar render function for FormulaBar
-  (window as any).onCellStyleToolbarRender = () => (
+  // Barra de formato de esta hoja; se pasa a su FormulaBar
+  const renderStyleToolbar = () => (
     <div className="flex items-center gap-3 mt-1 px-2 py-1 bg-gray-50 rounded border border-gray-200">
       <button
         className={`px-1.5 py-0.5 border rounded text-sm ${cellBold ? "font-bold bg-gray-200" : ""}`}
@@ -876,8 +882,9 @@ const SpreadSheet = ({
    * al cargar la plantilla no pasan por aquí.
    */
   const isProtected = useCallback(
-    (ref: string) => (currentSheet ? isReadOnly(currentSheet, ref) : false),
-    [currentSheet],
+    (ref: string) =>
+      readOnly || (currentSheet ? isReadOnly(currentSheet, ref) : false),
+    [currentSheet, readOnly],
   );
   const [readOnlyNotice, setReadOnlyNotice] = useState<string | null>(null);
   useEffect(() => {
@@ -888,9 +895,11 @@ const SpreadSheet = ({
   const warnProtected = useCallback(
     (ref: string) =>
       setReadOnlyNotice(
-        `${ref} está protegida por la plantilla y no se puede modificar.`,
+        readOnly
+          ? readOnlyMessage
+          : `${ref} está protegida por la plantilla y no se puede modificar.`,
       ),
-    [],
+    [readOnly, readOnlyMessage],
   );
   /**
    * Quita de una escritura por lotes —pegar— las celdas protegidas, y avisa
@@ -905,11 +914,13 @@ const SpreadSheet = ({
       const skipped = before - writes.length;
       if (skipped > 0) {
         setReadOnlyNotice(
-          `Se omitieron ${skipped} celda(s) protegidas por la plantilla.`,
+          readOnly
+            ? readOnlyMessage
+            : `Se omitieron ${skipped} celda(s) protegidas por la plantilla.`,
         );
       }
     },
-    [isProtected],
+    [isProtected, readOnly, readOnlyMessage],
   );
   const columnWidths = currentSheet?.columnWidths || {};
 
@@ -3659,6 +3670,7 @@ const SpreadSheet = ({
       {/* Header */}
       <div className="bg-gray-100 border-b px-3 py-1.5">
         <FormulaBar
+          styleToolbar={readOnly ? null : renderStyleToolbar()}
           selectedCell={selectedCell}
           currentSheetName={currentSheet?.name || ""}
           formulaInput={formulaInput}

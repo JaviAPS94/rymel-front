@@ -23,7 +23,7 @@ const BomTutorial: React.FC = () => {
 
   // La configuración del BOM —catálogo, zonas, condiciones y vínculos— es de
   // la plantilla y se administra en project-admin. Aquí solo se enseña lo que
-  // el diseñador hace: usarla y generar el resumen.
+  // el diseñador hace: usarla, generar la lista y ajustarla.
   const steps: Step[] = [
     {
       title: "Resumen BOM",
@@ -38,15 +38,21 @@ const BomTutorial: React.FC = () => {
       render: () => <SceneSource />,
     },
     {
-      title: "Crear hoja Resumen BOM",
+      title: "Generar la lista",
       description:
-        "Botón \"📋 Resumen BOM\" en la barra de hojas. Se genera una hoja de solo lectura con todos los semi-terminados y sus materiales agrupados.",
+        "En la pestaña \"LISTA DE MATERIALES\", pulsa \"Generar Lista de Materiales\". La lista sale en solo lectura, con todos los semi-terminados y sus materiales agrupados; pulsa ▶ para desplegar un semi-terminado hijo.",
+      render: () => <SceneBom />,
+    },
+    {
+      title: "Ajustar y guardar",
+      description:
+        "Si hace falta un ajuste puntual, pulsa \"Editar\", cambia lo necesario y pulsa \"Guardar ajustes\": se guarda con el diseño y lo verás al volver a abrirlo. \"Descartar\" deshace lo no guardado y \"Volver a la lista generada\" borra los ajustes guardados. El diseño tiene que estar guardado antes.",
       render: () => <SceneBom />,
     },
     {
       title: "¡Listo!",
       description:
-        "El resumen se actualiza cuando cambian los valores de tu diseño. Un vínculo huérfano (catálogo borrado, ítem inexistente) aparece marcado en rojo: avisa para que se corrija la plantilla.",
+        "Si la estructura o tu diseño cambian después de ajustar la lista, verás un aviso: los ajustes se conservan, pero conviene revisarlos. Un vínculo huérfano (catálogo borrado, ítem inexistente) aparece marcado en rojo: avisa para que se corrija la plantilla.",
       render: () => <SceneDone />,
     },
   ];
