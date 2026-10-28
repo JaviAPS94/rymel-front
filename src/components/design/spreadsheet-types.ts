@@ -1,6 +1,6 @@
 // Type definitions for SpreadSheet components
 
-import type { ReadOnlyZone } from "@rymel/design-template";
+import type { BomSheetMarker, ReadOnlyZone } from "@rymel/design-template";
 
 export interface Cell {
   value: string;
@@ -152,6 +152,12 @@ export interface Sheet {
    * que un diseño reabierto siga protegido.
    */
   readOnlyZones?: ReadOnlyZone[];
+  /**
+   * La hoja es la lista de materiales base de la plantilla. Se calcula y se
+   * guarda con las demás, pero no sale en las pestañas: es la base de la
+   * pestaña «LISTA DE MATERIALES».
+   */
+  billOfMaterials?: BomSheetMarker;
 }
 
 export interface CustomFunction {

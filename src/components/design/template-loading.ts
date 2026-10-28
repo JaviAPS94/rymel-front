@@ -147,6 +147,9 @@ export const toRuntimeSheet = (
     semiFinishedZones: sheet.styles.semiFinishedZones,
     itemCatalogTables: sheet.styles.itemCatalogTables,
     readOnlyZones: sheet.styles.readOnlyZones,
+    ...(sheet.styles.billOfMaterials
+      ? { billOfMaterials: { ...sheet.styles.billOfMaterials } }
+      : {}),
   };
 };
 

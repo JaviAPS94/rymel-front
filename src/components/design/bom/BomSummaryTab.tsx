@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, ClipboardList, Loader2, Pencil, RefreshCw, RotateCcw, Save, X } from "lucide-react";
 import { BomResponse, DesignSubtype, ElementResponse, Template } from "../../../commons/types";
 import {
@@ -16,6 +16,8 @@ import {
   BOM_SUMMARY_COLUMN_WIDTHS,
   bomFingerprint,
   buildBomSummaryCells,
+  evaluateBomBase,
+  withAccessories,
   type BomSummaryCell,
 } from "@rymel/design-template";
 
@@ -77,6 +79,32 @@ const BomSummaryTab = ({ element, sheets, subTypeWithFunctions, designId }: BomS
   const [confirmReset, setConfirmReset] = useState(false);
   const [showTemplateLibrary, setShowTemplateLibrary] = useState(false);
 
+  // Con lista base en la plantilla, la lista es esa base —calculada con los
+  // valores del diseño— más los accesorios de la norma del elemento. Sin
+  // base, se genera desde la estructura de la referencia, como siempre.
+  const baseSheet = useMemo(() => sheets.find((sheet) => sheet.billOfMaterials), [sheets]);
+  const marker = baseSheet?.billOfMaterials;
+  const [baseCells, setBaseCells] = useState<GeneratedCells | null>(null);
+  // Se calcula con los valores actuales de las hojas del diseño: el `computed`
+  // guardado de la base no se recalcula al editar las demás hojas
+  useEffect(() => {
+    if (!baseSheet) {
+      setBaseCells(null);
+      return;
+    }
+    let cancelled = false;
+    evaluateBomBase(baseSheet, sheets)
+      .then((evaluated) => {
+        if (!cancelled) setBaseCells(withAccessories(evaluated, element) as GeneratedCells);
+      })
+      .catch((err) => console.error("[BOM] no se pudo calcular la lista base:", err));
+    return () => {
+      cancelled = true;
+    };
+  }, [baseSheet, sheets, element]);
+  const baseFingerprint = useMemo(() => (baseCells ? bomFingerprint(baseCells) : null), [baseCells]);
+  const [structureNotice, setStructureNotice] = useState<string | null>(null);
+
   useEffect(() => {
     if (!hint) return;
     const timer = setTimeout(() => setHint(null), 4000);
@@ -85,12 +113,48 @@ const BomSummaryTab = ({ element, sheets, subTypeWithFunctions, designId }: BomS
 
   const showCells = (cells: Cells) => setBomSheets([sheetFromCells(cells)]);
 
+  // La base se muestra sola, y se vuelve a mostrar cuando cambian los valores
+  // del diseño, salvo que haya un ajuste o se esté editando
+  useEffect(() => {
+    if (!baseCells || adjustment || editing) return;
+    setGeneratedCells(baseCells);
+    showCells(baseCells);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baseFingerprint, adjustment, editing]);
+
+  // La base usa la estructura que eligió el admin; si la referencia del
+  // elemento apunta a otra, se avisa
+  useEffect(() => {
+    setStructureNotice(null);
+    if (!marker || !element.sapReference) return;
+    let cancelled = false;
+    triggerGetBom(element.sapReference).then((result) => {
+      if (cancelled || !result.data || result.data.id === marker.structureId) return;
+      setStructureNotice(
+        `La referencia ERP del elemento corresponde a la estructura ${result.data.code}; la lista usa ${marker.structureCode}, la que eligió el administrador en la plantilla.`,
+      );
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [marker, element.sapReference, triggerGetBom]);
+
   /**
    * Vuelve a generar la lista sobre la que se hizo el ajuste y la compara con
    * la huella guardada. Solo avisa: los ajustes no se tocan.
    */
   const checkStale = useCallback(
     async (saved: BomAdjustment) => {
+      if (marker) {
+        if (marker.structureId !== saved.bomId) {
+          setStaleNotice("La lista base de la plantilla usa otra estructura que la de estos ajustes.");
+        } else if (baseFingerprint && baseFingerprint !== saved.baseFingerprint) {
+          setStaleNotice(
+            "La lista cambió desde que se hicieron estos ajustes (lista base de la plantilla, valores del diseño o accesorios).",
+          );
+        }
+        return;
+      }
       let bom: BomResponse | null = null;
       if (element.sapReference) {
         try {
@@ -117,7 +181,7 @@ const BomSummaryTab = ({ element, sheets, subTypeWithFunctions, designId }: BomS
         console.error("[BOM] buildBomSummaryCells falló al comprobar:", err);
       }
     },
-    [element, sheets, triggerGetBom],
+    [element, sheets, triggerGetBom, marker, baseFingerprint],
   );
 
   // Al abrir un diseño guardado, si tiene ajustes, se muestran
@@ -258,6 +322,8 @@ const BomSummaryTab = ({ element, sheets, subTypeWithFunctions, designId }: BomS
         baseFingerprint: adjustment.baseFingerprint,
         expandedNodes: adjustment.expandedNodes,
       };
+    } else if (marker && baseCells) {
+      base = { bomId: marker.structureId, baseFingerprint: bomFingerprint(baseCells), expandedNodes: [] };
     } else {
       if (!bomData || !generatedCells) return;
       base = {
@@ -288,6 +354,8 @@ const BomSummaryTab = ({ element, sheets, subTypeWithFunctions, designId }: BomS
     }
     setAdjustment(null);
     setStaleNotice(null);
+    // Con base, se vuelve a mostrar sola
+    if (marker) return;
     setBomSheets([]);
     await handleGenerate();
   };
@@ -322,7 +390,9 @@ const BomSummaryTab = ({ element, sheets, subTypeWithFunctions, designId }: BomS
                   : "Guarda el diseño para poder guardar estos ajustes."
                 : adjustment
                   ? `Ajustada${adjustment.updatedBy ? ` por ${adjustment.updatedBy}` : ""} el ${formatDate(adjustment.updatedAt)}. La estructura se define en el administrador.`
-                  : hasSheet
+                  : marker
+                    ? `Base de la plantilla (estructura ${marker.structureCode}) con los accesorios del elemento. Pulsa «Editar» para añadir filas o ajustarla.`
+                    : hasSheet
                     ? "Generada a partir de la referencia ERP del elemento. Pulsa «Editar» para ajustarla."
                     : "Construye el desglose de materiales de este diseño a partir de su referencia ERP."}
             </p>
@@ -362,7 +432,7 @@ const BomSummaryTab = ({ element, sheets, subTypeWithFunctions, designId }: BomS
                   {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
                   Volver a la lista generada
                 </Button>
-              ) : (
+              ) : marker ? null : (
                 <Button
                   onClick={handleGenerate}
                   disabled={isFetching}
@@ -391,6 +461,13 @@ const BomSummaryTab = ({ element, sheets, subTypeWithFunctions, designId }: BomS
           <span>
             {staleNotice} Los ajustes se conservan; revisa la lista o vuelve a la generada.
           </span>
+        </div>
+      )}
+
+      {structureNotice && (
+        <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+          <span>{structureNotice}</span>
         </div>
       )}
 

@@ -3978,7 +3978,8 @@ const SpreadSheet = ({
 
       {/* Sheet Tabs */}
       <SheetTabs
-        sheets={sheets}
+        // La lista de materiales base va en su propia pestaña del diseño
+        sheets={sheets.filter((sheet) => !sheet.billOfMaterials)}
         activeSheetId={activeSheetId}
         editingSheetName={editingSheetName}
         onSwitchToSheet={switchToSheet}
