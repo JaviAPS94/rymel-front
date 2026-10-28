@@ -55,7 +55,15 @@ const STRUCTURE = {
   id: 2,
   code: "1-25-220-120",
   name: "Estructura de prueba",
-  nodes: [{ id: 10, semiFinished: { id: 1, name: "SF 1", code: "SF1" }, children: [] }],
+  nodes: [
+    {
+      id: 10,
+      semiFinished: { id: 1, name: "SF 1", code: "SF1" },
+      children: [],
+      // Una familia de fantasmas que el admin colgó del semielaborado
+      phantomFamilies: [{ id: 1, family: { id: 20, name: "F. Acc Sol" }, process: { id: 5, name: "METALMECANICA" } }],
+    },
+  ],
 };
 const ELEMENT = {
   values: [
@@ -106,6 +114,13 @@ const main = async () => {
   const item = rowOf("240");
   check("la cantidad es la del diseño, no la guardada", list[`D${item}`]?.value === "7", String(list[`D${item}`]?.value));
   check("descripción y unidad desde el catálogo", list[`C${item}`]?.value === "Fibra de 2 mm" && list[`E${item}`]?.value === "KLS");
+  const family = rowOf("F. Acc Sol");
+  check(
+    "la familia de fantasmas está en la sección, antes de los ítems",
+    family !== undefined && Number(family) < Number(item) && list[`C${family}`]?.value === "Fantasma : METALMECANICA",
+    `fila ${family}`,
+  );
+  check("y avisa que falta elegir el fantasma", list[`I${family}`]?.value === "Fantasma por elegir");
   // La fila fija del admin quedó pegada al ítem: es parte de la sección SF 1
   const fixed = rowOf("BARNIZ");
   check("la fila fija del admin sigue en su sitio", fixed === String(lastRow + 1) && list[`D${fixed}`]?.value === "2");
