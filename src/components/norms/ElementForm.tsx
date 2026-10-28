@@ -7,6 +7,7 @@ import {
 import { ElementValue, NormData, NormElement } from "../../pages/NormPage";
 import Accesories from "./Accesories";
 import AccesoriesTable from "./AccesoriesTable";
+import { addAccessoriesToElements, pickAccessories } from "./accessoryAssignment";
 import {
   Accessory,
   SemiFinishedType,
@@ -275,19 +276,6 @@ const ElementForm = ({
     }
   };
 
-  const filterAccesoriesByIds = (ids: number[]): Accessory[] => {
-    const filteredAccesories = accessoriesData
-      .filter((subItem) => ids.includes(subItem.id))
-      .map((subItem, index) => {
-        const base = { ...subItem, value: subItem.value ?? 1 };
-        if (index === 0) {
-          return { ...base, semiFinished: selectedSemiFinished };
-        }
-        return base;
-      });
-    return filteredAccesories;
-  };
-
   const handleNextStep = () => {
     const nextStep = step + 1;
     if (nextStep === 2 && mapElementsToCheckList(normData.elements).length === 0) {
@@ -304,42 +292,6 @@ const ElementForm = ({
     toogleFieldsUpdateModal();
     setAnswerContinueField("no");
     setFieldsUpdateStep(0);
-  };
-
-  const addAccessoryToElement = (
-    elements: NormElement[],
-    newAccessory: object
-  ) => {
-    selectedElements.forEach((elementId) => {
-      const element = elements.find((el) => el.sapReference === elementId);
-
-      if (!element) return;
-
-      const accessoriesField = element.values.find(
-        (v) => v.key === "accesories"
-      );
-
-      if (accessoriesField) {
-        if (Array.isArray(accessoriesField.value)) {
-          const exists = accessoriesField.value.some(
-            (acc) => JSON.stringify(acc) === JSON.stringify(newAccessory)
-          );
-          if (!exists) {
-            accessoriesField.value = [...accessoriesField.value, newAccessory];
-          }
-        }
-      } else {
-        element.values.push({
-          key: "accesories",
-          name: "Accesorios",
-          sapReference: false,
-          validations: {},
-          descriptionInfo: "Accesorios del elemento",
-          value: [newAccessory],
-          type: "object",
-        });
-      }
-    });
   };
 
   const handleUpdateFieldsInElements = () => {
@@ -409,12 +361,18 @@ const ElementForm = ({
   };
 
   const handleAddAccesory = () => {
-    addAccessoryToElement(
-      normData.elements,
-      filterAccesoriesByIds(selectedSubItems)[0]
-    );
-
+    // Primero se valida: antes se escribía en los elementos aunque faltara
+    // el semielaborado
     if (selectedSubItems.length > 0 && selectedSemiFinished) {
+      // Todos los elegidos llevan el semielaborado y van a todos los
+      // elementos seleccionados; antes, solo el primero
+      const chosen = pickAccessories(
+        accessoriesData,
+        selectedSubItems,
+        selectedSemiFinished
+      );
+      addAccessoriesToElements(normData.elements, selectedElements, chosen);
+
       setFormData((prevData) => ({
         ...prevData,
         customFields: prevData.customFields
@@ -425,7 +383,7 @@ const ElementForm = ({
                   name: "Accesorios",
                   value: [
                     ...(Array.isArray(field.value) ? field.value : []), // Accesorios existentes
-                    ...filterAccesoriesByIds(selectedSubItems).filter(
+                    ...chosen.filter(
                       (newAccessory) =>
                         !(field.value as object[])?.some(
                           (existing) =>
@@ -445,7 +403,7 @@ const ElementForm = ({
                   {
                     key: "accesories",
                     name: "Accesorios",
-                    value: filterAccesoriesByIds(selectedSubItems),
+                    value: chosen,
                     type: "object",
                     sapReference: false,
                     validations: {},

@@ -34,6 +34,8 @@ interface SpreadSheetCellProps {
   isNamedRangeStart?: boolean; // Whether this cell is the start of a named range
   /** Protegida por la plantilla: el diseñador no puede modificarla. */
   isReadOnly?: boolean;
+  /** Rastreo de la celda activa: la alimenta (verde) o depende de ella (naranja). */
+  trace?: "precedent" | "dependent";
   zone?: {
     zoneId: string;
     code: string;
@@ -82,6 +84,7 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
   cells,
   fontScale = 1,
   isNamedRangeStart = false,
+  trace,
   isReadOnly = false,
   zone,
   catalog,
@@ -259,6 +262,10 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
       cellStyle.borderLeft = catalogStroke;
   }
 
+  if (trace && !isSelected) {
+    cellStyle.boxShadow = `inset 0 0 0 2px ${trace === "precedent" ? "#10b981" : "#f97316"}`;
+  }
+
   // Selection styling - use box-shadow instead of ring to avoid layout shift
   if (isSelected) {
     cellStyle.boxShadow = "inset 0 0 0 2px #3b82f6";
@@ -281,6 +288,7 @@ const SpreadSheetCell: React.FC<SpreadSheetCellProps> = ({
             : ""
       }`}
       style={cellStyle}
+      data-trace={trace}
       onClick={(e) => onCellClick(cellRef, e)}
       onContextMenu={(e) => onCellContextMenu(e, cellRef)}
     >
@@ -626,6 +634,7 @@ export default React.memo(SpreadSheetCell, (prevProps, nextProps) => {
       nextProps.cell?.goTo?.conditionCells?.join() &&
     prevProps.isNamedRangeStart === nextProps.isNamedRangeStart &&
     prevProps.isReadOnly === nextProps.isReadOnly &&
+    prevProps.trace === nextProps.trace &&
     prevProps.zone?.zoneId === nextProps.zone?.zoneId &&
     prevProps.zone?.bg === nextProps.zone?.bg &&
     prevProps.zone?.code === nextProps.zone?.code &&
