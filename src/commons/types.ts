@@ -17,6 +17,8 @@ export type Accessory = {
   description: string;
   unitMeasurement?: string;
   unitOfMeasurement?: string;
+  averageCost?: number;
+  lastCost?: number;
   value?: number;
   semiFinished?: SemiFinishedType;
 };

@@ -96,6 +96,25 @@ const buildCatalogResolver = (sheets: Sheet[]) => {
   return tables;
 };
 
+// Una fila de material. Referencia, costos y observación solo los tienen los
+// accesorios de la norma.
+type BomRow = {
+  itemId: string;
+  description: string;
+  cantidad: string;
+  um: string;
+  reference: string;
+  averageCost: string;
+  lastCost: string;
+  note: string;
+};
+
+const NO_ERP_FIELDS = { reference: "", averageCost: "", lastCost: "", note: "" };
+
+/** El valor como texto; vacío si falta. Un 0 es un valor. */
+const present = (value: unknown): string =>
+  value === null || value === undefined ? "" : String(value).trim();
+
 // Build BOM summary cells from the tree returned by the BOM API.
 // Children are rendered before their parent (post-order DFS) so leaf SFs
 // appear first, and each parent section shows its direct children as
@@ -111,14 +130,18 @@ export const buildBomSummaryCells = (
   const cells: { [key: string]: Cell } = {};
   let row = 0;
 
+  // F–I solo llevan algo en los accesorios; un ítem de la plantilla no tiene
+  // esos datos y no deja celdas vacías
+  const writeErpFields = (r: BomRow, extra: Partial<Cell> = {}) => {
+    const values = [r.reference, r.averageCost, r.lastCost, r.note];
+    ["F", "G", "H", "I"].forEach((column, index) => {
+      if (values[index]) cells[`${column}${row + 1}`] = cell(values[index], extra);
+    });
+  };
+
   // Collect item rows for a given SF id (logic unchanged from original)
   const collectItemRows = (sfId: number) => {
-    const itemRows: {
-      itemId: string;
-      description: string;
-      cantidad: string;
-      um: string;
-    }[] = [];
+    const itemRows: BomRow[] = [];
     sheets.forEach((sheet) => {
       (sheet.semiFinishedZones || []).forEach((zone) => {
         if (zone.semiFinishedId !== sfId) return;
@@ -149,7 +172,7 @@ export const buildBomSummaryCells = (
                 description = "(item no encontrado)";
               }
             }
-            itemRows.push({ itemId: link.itemId, description, cantidad, um });
+            itemRows.push({ itemId: link.itemId, description, cantidad, um, ...NO_ERP_FIELDS });
           }
         }
       });
@@ -175,12 +198,30 @@ export const buildBomSummaryCells = (
     }
     return accessories
       .filter((acc) => acc.semiFinished?.id === sfId)
-      .map((acc) => ({
-        itemId: String(acc.id),
-        description: acc.description,
-        cantidad: String(acc.value ?? ""),
-        um: acc.unitOfMeasurement ?? "",
-      }));
+      .map((acc): BomRow => {
+        // Todos los campos del accesorio: los que trae del ERP al asignarlo
+        // en la norma y la cantidad que le pone la norma. Lo que falta se
+        // dice en Observación; no se rellena.
+        const cantidad = present(acc.value);
+        const um = present(acc.unitOfMeasurement) || present(acc.unitMeasurement);
+        const averageCost = present(acc.averageCost);
+        const lastCost = present(acc.lastCost);
+        const missing = [
+          !cantidad && "sin cantidad en la norma",
+          !um && "sin unidad en la norma",
+          (!averageCost || !lastCost) && "sin costos en la norma",
+        ].filter(Boolean);
+        return {
+          itemId: String(acc.id),
+          description: acc.description,
+          cantidad,
+          um,
+          reference: present(acc.reference),
+          averageCost,
+          lastCost,
+          note: missing.join("; "),
+        };
+      });
   };
 
   // Post-order DFS: collect nodes leaf-first so child sections precede parents
@@ -217,6 +258,10 @@ export const buildBomSummaryCells = (
     cells[`C${row + 1}`] = cell("Descripción", subHeaderStyle);
     cells[`D${row + 1}`] = cell("Cantidad", subHeaderStyle);
     cells[`E${row + 1}`] = cell("U.M.", subHeaderStyle);
+    cells[`F${row + 1}`] = cell("Referencia", subHeaderStyle);
+    cells[`G${row + 1}`] = cell("Costo promedio", subHeaderStyle);
+    cells[`H${row + 1}`] = cell("Último costo", subHeaderStyle);
+    cells[`I${row + 1}`] = cell("Observación", subHeaderStyle);
     row++;
 
     // Child SF reference rows with toggle indicator in column A.
@@ -243,6 +288,7 @@ export const buildBomSummaryCells = (
           cells[`C${row + 1}`] = cell(r.description, childExpandedItemStyle);
           cells[`D${row + 1}`] = cell(r.cantidad, childExpandedItemStyle);
           cells[`E${row + 1}`] = cell(r.um, childExpandedItemStyle);
+          writeErpFields(r, childExpandedItemStyle);
           row++;
         });
       }
@@ -254,6 +300,7 @@ export const buildBomSummaryCells = (
       cells[`C${row + 1}`] = cell(r.description);
       cells[`D${row + 1}`] = cell(r.cantidad);
       cells[`E${row + 1}`] = cell(r.um);
+      writeErpFields(r);
       row++;
     });
 
@@ -264,11 +311,16 @@ export const buildBomSummaryCells = (
   return cells;
 };
 
-// A=ID, B=item, C=descripción (wide), D=cantidad, E=U.M.
+// A=ID, B=item, C=descripción (wide), D=cantidad, E=U.M., F=referencia,
+// G=costo promedio, H=último costo, I=observación
 export const BOM_SUMMARY_COLUMN_WIDTHS: { [key: number]: number } = {
   0: 80,
   1: 90,
   2: 280,
   3: 90,
   4: 70,
+  5: 100,
+  6: 110,
+  7: 110,
+  8: 260,
 };

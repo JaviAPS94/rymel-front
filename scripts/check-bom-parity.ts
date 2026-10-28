@@ -6,10 +6,14 @@
  * cliente. Si falla, las dos listas divergieron y hay que igualarlas.
  *
  * Uso:
- *   npx tsx scripts/check-bom-parity.ts <ruta a client-bom-cases.json>
+ *   npx tsx scripts/check-bom-parity.ts <ruta a client-bom-cases.json> [--write]
+ *
+ * Con `--write` reescribe las celdas esperadas de cada caso con la salida del
+ * cliente: es como se regenera la línea base cuando una regla cambia a
+ * propósito, en los dos repositorios a la vez.
  */
 
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { isDeepStrictEqual } from "node:util";
 import { buildBomSummaryCells } from "../src/components/design/bom/buildBomSummary";
 import { bomFingerprint } from "../src/components/design/bom/bomFingerprint";
@@ -30,6 +34,15 @@ if (!path) {
 
 const cases = JSON.parse(readFileSync(path, "utf8")) as Record<string, Case>;
 let failures = 0;
+
+if (process.argv.includes("--write")) {
+  for (const value of Object.values(cases)) {
+    const cells = buildBomSummaryCells(value.bom, new Set(value.expanded), value.sheets, value.element);
+    value.cells = JSON.parse(JSON.stringify(cells));
+  }
+  writeFileSync(path, `${JSON.stringify(cases, null, 2)}\n`);
+  console.log(`Reescritos ${Object.keys(cases).length} casos en ${path}`);
+}
 
 for (const [name, value] of Object.entries(cases)) {
   const cells = buildBomSummaryCells(value.bom, new Set(value.expanded), value.sheets, value.element);

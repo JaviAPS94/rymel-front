@@ -109,7 +109,11 @@
    "D2": "Cantidad",
    "D3": "3",
    "E2": "U.M.",
-   "E3": "KLS"
+   "E3": "KLS",
+   "F2": "Referencia",
+   "G2": "Costo promedio",
+   "H2": "Último costo",
+   "I2": "Observación"
   }
  },
  "sub_design 91": {
@@ -181,7 +185,11 @@
    "D2": "Cantidad",
    "D3": "3",
    "E2": "U.M.",
-   "E3": "KG"
+   "E3": "KG",
+   "F2": "Referencia",
+   "G2": "Costo promedio",
+   "H2": "Último costo",
+   "I2": "Observación"
   }
  },
  "TEMPLATE_1F_0001": {
