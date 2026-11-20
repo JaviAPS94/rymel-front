@@ -46,9 +46,9 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({
   }[] = [
     {
       id: "bom",
-      title: "Resumen BOM",
+      title: "Resumen de la lista de materiales",
       description:
-        "De dónde sale la configuración del BOM y cómo generar la hoja resumen de materiales.",
+        "De dónde sale la configuración de la lista de materiales y cómo generar su hoja resumen.",
       component: BomTutorial,
     },
   ];

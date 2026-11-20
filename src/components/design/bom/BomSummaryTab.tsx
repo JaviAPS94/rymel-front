@@ -166,7 +166,7 @@ const BomSummaryTab = ({ element, sheets, subTypeWithFunctions, designId }: BomS
       }
       if (!bom || bom.id !== saved.bomId) {
         setStaleNotice(
-          "La estructura BOM con la que se ajustó esta lista ya no corresponde a la referencia ERP del elemento.",
+          "El listado de materiales con el que se ajustó esta lista ya no corresponde a la referencia ERP del elemento.",
         );
         return;
       }
@@ -174,7 +174,7 @@ const BomSummaryTab = ({ element, sheets, subTypeWithFunctions, designId }: BomS
         const cells = buildBomSummaryCells(bom, new Set(saved.expandedNodes), sheets, element);
         if (bomFingerprint(cells) !== saved.baseFingerprint) {
           setStaleNotice(
-            "La lista generada cambió desde que se hicieron estos ajustes (estructura BOM, hojas del diseño, accesorios o catálogo).",
+            "La lista generada cambió desde que se hicieron estos ajustes (listado de materiales, hojas del diseño, accesorios o catálogo).",
           );
         }
       } catch (err) {
@@ -224,7 +224,7 @@ const BomSummaryTab = ({ element, sheets, subTypeWithFunctions, designId }: BomS
     } catch (err) {
       console.error("[BOM] triggerGetBom threw:", err);
       setErrorMessage(
-        "Error al consultar la estructura BOM. Revisa la consola para más detalles.",
+        "Error al consultar el listado de materiales. Revisa la consola para más detalles.",
       );
       return;
     }
@@ -232,7 +232,7 @@ const BomSummaryTab = ({ element, sheets, subTypeWithFunctions, designId }: BomS
     if (!result.data) {
       console.error("[BOM] No data returned. error:", result.error, "sapReference:", element.sapReference);
       setErrorMessage(
-        `No se encontró estructura BOM para la referencia ERP: ${element.sapReference}`,
+        `No se encontró listado de materiales para la referencia ERP: ${element.sapReference}`,
       );
       return;
     }
@@ -371,7 +371,7 @@ const BomSummaryTab = ({ element, sheets, subTypeWithFunctions, designId }: BomS
           </div>
           <div>
             <h3 className="text-sm font-semibold text-slate-700">
-              Lista de materiales (BOM)
+              Lista de materiales
               {adjustment && (
                 <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
                   Ajustada
@@ -500,7 +500,7 @@ const BomSummaryTab = ({ element, sheets, subTypeWithFunctions, designId }: BomS
         size="md"
       >
         <p className="text-sm text-gray-700">
-          Se borrarán los ajustes guardados de este diseño y se mostrará la lista tal como sale de su estructura BOM. No se puede deshacer.
+          Se borrarán los ajustes guardados de este diseño y se mostrará la lista tal como sale de su listado de materiales. No se puede deshacer.
         </p>
         <div className="flex justify-end gap-2 mt-4">
           <Button onClick={() => setConfirmReset(false)}>Cancelar</Button>
