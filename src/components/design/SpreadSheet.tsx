@@ -719,7 +719,7 @@ const SpreadSheet = ({
           onClick={() =>
             applyConditionalFormat(condFmtMin, condFmtMax, condFmtColor)
           }
-          className="px-1.5 py-0.5 border rounded text-xs hover:bg-blue-50 hover:border-blue-400"
+          className="px-1.5 py-0.5 border rounded text-xs hover:bg-rymel-tint hover:border-rymel-indigo/60"
           title="Aplicar formato condicional"
         >
           ✓
@@ -1746,7 +1746,8 @@ const SpreadSheet = ({
 
   // --- Rastreo de celdas ----------------------------------------------------
   // El mismo del editor de plantillas del administrador: de qué se alimenta la
-  // celda activa y a quién alimenta, también entre hojas.
+  // celda activa y a quién alimenta, también entre hojas. Como allí, las
+  // celdas relacionadas se marcan al seleccionar; el botón abre el detalle.
   const [showTrace, setShowTrace] = useState(false);
   const [fullTrace, setFullTrace] = useState(false);
   const designFunctionCodes = useMemo(
@@ -1755,19 +1756,19 @@ const SpreadSheet = ({
   );
   const activeTraceSheet = sheets.find((sheet) => sheet.id === activeSheetId)?.name ?? "";
   const trace = useDesignCellTrace(sheets, activeTraceSheet, selectedCell, {
-    enabled: showTrace,
-    full: fullTrace,
+    full: fullTrace && showTrace,
     designFunctionCodes,
   });
   const traceOf = useMemo(() => {
-    if (!trace) return undefined;
+    // Mientras se escribe en una celda, sin marcas, como en el administrador
+    if (editingCell) return undefined;
     return (cellRef: string) => {
       const key = `${activeTraceSheet}!${cellRef}`;
       if (trace.highlight.precedents.has(key)) return "precedent" as const;
       if (trace.highlight.dependents.has(key)) return "dependent" as const;
       return undefined;
     };
-  }, [trace, activeTraceSheet]);
+  }, [trace, activeTraceSheet, editingCell]);
 
   /** Lleva a una celda del rastreo; de un rango, a su primera celda. */
   const goToTraced = ({ sheet: sheetName, ref }: { sheet: string; ref: string }) => {
@@ -3722,7 +3723,7 @@ const SpreadSheet = ({
             title="De qué celdas depende la celda seleccionada y cuáles dependen de ella"
             className={`rounded px-2 py-0.5 text-xs font-medium ${
               showTrace
-                ? "bg-blue-600 text-white"
+                ? "bg-rymel-blue text-white"
                 : "bg-white text-gray-700 ring-1 ring-gray-300 hover:bg-gray-50"
             }`}
           >
@@ -3815,7 +3816,7 @@ const SpreadSheet = ({
           goToHighlightCell={goToHighlight}
           traceOf={traceOf}
         />
-        {showTrace && trace && (
+        {showTrace && (
           <aside className="w-72 shrink-0 border-l border-gray-200 bg-gray-50 p-2" aria-label="Rastreo">
             <TracePanel
               sheetName={activeTraceSheet}
@@ -3959,7 +3960,7 @@ const SpreadSheet = ({
                       <>
                         <div className="border-t my-1"></div>
                         <button
-                          className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm text-blue-600 font-medium"
+                          className="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm text-rymel-indigo font-medium"
                           onClick={() => {
                             navigateGoTo(ref);
                             closeMenu();

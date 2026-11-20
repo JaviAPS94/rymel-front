@@ -270,7 +270,7 @@ const SceneBom: React.FC = () => (
   <div className="h-full relative flex flex-col">
     {/* Sheet tabs mockup */}
     <div className="flex items-center gap-1 mb-3 anim-fade-in">
-      <div className="px-2 py-1 bg-white border-t-2 border-blue-500 rounded-t text-[10px] font-medium">
+      <div className="px-2 py-1 bg-white border-t-2 border-rymel-indigo rounded-t text-[10px] font-medium">
         Diseño
       </div>
       <div className="px-2 py-1 bg-gray-200 rounded-t text-[10px] font-medium">
@@ -306,7 +306,7 @@ const SceneBom: React.FC = () => (
       </div>
       <table className="border-collapse text-[10px] ml-12">
         <thead>
-          <tr className="bg-blue-100">
+          <tr className="bg-rymel-soft">
             <th className="border border-gray-300 px-1.5 py-0.5">Item</th>
             <th className="border border-gray-300 px-1.5 py-0.5">
               Descripción

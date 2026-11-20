@@ -54,7 +54,7 @@ const CheckboxListItem: React.FC<CheckboxListItemProps> = ({
           id={`checkbox-${id}`}
           checked={isChecked}
           onChange={() => onToggle(id)}
-          className="mr-2 rounded text-blue-500 focus:ring-blue-500"
+          className="mr-2 rounded text-rymel-indigo focus:ring-rymel-indigo"
           disabled={isDisabled}
         />
 

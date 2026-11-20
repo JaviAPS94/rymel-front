@@ -1,26 +1,25 @@
 import { useState } from "react";
-import CardList from "../components/core/CardList";
 import { useNavigate } from "react-router-dom";
+import { TbPlus, TbSearch } from "react-icons/tb";
 import { useGetNormsPaginatedQuery } from "../store/apis/normApi";
-import Select, { Option } from "../components/core/Select";
 import { useGetCountriesQuery } from "../store";
-import NoData from "../components/core/NoData";
+import Select, { Option } from "../components/core/Select";
 import CustomInput from "../components/core/CustomInput";
-import Pagination from "../components/core/Pagination";
 import Button from "../components/core/Button";
-import { FaPlus } from "react-icons/fa";
-import { CiBoxList } from "react-icons/ci";
+import NormTable from "../components/norms/NormTable";
+import { PageHeader, Pagination, EmptyState, Page } from "@rymel/ui";
+
+const PAGE_SIZE = 10;
 
 const NormListPage = () => {
   const navigate = useNavigate();
   const [page, setPage] = useState<number>(1);
-  const [limit] = useState<number>(10);
   const [name, setName] = useState<string>("");
   const [country, setCountry] = useState<number>();
 
   const { data, error, isLoading } = useGetNormsPaginatedQuery({
     page,
-    limit,
+    limit: PAGE_SIZE,
     name: name || undefined,
     country: country || undefined,
   });
@@ -28,64 +27,77 @@ const NormListPage = () => {
   const { data: countries, isLoading: isLoadingCountries } =
     useGetCountriesQuery(null);
 
-  if (isLoadingCountries) {
-    return <div>Loading countries...</div>;
-  }
-  if (isLoading) return <p>Loading...</p>;
-  if (error) return <p>Error loading data</p>;
-
-  const handleAddNormClick = () => {
-    navigate("/norms/new");
+  // Cambiar un filtro vuelve a la primera página: la actual puede no existir
+  // en el resultado nuevo.
+  const handleNameChange = (value: string) => {
+    setName(value);
+    setPage(1);
   };
 
   const handleCountryChange = (countryId: number | undefined) => {
     setCountry(countryId);
+    setPage(1);
   };
+
+  const clearFilters = () => {
+    setName("");
+    setCountry(undefined);
+    setPage(1);
+  };
+
+  const hasFilters = Boolean(name || country);
 
   return (
     <>
-      <div
-        className={`max-w-full bg-white rounded-lg shadow-lg overflow-hidden pb-5 my-10 mx-10 ${
-          !data?.data || data.data.length === 0 ? "min-h-screen" : ""
-        }`}
-      >
-        <div className="bg-rymel-blue text-white p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex">
-                <CiBoxList className="text-white h-8 w-8" />
-                <h1 className="text-3xl font-bold ml-2">Listado De Normas</h1>
-              </div>
-              <p className="text-white mt-1">
-                {data?.total} normas disponibles
-              </p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Button
-                className="h-12"
-                primary
-                onClick={handleAddNormClick}
-                icon={<FaPlus />}
-              >
-                Añadir norma
-              </Button>
-              <div className="bg-rymel-yellow px-4 py-2 rounded-lg">
-                <span className="text-2xl font-bold">{data?.data.length}</span>
-                <span className="text-white ml-2">filtradas</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="border-b border-gray-200">
-          <div className="flex justify-center min-w-[26rem] my-5">
-            <CustomInput
-              type="text"
-              value={name}
-              onChange={setName}
-              placeholder="Buscar por nombre"
-            />
+      <PageHeader
+        eyebrow="Catálogo técnico"
+        title="Normas"
+        description={
+          data ? (
+            <>
+              <strong>
+                {data.total} {data.total === 1 ? "norma" : "normas"}
+              </strong>
+              {hasFilters ? " con estos filtros." : " registradas."}
+            </>
+          ) : (
+            "Las normas sobre las que se calculan los diseños."
+          )
+        }
+        actions={
+          <Button
+            variant="light"
+            size="lg"
+            className="!h-[52px] !rounded-[14px] !px-6 !text-base"
+            onClick={() => navigate("/norms/new")}
+          >
+            <span className="flex h-[26px] w-[26px] items-center justify-center rounded-lg bg-rymel-yellow">
+              <TbPlus className="h-3.5 w-3.5" strokeWidth={3} />
+            </span>
+            Nueva norma
+          </Button>
+        }
+      />
+
+      <Page>
+        <form
+          role="search"
+          aria-label="Filtrar normas"
+          onSubmit={(event) => event.preventDefault()}
+          className="flex flex-wrap items-center gap-3 rounded-[20px] border bg-white p-5"
+        >
+          <CustomInput
+            type="search"
+            aria-label="Buscar por nombre"
+            size="lg"
+            className="min-w-0 flex-[999_1_360px]"
+            value={name}
+            onChange={handleNameChange}
+            placeholder="Buscar por nombre…"
+            leftIcon={<TbSearch className="h-[18px] w-[18px] text-gray-400" />}
+          />
+          <div className="min-w-0 flex-[1_1_240px]">
             <Select
-              className="ml-4"
               options={countries?.map(
                 (country) =>
                   ({
@@ -95,36 +107,48 @@ const NormListPage = () => {
               )}
               selectedValue={country}
               onChange={handleCountryChange}
-              isLoading={false}
-              placeholder="Selecciona un país"
+              isLoading={isLoadingCountries}
+              placeholder="Todos los países"
               errorKey="country"
+              size="lg"
             />
           </div>
-        </div>
+        </form>
 
-        {data?.data.length === 0 ? (
-          <div className="justify-center items-center flex py-12">
-            <NoData
-              className="w-1/2 bg-gray-400"
-              message="No hay resultados para mostrar."
-            />
-          </div>
+        {isLoading ? (
+          <p className="text-sm text-gray-600">Cargando…</p>
+        ) : error ? (
+          <EmptyState tone="error" title="No se pudieron cargar las normas." />
+        ) : !data || data.data.length === 0 ? (
+          <EmptyState
+            title={
+              hasFilters
+                ? "Ninguna norma coincide con los filtros."
+                : "Todavía no hay normas."
+            }
+            action={
+              hasFilters && (
+                <Button base onClick={clearFilters}>
+                  Limpiar filtros
+                </Button>
+              )
+            }
+          />
         ) : (
-          <div className="mt-6">
-            <CardList items={data?.data} />
-          </div>
+          <NormTable
+            items={data.data}
+            footer={
+              <Pagination
+                page={page}
+                totalPages={data.totalPages}
+                onPageChange={setPage}
+                totalItems={data.total}
+                pageSize={PAGE_SIZE}
+              />
+            }
+          />
         )}
-
-        {data && data.data.length > 0 && (
-          <div className="flex justify-center align-middle mx-auto mt-4 text-2xl space-x-2">
-            <Pagination
-              currentPage={page}
-              totalPages={data.totalPages}
-              onPageChange={(newPage) => setPage(newPage)}
-            />
-          </div>
-        )}
-      </div>
+      </Page>
     </>
   );
 };

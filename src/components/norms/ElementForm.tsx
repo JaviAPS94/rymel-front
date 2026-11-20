@@ -1,3 +1,9 @@
+import {
+  inputClass,
+  inputErrorClass,
+  labelClass,
+  sectionTitleClass,
+} from "../core/styles";
 import { JSX, useCallback, useEffect, useState } from "react";
 import {
   toCamelCase,
@@ -7,7 +13,10 @@ import {
 import { ElementValue, NormData, NormElement } from "../../pages/NormPage";
 import Accesories from "./Accesories";
 import AccesoriesTable from "./AccesoriesTable";
-import { addAccessoriesToElements, pickAccessories } from "./accessoryAssignment";
+import {
+  addAccessoriesToElements,
+  pickAccessories,
+} from "./accessoryAssignment";
 import {
   Accessory,
   SemiFinishedType,
@@ -107,7 +116,7 @@ const ElementForm = ({
   const [accesoriesError, setAccesoriesError] = useState<string>("");
   const [newFieldError, setNewFieldError] = useState<string>("");
   const [selectedOption, setSelectedOption] = useState<string>(
-    SpecificationEnum.Standard
+    SpecificationEnum.Standard,
   );
   const [selectedSpecification, setSelectedSpecification] = useState<
     SpecialItem | undefined
@@ -178,7 +187,7 @@ const ElementForm = ({
         customFields: currentValues,
       }));
       const specification = currentValues.find(
-        (field) => field.key === "specification"
+        (field) => field.key === "specification",
       );
       if (specification?.value === SpecificationEnum.Standard) {
         setSelectedOption(SpecificationEnum.Standard);
@@ -202,12 +211,12 @@ const ElementForm = ({
 
   const updateCustomFieldValue = (
     key: string,
-    newValue: string | File | object
+    newValue: string | File | object,
   ) => {
     setFormData((prevState) => ({
       ...prevState,
       customFields: prevState.customFields.map((field) =>
-        field.key === key ? { ...field, value: newValue } : field
+        field.key === key ? { ...field, value: newValue } : field,
       ),
     }));
   };
@@ -278,7 +287,10 @@ const ElementForm = ({
 
   const handleNextStep = () => {
     const nextStep = step + 1;
-    if (nextStep === 2 && mapElementsToCheckList(normData.elements).length === 0) {
+    if (
+      nextStep === 2 &&
+      mapElementsToCheckList(normData.elements).length === 0
+    ) {
       setAnswerContinueAccesories("no");
     }
     setStep(nextStep);
@@ -302,7 +314,7 @@ const ElementForm = ({
       const result = selectedFieldsItems
         .filter(
           (item): item is string =>
-            typeof item === "string" && item.includes("-")
+            typeof item === "string" && item.includes("-"),
         )
         .map((str) => {
           const [key, elementStr, ...rest] = str.split("-");
@@ -347,7 +359,7 @@ const ElementForm = ({
             return {
               ...el,
               values: el.values.map((f) =>
-                f.key === item.key ? { ...f, value: item.value } : f
+                f.key === item.key ? { ...f, value: item.value } : f,
               ),
             } as NormElement;
           }
@@ -369,7 +381,7 @@ const ElementForm = ({
       const chosen = pickAccessories(
         accessoriesData,
         selectedSubItems,
-        selectedSemiFinished
+        selectedSemiFinished,
       );
       addAccessoriesToElements(normData.elements, selectedElements, chosen);
 
@@ -388,13 +400,13 @@ const ElementForm = ({
                         !(field.value as object[])?.some(
                           (existing) =>
                             JSON.stringify(existing) ===
-                            JSON.stringify(newAccessory)
-                        )
+                            JSON.stringify(newAccessory),
+                        ),
                     ), // Solo añadir si no está duplicado
                   ],
                   type: "object",
                 }
-              : field
+              : field,
           )
           .concat(
             prevData.customFields.some((field) => field.key === "accesories")
@@ -409,7 +421,7 @@ const ElementForm = ({
                     validations: {},
                     descriptionInfo: "Accesorios del elemento",
                   },
-                ]
+                ],
           ),
       }));
       toogleAccessoryModal();
@@ -427,7 +439,7 @@ const ElementForm = ({
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
     >,
-    index?: number
+    index?: number,
   ) => {
     const { name, value, type, files } = e.target;
     if (index !== undefined) {
@@ -484,7 +496,7 @@ const ElementForm = ({
         const errors = validateNumberField(
           field.name,
           Number(field.value),
-          field.validations
+          field.validations,
         );
         if (errors.length > 0) {
           newErrors[index] = errors.join(" ");
@@ -495,7 +507,7 @@ const ElementForm = ({
         const errors = validateStringField(
           field.name,
           field.value as string,
-          field.validations
+          field.validations,
         );
         if (errors.length > 0) {
           newErrors[index] = errors.join(" ");
@@ -550,7 +562,7 @@ const ElementForm = ({
   const getMatchedElementsWithFields = async (): Promise<MatchedElement[]> => {
     const differences = compareValues(
       normData.elements[editingElement!].values,
-      formData.customFields
+      formData.customFields,
     );
 
     const matchedElements: MatchedElement[] = [];
@@ -559,7 +571,7 @@ const ElementForm = ({
       if (index === editingElement) continue;
 
       const result = await dispatch(
-        subTypeApi.endpoints.getSubTypeById.initiate(element.subType!)
+        subTypeApi.endpoints.getSubTypeById.initiate(element.subType!),
       ).unwrap();
 
       const baseFields = result.field.base;
@@ -570,7 +582,7 @@ const ElementForm = ({
         .map((value) => {
           const match = differences.find(
             (search) =>
-              search.key === value.key && !topLevelBaseKeys.includes(value.key)
+              search.key === value.key && !topLevelBaseKeys.includes(value.key),
           );
           return match
             ? {
@@ -626,16 +638,16 @@ const ElementForm = ({
   const getValueFromCustomFields = useCallback(
     (key: string) => {
       const field = formData.customFields.find((field) => field.key === key);
-      return field ? field.value ?? "" : "";
+      return field ? (field.value ?? "") : "";
     },
-    [formData]
+    [formData],
   );
 
   const generateValue = useCallback(() => {
     return `${getValueFromCustomFields("phases")}-${getValueFromCustomFields(
-      "power"
+      "power",
     )}-${getValueFromCustomFields("primaryVoltage")}-${getValueFromCustomFields(
-      "secondaryVoltage"
+      "secondaryVoltage",
     )}-${currentSubTypeCode}-${getValueFromCustomFields("connection")}-${
       normData.name
     }-${countryCode}-${getValueFromCustomFields("specification")}`;
@@ -651,7 +663,7 @@ const ElementForm = ({
     setSelectedElements((prev) =>
       prev.includes(elementId)
         ? prev.filter((subId) => subId !== elementId)
-        : [...prev, elementId]
+        : [...prev, elementId],
     );
   };
 
@@ -669,7 +681,7 @@ const ElementForm = ({
     if (editingElement !== null) {
       const currentElement = elements[editingElement];
       elementsTransformed = elementsTransformed.filter(
-        (element) => element.reference !== currentElement.sapReference
+        (element) => element.reference !== currentElement.sapReference,
       );
     }
 
@@ -739,7 +751,7 @@ const ElementForm = ({
         }[];
       }[],
       targetId: string,
-      parentIds: string[] = []
+      parentIds: string[] = [],
     ): string[] => {
       for (const item of items) {
         if (item.id === targetId) {
@@ -819,24 +831,14 @@ const ElementForm = ({
   };
 
   return (
-    <div className="mt-10">
-      <div className="flex justify-between items-center py-5">
-        <h2 className="text-xl font-bold">Información del elemento</h2>
-        <div className="flex">
-          <Button
-            success
-            onClick={toogleAccessoryModal}
-            className="mt-2 bg-blue-500 text-white px-4 py-2 rounded-md"
-            icon={<FaPlus />}
-          >
+    <div className="rounded-lg border border-gray-200 bg-gray-50 p-5">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <h2 className={sectionTitleClass}>Información del elemento</h2>
+        <div className="flex gap-2">
+          <Button base onClick={toogleAccessoryModal} icon={<FaPlus />}>
             Agregar accesorio
           </Button>
-          <Button
-            success
-            onClick={openModal}
-            className="mt-2 ml-4 bg-blue-500 text-white px-4 py-2 rounded-md"
-            icon={<FaPlus />}
-          >
+          <Button base onClick={openModal} icon={<FaPlus />}>
             Agregar campo
           </Button>
         </div>
@@ -851,14 +853,16 @@ const ElementForm = ({
                   field.type === "object" ? "col-span-2" : "col-span-1"
                 }
               >
-                <div className="flex items-center">
-                  <label className="block font-bold mr-2">{field.name}</label>
+                <div className="mb-1 flex items-center">
+                  <label className="mr-2 block text-sm font-medium text-gray-700">
+                    {field.name}
+                  </label>
                   <TooltipGeneral
                     content={field.descriptionInfo}
                     position="right"
                     delay={100}
                   >
-                    <IoIosInformationCircleOutline className="text-blue-500 text-xl" />
+                    <IoIosInformationCircleOutline className="text-lg text-gray-400 hover:text-rymel-blue" />
                   </TooltipGeneral>
                 </div>
 
@@ -882,10 +886,10 @@ const ElementForm = ({
                     name="value"
                     value={typeof field.value === "string" ? field.value : ""}
                     onChange={(e) => handleChange(e, index)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 my-5"
+                    className={inputClass}
                   />
                 ) : field.type === "object" ? (
-                  <div className="container mx-auto mt-5">
+                  <div className="mt-2">
                     <AccesoriesTable
                       accessories={
                         typeof field.value === "string"
@@ -903,11 +907,7 @@ const ElementForm = ({
                     placeholder="Ingrese un valor"
                     value={field.value as number}
                     onChange={(e) => handleChange(e, index)}
-                    className={`block w-full rounded-md border focus:outline-none focus:ring-2 shadow-sm p-3 mt-5 ${
-                      errors[index]
-                        ? "border-red-500 focus:ring-red-500"
-                        : "focus:ring-blue-500"
-                    }`}
+                    className={`${inputClass} ${errors[index] ? inputErrorClass : ""}`}
                   />
                 ) : (
                   <input
@@ -920,23 +920,19 @@ const ElementForm = ({
                         : ""
                     }
                     onChange={(e) => handleChange(e, index)}
-                    className={`block w-full rounded-md border focus:outline-none focus:ring-2 shadow-sm p-3 mt-5 ${
-                      errors[index]
-                        ? "border-red-500 focus:ring-red-500"
-                        : "focus:ring-blue-500"
-                    }`}
+                    className={`${inputClass} ${errors[index] ? inputErrorClass : ""}`}
                   />
                 )}
                 {errors[index] && (
                   <span className="text-red-500 text-sm">{errors[index]}</span>
                 )}
               </div>
-            )
+            ),
         )}
       </div>
 
-      <div className="py-4">
-        <h1 className="text-lg font-bold mb-4">Selecciona la especificación</h1>
+      <div className="py-6">
+        <h2 className={`${sectionTitleClass} mb-3`}>Especificación</h2>
         <RadioGroup
           options={specificationOptions}
           name="radio-specifcation"
@@ -955,7 +951,7 @@ const ElementForm = ({
       </div>
 
       <div>
-        <h2 className="text-lg font-bold">Referencia ERP</h2>
+        <h2 className={`${sectionTitleClass} mb-2`}>Referencia ERP</h2>
         <EditableInput
           initialValue={generateValue()}
           name="sapReference"
@@ -966,23 +962,13 @@ const ElementForm = ({
 
       {editingElement !== null ? (
         <div className="mt-4">
-          <Button
-            primary
-            onClick={handleUpdateElement}
-            className="px-4 py-2 rounded-md"
-            icon={<FaPlus />}
-          >
+          <Button primary onClick={handleUpdateElement} icon={<FaPlus />}>
             Guardar cambios
           </Button>
         </div>
       ) : (
         <div className="mt-4">
-          <Button
-            primary
-            onClick={handleInsertElement}
-            className="px-4 py-2 rounded-md"
-            icon={<FaPlus />}
-          >
+          <Button primary onClick={handleInsertElement} icon={<FaPlus />}>
             Insertar elemento a la norma
           </Button>
         </div>
@@ -996,9 +982,7 @@ const ElementForm = ({
       >
         <>
           <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700">
-              Nombre del campo
-            </label>
+            <label className={labelClass}>Nombre del campo</label>
             <input
               type="text"
               name="name"
@@ -1006,23 +990,21 @@ const ElementForm = ({
               onChange={(e) =>
                 setNewField({ ...newField, name: e.target.value })
               }
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2"
+              className={inputClass}
             />
             {newFieldError && (
               <span className="text-red-500 text-sm">{newFieldError}</span>
             )}
           </div>
           <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700">
-              Tipo del campo
-            </label>
+            <label className={labelClass}>Tipo del campo</label>
             <select
               name="type"
               value={newField.type}
               onChange={(e) =>
                 setNewField({ ...newField, type: e.target.value })
               }
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2"
+              className={inputClass}
             >
               <option value="text">Texto</option>
               <option value="number">Numérico</option>
@@ -1030,21 +1012,12 @@ const ElementForm = ({
               <option value="file">Archivo</option>
             </select>
           </div>
-          <div className="mt-6 flex justify-end">
-            <Button
-              success
-              onClick={handleAddField}
-              className="mr-2 px-4 py-2 rounded-md"
-              icon={<FaPlus />}
-            >
-              Agregar
-            </Button>
-            <Button
-              onClick={handleNewFieldCancel}
-              className="bg-gray-300 text-gray-700 px-4 py-2 rounded-md"
-              icon={<FaTimes />}
-            >
+          <div className="mt-6 flex justify-end gap-2">
+            <Button base onClick={handleNewFieldCancel} icon={<FaTimes />}>
               Cancelar
+            </Button>
+            <Button primary onClick={handleAddField} icon={<FaPlus />}>
+              Agregar
             </Button>
           </div>
         </>

@@ -1,27 +1,56 @@
 import className from "classnames";
 import { GoSync } from "react-icons/go";
+import {
+  Button as UIButton,
+  type ButtonSize,
+  type ButtonVariant,
+} from "@rymel/ui";
 
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+/**
+ * Adaptador del botón de @rymel/ui con las props antiguas del cliente.
+ *
+ * Con variante (o un atajo: `primary`, `base`, `danger`, `outline`…) pinta el
+ * `Button` del sistema de diseño. Para código nuevo usa `Button` de
+ * `@rymel/ui` con `variant` directamente.
+ *
+ * Sin variante queda solo la caja y el aspecto lo pone quien lo usa
+ * (pestañas de hoja, celdas de la tabla…).
+ */
+export type { ButtonSize, ButtonVariant };
+
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode;
-  primary?: boolean;
-  success?: boolean;
-  warning?: boolean;
-  danger?: boolean;
-  cancel?: boolean;
-  highlight?: boolean;
-  info?: boolean;
-  base?: boolean;
-  baseFill?: boolean;
-  rounded?: boolean;
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  /** Estado «encendido» de un botón que alterna un modo. */
+  active?: boolean;
   loading?: boolean;
   disabled?: boolean;
-  outline?: boolean;
   icon?: React.ReactElement;
+
+  primary?: boolean;
+  danger?: boolean;
+  base?: boolean;
+  cancel?: boolean;
+  outline?: boolean;
+  /** @deprecated usa `variant="primary"` */
+  success?: boolean;
+  /** @deprecated usa `variant="secondary"` */
+  warning?: boolean;
+  /** @deprecated usa `variant="secondary"` */
+  highlight?: boolean;
+  /** @deprecated usa `variant="secondary"` */
+  info?: boolean;
+  /** @deprecated usa `variant="secondary"` */
+  baseFill?: boolean;
+  rounded?: boolean;
 }
 
 const Button = ({
   children,
+  variant,
+  size = "md",
+  active,
   primary,
   success,
   warning,
@@ -38,29 +67,48 @@ const Button = ({
   icon,
   ...rest
 }: ButtonProps) => {
-  const classes = className(
-    "flex items-center justify-center px-3 py-1.5 border rounded",
-    rest.className,
-    {
-      "opacity-60 cursor-not-allowed": loading || disabled,
-      "bg-blue-600 border-blue-600 hover:bg-blue-700 hover:border-blue-700 text-white":
-        primary,
-      "border-green-600 bg-green-600 hover:bg-green-700 text-white": success,
-      "border-yellow-400 bg-yellow-400 hover:bg-yellow-500 text-white": warning,
-      "border-gray-400 bg-gray-400 hover:bg-gray-500 text-white": cancel,
-      "border-purple-600 bg-purple-600 hover:bg-purple-700 text-white":
-        highlight,
-      "border-indigo-500 bg-indigo-500 hover:bg-indigo-600 text-white": info,
-      "border-red-500 bg-red-500 hover:bg-red-600 text-white": danger,
-      "border-gray-400 bg-white hover:bg-gray-300 text-gray-700": base,
-      "border-black bg-white hover:bg-gray-300 text-black": baseFill,
-      "rounded-full": rounded,
-      "bg-transparent border-white": outline,
-    }
-  );
+  const resolved: ButtonVariant | undefined =
+    variant ??
+    (danger
+      ? "danger"
+      : primary || success
+        ? "primary"
+        : base || cancel || warning || highlight || info || baseFill
+          ? "secondary"
+          : outline
+            ? "ghost"
+            : undefined);
+
+  if (resolved) {
+    return (
+      <UIButton
+        {...rest}
+        variant={resolved}
+        size={size}
+        active={active}
+        loading={loading}
+        disabled={disabled}
+        icon={icon}
+        className={className(rounded && "!rounded-full", rest.className)}
+      >
+        {children}
+      </UIButton>
+    );
+  }
 
   return (
-    <button {...rest} disabled={loading || disabled} className={classes}>
+    <button
+      {...rest}
+      disabled={loading || disabled}
+      className={className(
+        "flex items-center justify-center px-3 py-1.5 border rounded",
+        rest.className,
+        {
+          "opacity-60 cursor-not-allowed": loading || disabled,
+          "rounded-full": rounded,
+        },
+      )}
+    >
       {loading ? (
         <GoSync className="animate-spin" />
       ) : (

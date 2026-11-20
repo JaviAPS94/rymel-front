@@ -462,7 +462,7 @@ const ProgramCalculations: React.FC<ProgramCalculationsProps> = ({
             Nuevo Sub Programa
           </Button>
 
-          <Button onClick={exportToCSV} className="bg-gray-200 text-gray-800">
+          <Button base onClick={exportToCSV}>
             <FaDownload className="mr-2" size={12} />
             Exportar Calculos
           </Button>
@@ -484,12 +484,12 @@ const ProgramCalculations: React.FC<ProgramCalculationsProps> = ({
                 value={newSheetName}
                 onChange={(e) => setNewSheetName(e.target.value)}
                 placeholder="Ingrese el nombre de la hoja..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rymel-blue"
               />
             </div>
 
             <div className="flex justify-end gap-2">
-              <Button onClick={() => setNewSheetDialog(false)}>
+              <Button base onClick={() => setNewSheetDialog(false)}>
                 <FaTimes className="mr-2" size={12} />
                 Cancelar
               </Button>
@@ -510,7 +510,7 @@ const ProgramCalculations: React.FC<ProgramCalculationsProps> = ({
                 onClick={() => setActiveSheet(sheet.id)}
                 className={`flex items-center px-4 py-2 border-t border-l border-r rounded-t-md relative ${
                   activeSheet === sheet.id
-                    ? "bg-white border-gray-300 text-blue-600"
+                    ? "bg-white border-gray-300 text-rymel-blue"
                     : "bg-gray-100 border-gray-200 text-gray-700 hover:bg-gray-200"
                 }`}
               >
@@ -599,7 +599,7 @@ const ProgramCalculations: React.FC<ProgramCalculationsProps> = ({
                     <input
                       type="search"
                       placeholder="Buscar funciones..."
-                      className="w-[200px] pl-8 pr-8 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-[200px] pl-8 pr-8 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rymel-blue"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -618,8 +618,7 @@ const ProgramCalculations: React.FC<ProgramCalculationsProps> = ({
 
                   <Button
                     onClick={calculateAllResults}
-                    success
-                    className="flex items-center px-3 py-1.5 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 text-sm"
+                    base
                   >
                     <FaSync className="mr-2" size={12} />
                     Calcular todo
@@ -645,7 +644,7 @@ const ProgramCalculations: React.FC<ProgramCalculationsProps> = ({
                         (visibleVariablesBySheet[sheet.id] || []).includes(
                           variable
                         )
-                          ? "bg-blue-100 text-blue-800 border border-blue-200"
+                          ? "bg-rymel-blue/10 text-rymel-blue border border-rymel-blue/20"
                           : "bg-gray-100 text-gray-800 border border-gray-200"
                       }`}
                       onClick={() =>
@@ -659,7 +658,7 @@ const ProgramCalculations: React.FC<ProgramCalculationsProps> = ({
                     (allVariablesBySheet[sheet.id] || []).length && (
                     <button
                       onClick={() => showAllVariables(sheet.id)}
-                      className="px-2 py-0.5 text-xs text-blue-600 hover:text-blue-800"
+                      className="px-2 py-0.5 text-xs text-rymel-blue hover:text-rymel-blue/80"
                     >
                       Mostrar todo
                     </button>
@@ -740,7 +739,7 @@ const ProgramCalculations: React.FC<ProgramCalculationsProps> = ({
                                         e.target.value
                                       )
                                     }
-                                    className="w-full h-8 text-center border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full h-8 text-center border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rymel-blue"
                                   />
                                 ) : (
                                   <div className="h-8 flex items-center justify-center text-gray-400">

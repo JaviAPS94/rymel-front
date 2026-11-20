@@ -10,24 +10,28 @@ import {
 } from "../../store";
 import CustomInput from "../core/CustomInput";
 import Button from "../core/Button";
-import { BiEraser, BiSearch } from "react-icons/bi";
+import { TbPlus, TbSearch } from "react-icons/tb";
+import { useNavigate } from "react-router-dom";
 import { Design, DesignsPaginated } from "../../commons/types";
-import NoData from "../core/NoData";
-import Skeleton from "../core/skeletons/Skeleton";
-import FilterSkeleton from "../core/skeletons/FiltersSkeleton";
-import Pagination from "../core/Pagination";
 import { useErrorAlert } from "../../hooks/useAlertError";
 import Alert from "../core/Alert";
-import DesignCard from "./DesignCard";
-import { CiBoxList } from "react-icons/ci";
+import DesignTable from "./DesignTable";
+import {
+  PageHeader,
+  FilterField,
+  Pagination,
+  EmptyState,
+  Page,
+} from "@rymel/ui";
 
 interface DesignListProps {
   onSelectDesign: (design: Design) => void;
 }
 
 export default function DesignList({ onSelectDesign }: DesignListProps) {
+  const navigate = useNavigate();
   const [page, setPage] = useState<number>(1);
-  const [limit] = useState<number>(9);
+  const [limit] = useState<number>(10);
   const [country, setCountry] = useState<number>();
   const [name, setName] = useState<string>("");
   const [designCode, setDesignCode] = useState<string>("");
@@ -127,6 +131,8 @@ export default function DesignList({ onSelectDesign }: DesignListProps) {
 
   const handleCleanFilters = () => {
     setName("");
+    setDesignCode("");
+    setPage(1);
     setCountry(undefined);
     setSelectedType(null);
     setSelectedSubType(null);
@@ -154,41 +160,66 @@ export default function DesignList({ onSelectDesign }: DesignListProps) {
     });
   };
 
-  return (
-    //i want to add a style to this div take all screen
-    <div
-      className={`max-w-7xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden ${
-        !designs?.data || designs.data.length === 0 ? "min-h-screen" : ""
-      }`}
-    >
-      {/* Header */}
-      <div className="bg-rymel-blue text-white p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex">
-              <CiBoxList className="text-white h-8 w-8" />
-              <h1 className="text-3xl font-bold ml-2">Catálogo De Diseños</h1>
-            </div>
-            <p className="text-white mt-1">
-              {designs?.total} diseños disponibles
-            </p>
-          </div>
-          <div className="bg-rymel-yellow px-4 py-2 rounded-lg">
-            <span className="text-2xl font-bold">
-              {designs?.data.length ?? 0}
-            </span>
-            <span className="text-white ml-2">filtrados</span>
-          </div>
-        </div>
-      </div>
+  const isSearching = getDesignsResult.isLoading;
 
-      {/* Filters */}
-      <div className="border-b border-gray-200 p-6">
-        <div className="flex justify-between justify-items-center align-middle min-w-[70rem]">
-          {isLoadingCountries || isLoadingSubTypes ? (
-            <FilterSkeleton />
-          ) : (
+  const hasFilters = Boolean(
+    country || name || designCode || selectedType || selectedSubType,
+  );
+  const countryName = countries?.find((c) => c.id === country)?.name;
+  const typeName = types?.find((t) => t.id === selectedType)?.name;
+  const subTypeName = subTypes?.find((t) => t.id === selectedSubType)?.name;
+  const activeFilters = [
+    countryName && `País: ${countryName}`,
+    designCode && `Código: ${designCode}`,
+    name && `Norma: ${name}`,
+    typeName && `Tipo: ${typeName}`,
+    subTypeName && `Subtipo: ${subTypeName}`,
+  ].filter(Boolean) as string[];
+
+  return (
+    <>
+      <PageHeader
+        eyebrow="Biblioteca de diseños"
+        title="Diseños"
+        description={
+          designs ? (
             <>
+              <strong>
+                {designs.total} {designs.total === 1 ? "diseño" : "diseños"}
+              </strong>{" "}
+              {designs.total === 1 ? "coincide" : "coinciden"} con tus filtros.
+            </>
+          ) : (
+            "Los diseños calculados sobre cada norma."
+          )
+        }
+        actions={
+          <Button
+            variant="light"
+            size="lg"
+            className="!h-[52px] !rounded-[14px] !px-6 !text-base"
+            onClick={() => navigate("/design")}
+          >
+            <span className="flex h-[26px] w-[26px] items-center justify-center rounded-lg bg-rymel-yellow">
+              <TbPlus className="h-3.5 w-3.5" strokeWidth={3} />
+            </span>
+            Nuevo diseño
+          </Button>
+        }
+      />
+
+      <Page>
+        <form
+          role="search"
+          aria-label="Filtrar diseños"
+          className="flex flex-col gap-4 rounded-[20px] border bg-white p-5"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (country) handleSearchClick();
+          }}
+        >
+          <div className="flex flex-wrap items-end gap-3">
+            <FilterField label="País">
               <Select
                 options={countries?.map(
                   (country) =>
@@ -199,22 +230,28 @@ export default function DesignList({ onSelectDesign }: DesignListProps) {
                 )}
                 selectedValue={country}
                 onChange={handleCountryChange}
-                isLoading={false}
+                isLoading={isLoadingCountries}
                 placeholder="País"
                 errorKey="country"
               />
+            </FilterField>
+            <FilterField label="Código de diseño">
               <CustomInput
                 type="text"
                 value={designCode}
                 onChange={setDesignCode}
-                placeholder="Código diseño"
+                placeholder="Ej. 1DAA2612"
               />
+            </FilterField>
+            <FilterField label="Norma">
               <CustomInput
                 type="text"
                 value={name}
                 onChange={setName}
-                placeholder="Nombre norma"
+                placeholder="Nombre de la norma"
               />
+            </FilterField>
+            <FilterField label="Tipo" className="basis-40">
               <Select
                 options={types?.map(
                   (type) =>
@@ -226,9 +263,10 @@ export default function DesignList({ onSelectDesign }: DesignListProps) {
                 selectedValue={selectedType}
                 onChange={handleSelectedType}
                 isLoading={isLoadingTypes}
-                placeholder="Selecciona un tipo"
-                className="w-60"
+                placeholder="Todos"
               />
+            </FilterField>
+            <FilterField label="Subtipo" className="basis-36">
               <Select
                 options={subTypes?.map(
                   (subType) =>
@@ -240,67 +278,64 @@ export default function DesignList({ onSelectDesign }: DesignListProps) {
                 selectedValue={selectedSubType}
                 onChange={handleSubTypeChange}
                 isLoading={isLoadingSubTypes}
-                placeholder="Selecciona un sub tipo"
+                placeholder="Todos"
                 disabled={!selectedType}
-                className="w-60"
               />
-              <Button
-                primary
-                loading={getDesignsResult.isLoading}
-                disabled={!country}
-                onClick={handleSearchClick}
-              >
-                <BiSearch />
-              </Button>
-              <Button
-                cancel
-                disabled={
-                  !country && !name && !selectedType && !selectedSubType
-                }
+            </FilterField>
+            <Button
+              primary
+              type="submit"
+              className="!h-[46px] px-[22px]"
+              loading={isSearching}
+              disabled={!country}
+            >
+              <TbSearch className="h-[17px] w-[17px]" />
+              Buscar
+            </Button>
+          </div>
+          {activeFilters.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2.5 border-t border-[#EFEEF5] pt-3.5">
+              <span className="text-[13px] text-gray-600">Filtros activos</span>
+              {activeFilters.map((filter) => (
+                <span
+                  key={filter}
+                  className="flex h-[30px] items-center rounded-full bg-rymel-soft px-3 text-[13px] font-semibold text-rymel-indigo"
+                >
+                  {filter}
+                </span>
+              ))}
+              <button
+                type="button"
+                disabled={!hasFilters}
                 onClick={handleCleanFilters}
+                className="ml-auto text-[13px] font-semibold text-rymel-indigo hover:text-rymel-blue hover:underline"
               >
-                <BiEraser />
-              </Button>
-            </>
+                Limpiar filtros
+              </button>
+            </div>
           )}
-        </div>
-      </div>
+        </form>
 
-      {/* Design Grid */}
-      <div className="p-6">
-        {getDesignsResult.isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 w-full">
-            <Skeleton count={10} className="mb-4" />
-          </div>
+        {isSearching ? (
+          <p className="text-sm text-gray-600">Cargando…</p>
         ) : !designs?.data || designs.data.length === 0 ? (
-          <div className="justify-center items-center flex py-12">
-            <NoData
-              className="w-1/2 bg-gray-400"
-              message="No hay resultados para mostrar."
-            />
-          </div>
+          <EmptyState title="Ningún diseño coincide con los filtros." />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {designs?.data.map((design, index) => (
-              <DesignCard
-                key={design.id}
-                design={design}
-                index={index}
-                onClick={onSelectDesign}
+          <DesignTable
+            items={designs.data}
+            onSelect={onSelectDesign}
+            footer={
+              <Pagination
+                page={page}
+                totalPages={designs.totalPages}
+                onPageChange={handlePageChange}
+                totalItems={designs.total}
+                pageSize={limit}
               />
-            ))}
-          </div>
+            }
+          />
         )}
-        {designs && designs.data.length > 0 && (
-          <div className="flex justify-center align-middle mx-auto mt-4 text-2xl space-x-2">
-            <Pagination
-              currentPage={page}
-              totalPages={designs.totalPages}
-              onPageChange={handlePageChange}
-            />
-          </div>
-        )}
-      </div>
+      </Page>
       {showErrorAlert && (
         <Alert
           messages={errorMessages}
@@ -308,6 +343,6 @@ export default function DesignList({ onSelectDesign }: DesignListProps) {
           onClose={() => setShowErrorAlert(false)}
         />
       )}
-    </div>
+    </>
   );
 }

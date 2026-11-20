@@ -2,7 +2,7 @@ import type React from "react";
 import CheckboxListItem from "./CheckboxListItem";
 import { useMemo, useState } from "react";
 import { BiCheck, BiMinus } from "react-icons/bi";
-import Pagination from "./Pagination";
+import { Pagination } from "@rymel/ui";
 
 interface CheckboxListProps<T> {
   items: T[];
@@ -129,9 +129,9 @@ const CheckboxList = <T extends { id: unknown; [key: string]: unknown }>({
               tabIndex={0}
             >
               <div className="w-5 h-5 border border-gray-300 rounded flex items-center justify-center mr-2 bg-white">
-                {allSelected && <BiCheck size={20} className="text-blue-500" />}
+                {allSelected && <BiCheck size={20} className="text-rymel-indigo" />}
                 {someSelected && (
-                  <BiMinus size={20} className="text-blue-500" />
+                  <BiMinus size={20} className="text-rymel-indigo" />
                 )}
               </div>
               <span className="text-sm font-medium">
@@ -146,7 +146,7 @@ const CheckboxList = <T extends { id: unknown; [key: string]: unknown }>({
       </ul>
       {enablePagination && totalPages > 1 && (
         <Pagination
-          currentPage={currentPage}
+          page={currentPage}
           totalPages={totalPages}
           onPageChange={handlePageChange}
         />

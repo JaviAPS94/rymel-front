@@ -8,7 +8,7 @@ import { INVENTARY_TYPE_DEFAULT } from "../../commons/constants";
 import CheckboxList from "../core/CheckboxList";
 import { useAlert } from "../../hooks/useAlert";
 import Alert from "../core/Alert";
-import NoData from "../core/NoData";
+import { EmptyState } from "@rymel/ui";
 
 export interface SubItem {
   id: number;
@@ -88,10 +88,9 @@ const Accesories = ({
 
     if (isError) {
       return (
-        <NoData
-          message="Ocurrió un error al buscar los accesorios."
-          className="-mt-10"
-          type="error"
+        <EmptyState
+          tone="error"
+          title="Ocurrió un error al buscar los accesorios."
         />
       );
     }
@@ -101,7 +100,10 @@ const Accesories = ({
         return;
       }
       return (
-        <NoData message="No se encontraron accesorios. Intente cambiar los criterios de búsqueda." />
+        <EmptyState
+          title="No se encontraron accesorios."
+          description="Intenta cambiar los criterios de búsqueda."
+        />
       );
     }
 
@@ -140,7 +142,7 @@ const Accesories = ({
               className={`w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 ${
                 accessorySearchInputError
                   ? "border-red-500 focus:ring-red-500"
-                  : "focus:ring-blue-500"
+                  : "focus:ring-rymel-indigo"
               }`}
             />
             <BiSearch

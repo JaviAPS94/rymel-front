@@ -8,10 +8,10 @@ export const ForbiddenPage = () => {
   const { user } = useAuth();
 
   return (
-    <div className="min-h-screen flex">
+    <div className="flex min-h-screen bg-gray-50">
       {/* Right side - Error message and actions */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-white">
-        <div className="w-full max-w-md">
+      <div className="flex flex-1 items-center justify-center p-8">
+        <div className="w-full max-w-md rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
           {/* Mobile logo */}
           <div className="lg:hidden mb-8 flex justify-center">
             <img
@@ -54,19 +54,19 @@ export const ForbiddenPage = () => {
               <h3 className="font-semibold text-gray-900">Posibles razones:</h3>
               <ul className="space-y-2 text-sm text-gray-600">
                 <li className="flex items-start gap-2">
-                  <span className="text-rymel-yellow mt-0.5">•</span>
+                  <span className="mt-0.5 text-gray-400">•</span>
                   <span>No has iniciado sesión o tu sesión ha expirado</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-rymel-yellow mt-0.5">•</span>
+                  <span className="mt-0.5 text-gray-400">•</span>
                   <span>Tu cuenta no tiene los permisos requeridos</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-rymel-yellow mt-0.5">•</span>
+                  <span className="mt-0.5 text-gray-400">•</span>
                   <span>El recurso está restringido a ciertos roles</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-rymel-yellow mt-0.5">•</span>
+                  <span className="mt-0.5 text-gray-400">•</span>
                   <span>Accediste a una URL incorrecta o desactualizada</span>
                 </li>
               </ul>
@@ -76,8 +76,12 @@ export const ForbiddenPage = () => {
             <div className="space-y-3">
               <Activity mode={user ? "visible" : "hidden"}>
                 <Link to="/" className="block">
-                  <Button className="w-full h-12 bg-rymel-blue text-white hover:bg-[#2a1e8f] font-medium text-base group transition-all">
-                    <HiHome className="h-5 w-5 mr-2" />
+                  <Button
+                    primary
+                    size="lg"
+                    className="group w-full font-semibold"
+                  >
+                    <HiHome className="h-5 w-5" />
                     Volver al inicio
                   </Button>
                 </Link>
@@ -85,8 +89,12 @@ export const ForbiddenPage = () => {
 
               <Activity mode={!user ? "visible" : "hidden"}>
                 <Link to="/login" className="block">
-                  <Button className="w-full h-12 bg-rymel-blue text-white hover:bg-[#2a1e8f] font-medium text-base group transition-all">
-                    <HiArrowLeft className="h-5 w-5 mr-2 group-hover:-translate-x-1 transition-transform" />
+                  <Button
+                    primary
+                    size="lg"
+                    className="group w-full font-semibold"
+                  >
+                    <HiArrowLeft className="h-5 w-5 group-hover:-translate-x-1 transition-transform" />
                     Iniciar sesión
                   </Button>
                 </Link>

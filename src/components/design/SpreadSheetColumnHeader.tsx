@@ -34,7 +34,7 @@ const SpreadSheetColumnHeader: React.FC<SpreadSheetColumnHeaderProps> = ({
       {columnLabel}
       {/* Column resize handle */}
       <div
-        className="absolute right-0 top-0 w-1 h-full cursor-col-resize bg-transparent hover:bg-blue-400 group-hover:bg-blue-200"
+        className="absolute right-0 top-0 w-1 h-full cursor-col-resize bg-transparent hover:bg-rymel-indigo group-hover:bg-rymel-indigo/30"
         onMouseDown={(e) =>
           onResizeStart(e, "column", columnIndex, columnWidth)
         }

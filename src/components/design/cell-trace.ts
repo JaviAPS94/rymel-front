@@ -18,7 +18,8 @@ import type { Sheet } from "./spreadsheet-types";
  *
  * El grafo con que el diseñador recalcula es de una sola hoja; con él no se
  * verían los dependientes de otras hojas. Para rastrear se arma uno del libro
- * entero con el mismo motor, solo mientras el panel está abierto.
+ * entero con el mismo motor, cuando cambian las hojas (unos 2 ms con la
+ * plantilla real de 2.038 celdas).
  */
 
 /** Lo escrito en una celda del diseño: su fórmula, o su valor si no tiene. */
@@ -58,26 +59,19 @@ export const traceDesignCell = (
 ): CellTrace => traceCell(designCellLookup(sheets), graph, sheetName, ref, options);
 
 /**
- * El rastreo de la celda activa, o `null` con el panel cerrado: entonces ni
- * siquiera se arma el grafo del libro.
+ * El rastreo de la celda activa. Como en el administrador, siempre: las celdas
+ * relacionadas se marcan en la rejilla al seleccionar, con el panel abierto o
+ * no. La cadena completa, que es lo costoso, solo se pide con el panel abierto.
  */
 export const useDesignCellTrace = (
   sheets: readonly Sheet[],
   sheetName: string,
   ref: string,
-  { enabled, full, designFunctionCodes }: {
-    enabled: boolean;
-    full: boolean;
-    designFunctionCodes: readonly string[];
-  },
-): CellTrace | null => {
-  const graph = useMemo(
-    () => (enabled ? buildGraph(designBook(sheets)) : null),
-    [enabled, sheets],
-  );
+  { full, designFunctionCodes }: { full: boolean; designFunctionCodes: readonly string[] },
+): CellTrace => {
+  const graph = useMemo(() => buildGraph(designBook(sheets)), [sheets]);
   return useMemo(
-    () =>
-      graph ? traceDesignCell(sheets, graph, sheetName, ref, { full, designFunctionCodes }) : null,
+    () => traceDesignCell(sheets, graph, sheetName, ref, { full, designFunctionCodes }),
     [graph, sheets, sheetName, ref, full, designFunctionCodes],
   );
 };

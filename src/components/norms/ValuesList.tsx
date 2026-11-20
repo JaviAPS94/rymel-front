@@ -60,7 +60,7 @@ const ValuesList: React.FC<{
       {totalCount > displayLimit && (
         <button
           onClick={(e) => handleExpand(e)}
-          className="mt-2 text-sm text-blue-600 hover:text-blue-800 flex items-center"
+          className="mt-2 text-sm text-rymel-indigo hover:text-rymel-blue flex items-center"
         >
           {isExpanded ? (
             <>

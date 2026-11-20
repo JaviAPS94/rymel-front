@@ -405,12 +405,12 @@ const BomSummaryTab = ({ element, sheets, subTypeWithFunctions, designId }: BomS
                 onClick={handleSave}
                 disabled={!designId || isSaving}
                 title={designId ? undefined : "Guarda el diseño primero"}
-                className="rounded-xl h-[2.8rem] bg-violet-600 border-violet-600 hover:bg-violet-700 hover:border-violet-700 text-white"
+                primary
               >
                 {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 Guardar ajustes
               </Button>
-              <Button onClick={handleDiscard} disabled={isSaving} className="rounded-xl h-[2.8rem]">
+              <Button base onClick={handleDiscard} disabled={isSaving}>
                 <X className="h-4 w-4" />
                 Descartar
               </Button>
@@ -418,7 +418,7 @@ const BomSummaryTab = ({ element, sheets, subTypeWithFunctions, designId }: BomS
           ) : (
             <>
               {hasSheet && (
-                <Button onClick={handleStartEdit} className="rounded-xl h-[2.8rem]">
+                <Button base onClick={handleStartEdit}>
                   <Pencil className="h-4 w-4" />
                   Editar
                 </Button>
@@ -427,7 +427,7 @@ const BomSummaryTab = ({ element, sheets, subTypeWithFunctions, designId }: BomS
                 <Button
                   onClick={() => setConfirmReset(true)}
                   disabled={isDeleting || isFetching}
-                  className="rounded-xl h-[2.8rem]"
+                  base
                 >
                   {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
                   Volver a la lista generada
@@ -436,7 +436,7 @@ const BomSummaryTab = ({ element, sheets, subTypeWithFunctions, designId }: BomS
                 <Button
                   onClick={handleGenerate}
                   disabled={isFetching}
-                  className="rounded-xl h-[2.8rem] bg-violet-600 border-violet-600 hover:bg-violet-700 hover:border-violet-700 text-white"
+                  primary
                 >
                   {isFetching ? (
                     <Loader2 className="h-4 w-4 animate-spin" />

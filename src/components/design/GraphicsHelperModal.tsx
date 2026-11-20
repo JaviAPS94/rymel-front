@@ -82,7 +82,7 @@ const GraphicsHelperModal: React.FC<GraphicsHelperModalProps> = ({
               <button
                 className={`flex-1 py-3 px-4 rounded-md border-2 transition-colors ${
                   shapeType === "rectangle"
-                    ? "border-blue-500 bg-blue-50 text-blue-700"
+                    ? "border-rymel-blue bg-rymel-blue/5 text-rymel-blue"
                     : "border-gray-300 hover:border-gray-400"
                 }`}
                 onClick={() => setShapeType("rectangle")}
@@ -93,7 +93,7 @@ const GraphicsHelperModal: React.FC<GraphicsHelperModalProps> = ({
               <button
                 className={`flex-1 py-3 px-4 rounded-md border-2 transition-colors ${
                   shapeType === "circle"
-                    ? "border-blue-500 bg-blue-50 text-blue-700"
+                    ? "border-rymel-blue bg-rymel-blue/5 text-rymel-blue"
                     : "border-gray-300 hover:border-gray-400"
                 }`}
                 onClick={() => setShapeType("circle")}
@@ -104,7 +104,7 @@ const GraphicsHelperModal: React.FC<GraphicsHelperModalProps> = ({
               <button
                 className={`flex-1 py-3 px-4 rounded-md border-2 transition-colors ${
                   shapeType === "line"
-                    ? "border-blue-500 bg-blue-50 text-blue-700"
+                    ? "border-rymel-blue bg-rymel-blue/5 text-rymel-blue"
                     : "border-gray-300 hover:border-gray-400"
                 }`}
                 onClick={() => setShapeType("line")}
@@ -126,7 +126,7 @@ const GraphicsHelperModal: React.FC<GraphicsHelperModalProps> = ({
                 value={posX}
                 onChange={(e) => setPosX(e.target.value)}
                 placeholder="0 or cell ref (e.g., A1)"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rymel-blue"
               />
             </div>
             <div>
@@ -138,7 +138,7 @@ const GraphicsHelperModal: React.FC<GraphicsHelperModalProps> = ({
                 value={posY}
                 onChange={(e) => setPosY(e.target.value)}
                 placeholder="0 or cell ref (e.g., B1)"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rymel-blue"
               />
             </div>
           </div>
@@ -155,7 +155,7 @@ const GraphicsHelperModal: React.FC<GraphicsHelperModalProps> = ({
                   value={width}
                   onChange={(e) => setWidth(e.target.value)}
                   placeholder="100 or cell ref (e.g., C1)"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rymel-blue"
                 />
               </div>
               <div>
@@ -167,7 +167,7 @@ const GraphicsHelperModal: React.FC<GraphicsHelperModalProps> = ({
                   value={height}
                   onChange={(e) => setHeight(e.target.value)}
                   placeholder="100 or cell ref (e.g., D1)"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rymel-blue"
                 />
               </div>
             </div>
@@ -183,7 +183,7 @@ const GraphicsHelperModal: React.FC<GraphicsHelperModalProps> = ({
                 value={diameter}
                 onChange={(e) => setDiameter(e.target.value)}
                 placeholder="50 or cell ref (e.g., C1)"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rymel-blue"
               />
             </div>
           )}
@@ -198,7 +198,7 @@ const GraphicsHelperModal: React.FC<GraphicsHelperModalProps> = ({
                 value={length}
                 onChange={(e) => setLength(e.target.value)}
                 placeholder="100 or cell ref (e.g., C1)"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rymel-blue"
               />
             </div>
           )}
@@ -213,7 +213,7 @@ const GraphicsHelperModal: React.FC<GraphicsHelperModalProps> = ({
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               placeholder="My Shape"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rymel-blue"
             />
           </div>
 
@@ -241,7 +241,7 @@ const GraphicsHelperModal: React.FC<GraphicsHelperModalProps> = ({
               value={color}
               onChange={(e) => setColor(e.target.value)}
               placeholder="#4A90E2"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rymel-blue"
             />
           </div>
 
@@ -261,7 +261,7 @@ const GraphicsHelperModal: React.FC<GraphicsHelperModalProps> = ({
           </div>
 
           {/* Help Text */}
-          <div className="bg-blue-50 p-4 rounded-md text-sm text-gray-700">
+          <div className="bg-rymel-blue/5 p-4 rounded-md text-sm text-gray-700">
             <p className="font-medium mb-1">💡 Tip:</p>
             <p>
               You can use cell references for any dimension value. For example,
@@ -281,7 +281,7 @@ const GraphicsHelperModal: React.FC<GraphicsHelperModalProps> = ({
           </button>
           <button
             onClick={handleInsert}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+            className="px-4 py-2 text-sm font-medium text-white bg-rymel-blue rounded-md hover:bg-rymel-blue/90"
           >
             Insert Graphic
           </button>

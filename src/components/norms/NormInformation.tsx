@@ -15,6 +15,7 @@ import Accesories from "./Accesories";
 import SemiFinished from "./SemiFinished";
 import Stepper from "../core/Stepper";
 import { FileUpload } from "../core/FileUpload";
+import { SelectionBar } from "@rymel/ui";
 
 interface NormInformationProps {
   formData: NormData;
@@ -75,7 +76,7 @@ const NormInformation = ({
 
   const toggleElement = (index: number) => {
     setExpandedElements((prev) =>
-      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
+      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index],
     );
   };
 
@@ -84,7 +85,7 @@ const NormInformation = ({
     setSelectedElements((prev) =>
       prev.includes(elementId)
         ? prev.filter((subId) => subId !== elementId)
-        : [...prev, elementId]
+        : [...prev, elementId],
     );
   };
 
@@ -119,15 +120,15 @@ const NormInformation = ({
       }
       formData.append(
         `elements[${elementIndex}].subType`,
-        element.subType?.toString() || ""
+        element.subType?.toString() || "",
       );
       formData.append(
         `elements[${elementIndex}].sapReference`,
-        element.sapReference
+        element.sapReference,
       );
       formData.append(
         `elements[${elementIndex}].specialItem`,
-        element.specialItem?.toString() || ""
+        element.specialItem?.toString() || "",
       );
 
       element.values.forEach((value, valueIndex) => {
@@ -160,7 +161,7 @@ const NormInformation = ({
 
   const renderValue = (
     value: unknown,
-    type: string
+    type: string,
   ): string | number | JSX.Element => {
     if (type === "string" || type === "text" || value instanceof String) {
       return value as string;
@@ -208,7 +209,7 @@ const NormInformation = ({
 
   const addAccessoryToElement = (
     elements: NormElement[],
-    newAccessory: object
+    newAccessory: object,
   ) => {
     selectedElements.forEach((elementId) => {
       const element = elements.find((el) => el.sapReference === elementId);
@@ -216,13 +217,13 @@ const NormInformation = ({
       if (!element) return;
 
       const accessoriesField = element.values.find(
-        (v) => v.key === "accesories"
+        (v) => v.key === "accesories",
       );
 
       if (accessoriesField) {
         if (Array.isArray(accessoriesField.value)) {
           const exists = accessoriesField.value.some(
-            (acc) => JSON.stringify(acc) === JSON.stringify(newAccessory)
+            (acc) => JSON.stringify(acc) === JSON.stringify(newAccessory),
           );
           if (!exists) {
             accessoriesField.value = [...accessoriesField.value, newAccessory];
@@ -258,7 +259,7 @@ const NormInformation = ({
   const handleAddAccesory = () => {
     addAccessoryToElement(
       formData.elements,
-      filterAccesoriesByIds(selectedSubItems)[0]
+      filterAccesoriesByIds(selectedSubItems)[0],
     );
     toogleAccessoryModal();
     setSelectedSubItems([]);
@@ -322,78 +323,91 @@ const NormInformation = ({
 
   return (
     <>
-      <div className="px-6">
-        <h2 className="text-2xl font-bold mb-4">
-          Información ingresada de la norma
-        </h2>
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-lg font-semibold">Datos Principales</h3>
-            <p>
-              <span className="font-medium">Norma:</span> {formData.name}
+      <div>
+        <div className="space-y-3">
+          {formData.elements.length === 0 && (
+            <p className="rounded-lg border border-dashed border-gray-300 px-4 py-8 text-center text-sm text-gray-500">
+              Todavía no hay elementos. Completa los datos generales y pulsa
+              «Agregar elemento», o parte de uno ya registrado con «Cargar desde
+              existente».
             </p>
-            <p>
-              <span className="font-medium">Versión:</span> {formData.version}
-            </p>
-          </div>
+          )}
           {formData.elements.length > 0 && (
             <>
-              <Button
-                success
-                onClick={toogleAccessoryModal}
-                className="mt-2 bg-blue-500 text-white px-4 py-2 rounded-md"
-                icon={<FaPlus />}
-              >
-                Agregar accesorio
-              </Button>
-              <h3 className="text-lg font-semibold mb-2">Elementos</h3>
+              <div className="flex justify-end">
+                <Button
+                  base
+                  size="sm"
+                  onClick={toogleAccessoryModal}
+                  icon={<FaPlus />}
+                >
+                  Agregar accesorio
+                </Button>
+              </div>
               {formData.elements.map((element, index) => (
-                <div key={index} className="bg-gray-50 p-4 rounded-md mb-4">
-                  <div className="flex justify-between items-start">
+                <div
+                  key={index}
+                  className="rounded-lg border border-gray-200 p-3 text-sm"
+                >
+                  <div className="flex items-center justify-between">
                     <button
                       onClick={() => toggleElement(index)}
-                      className="font-medium text-left flex items-center"
+                      className="flex items-center text-left font-medium text-gray-900"
                     >
                       <span
-                        className={`transform transition-transform ${
+                        className={`text-xs text-gray-400 transition-transform ${
                           expandedElements.includes(index) ? "rotate-90" : ""
                         }`}
                       >
                         ▶
                       </span>
-                      <span className="ml-2">Elemento: {index + 1}</span>
+                      <span className="ml-2">Elemento {index + 1}</span>
+                      {element.subTypeName && (
+                        <span className="ml-3 font-normal text-gray-500">
+                          {element.subTypeName}
+                        </span>
+                      )}
+                      {element.sapReference && (
+                        <span className="ml-3 font-mono text-xs font-normal text-gray-500">
+                          {element.sapReference}
+                        </span>
+                      )}
                     </button>
-                    <div className="flex">
-                      <Button
-                        primary
-                        className="py-1 px-3 rounded text-sm"
+                    <div className="flex gap-1">
+                      <button
+                        type="button"
+                        title="Editar elemento"
+                        aria-label={`Editar elemento ${index + 1}`}
+                        className="rounded p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-rymel-blue disabled:pointer-events-none disabled:opacity-50"
                         onClick={() => handleEditItem(index)}
                         disabled={disableEdit}
                       >
-                        <BiEdit />
-                      </Button>
-                      <Button
-                        danger
-                        className="py-1 px-3 rounded text-sm"
+                        <BiEdit className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        title="Quitar elemento"
+                        aria-label={`Quitar elemento ${index + 1}`}
+                        className="rounded p-1.5 text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600 disabled:pointer-events-none disabled:opacity-50"
                         onClick={() => handleRemoveElement(index)}
                         disabled={disableEdit}
                       >
-                        <BiTrash />
-                      </Button>
+                        <BiTrash className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
                   {expandedElements.includes(index) && (
-                    <div className="mt-2">
-                      <h4 className="font-medium mt-2">
+                    <div className="mt-3 border-t border-gray-100 pt-3 text-gray-700">
+                      <h4 className="font-medium">
                         Sub Tipo: {element.subTypeName}
                       </h4>
                       <h4 className="font-medium mt-2">Valores:</h4>
-                      <ul className="list-disc pl-5">
+                      <ul className="list-disc space-y-1 pl-5">
                         {element.values.map((value, vIndex) => (
                           <li key={vIndex}>
                             <span className="font-medium">{value.name}:</span>{" "}
                             {renderValue(value.value, value.type)}
-                            <span className="ml-2 text-sm text-gray-500">
+                            <span className="ml-2 text-xs text-gray-400">
                               ({value.type})
                             </span>
                           </li>
@@ -407,16 +421,27 @@ const NormInformation = ({
                   )}
                 </div>
               ))}
-              <Button
-                primary
-                loading={saveNormResult.isLoading}
-                onClick={handleSaveNorm}
-                icon={<LuSave />}
-                disabled={disableEdit}
-                className="h-12"
-              >
-                Guardar Norma
-              </Button>
+              {/* Guardar siempre a la vista, por larga que sea la página. */}
+              <SelectionBar
+                count={formData.elements.length}
+                label={
+                  formData.elements.length === 1
+                    ? "elemento cargado"
+                    : "elementos cargados"
+                }
+                actions={
+                  <Button
+                    variant="accent"
+                    size="lg"
+                    loading={saveNormResult.isLoading}
+                    onClick={handleSaveNorm}
+                    icon={<LuSave />}
+                    disabled={disableEdit}
+                  >
+                    Guardar norma
+                  </Button>
+                }
+              />
             </>
           )}
         </div>

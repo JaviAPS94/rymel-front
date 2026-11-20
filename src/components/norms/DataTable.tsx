@@ -2,9 +2,9 @@ import { useState } from "react";
 import { ElementResponse } from "../../commons/types";
 import ValuesList from "./ValuesList";
 import ValueModal from "./ValueModal";
-import { BiChevronLeft, BiChevronRight } from "react-icons/bi";
 import Tooltip from "../core/Tooltip";
 import { useNorm } from "../../hooks/useNorm";
+import { Pagination } from "@rymel/ui";
 
 interface DataTableProps {
   data: ElementResponse[];
@@ -35,7 +35,7 @@ const DataTable = ({
   const openModal = (
     e: React.MouseEvent,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    values: { [key: string]: any } | Record<string, any>[]
+    values: { [key: string]: any } | Record<string, any>[],
   ) => {
     e.stopPropagation();
     setSelectedValues(values);
@@ -69,7 +69,7 @@ const DataTable = ({
 
   const deleteKey = (
     obj: Record<string, unknown>,
-    keyToDelete: string
+    keyToDelete: string,
   ): Record<string, unknown> => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { [keyToDelete]: _, ...rest } = obj; // Destructure to remove the key
@@ -85,7 +85,7 @@ const DataTable = ({
         if (value) acc[key].value = value;
         return acc;
       },
-      {} as Record<string, { label: string; type: string; value?: string }>
+      {} as Record<string, { label: string; type: string; value?: string }>,
     );
     setSelectedSubType(currentElement?.subType.id || 0);
     setBaseFields(deleteKey(transformedObject!, "accesories"));
@@ -94,29 +94,26 @@ const DataTable = ({
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="overflow-x-auto">
-        <table className="min-w-full bg-white">
-          <thead className="bg-gray-100">
+    <div>
+      <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50 text-left text-gray-600">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                ID
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Valores
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Sub Tipo
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Norma
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                País
-              </th>
+              <th className="px-4 py-3 font-semibold">ID</th>
+              <th className="px-4 py-3 font-semibold">Valores</th>
+              <th className="px-4 py-3 font-semibold">Subtipo</th>
+              <th className="px-4 py-3 font-semibold">Norma</th>
+              <th className="px-4 py-3 font-semibold">País</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="divide-y divide-gray-100">
+            {currentItems.length === 0 && (
+              <tr>
+                <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                  No hay elementos para cargar con estos datos.
+                </td>
+              </tr>
+            )}
             {currentItems.map((item) => (
               <tr
                 key={item.id}
@@ -124,19 +121,21 @@ const DataTable = ({
                 onMouseEnter={(e) => handleMouseEnter(e, item.id)}
                 onMouseMove={handleMouseMove}
                 onMouseLeave={handleMouseLeave}
-                className={`cursor-pointer transition-colors duration-200 ${
-                  hoveredRow === item.id ? "bg-blue-100" : "hover:bg-blue-50"
+                className={`cursor-pointer transition-colors ${
+                  hoveredRow === item.id ? "bg-gray-50" : ""
                 }`}
               >
-                <td className="px-6 py-4 whitespace-nowrap">{item.id}</td>
-                <td className="px-6 py-4">
+                <td className="px-4 py-3 whitespace-nowrap font-mono text-xs text-gray-600">
+                  {item.id}
+                </td>
+                <td className="px-4 py-3">
                   <ValuesList
                     values={item.values}
                     setIsTooltipVisible={setIsTooltipVisible}
                   />
                   <button
                     onClick={(e) => openModal(e, item.values)}
-                    className="mt-2 text-sm text-blue-600 hover:text-blue-800"
+                    className="mt-2 text-xs font-medium text-rymel-blue hover:underline"
                     onMouseEnter={() => {
                       setIsTooltipVisible(false);
                     }}
@@ -147,13 +146,13 @@ const DataTable = ({
                     Ver todos
                   </button>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-4 py-3 whitespace-nowrap text-gray-600">
                   {item.subType.name}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-4 py-3 whitespace-nowrap text-gray-600">
                   {item.norm.name} (v{item.norm.version})
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-4 py-3 whitespace-nowrap text-gray-600">
                   {item.norm.country.name}
                 </td>
               </tr>
@@ -161,53 +160,22 @@ const DataTable = ({
           </tbody>
         </table>
       </div>
-      <div className="mt-4 flex justify-between items-center">
-        <div>
-          <p className="text-sm text-gray-700">
-            Mostrando{" "}
-            <span className="font-medium">{indexOfFirstItem + 1}</span> a{" "}
-            <span className="font-medium">
-              {Math.min(indexOfLastItem, data.length)}
-            </span>{" "}
-            de <span className="font-medium">{data.length}</span> resultados
-          </p>
-        </div>
-        <div>
-          <nav
-            className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
-            aria-label="Pagination"
-          >
-            <button
-              onClick={() => paginate(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-            >
-              <span className="sr-only">Anterior</span>
-              <BiChevronLeft className="h-5 w-5" aria-hidden="true" />
-            </button>
-            {[...Array(totalPages)].map((_, i) => (
-              <button
-                key={i}
-                onClick={() => paginate(i + 1)}
-                className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                  currentPage === i + 1
-                    ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
-                    : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
-                }`}
-              >
-                {i + 1}
-              </button>
-            ))}
-            <button
-              onClick={() => paginate(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-            >
-              <span className="sr-only">Siguiente</span>
-              <BiChevronRight className="h-5 w-5" aria-hidden="true" />
-            </button>
-          </nav>
-        </div>
+      {data.length > 0 && (
+        <p className="mt-3 text-sm text-gray-600">
+          Mostrando <span className="font-medium">{indexOfFirstItem + 1}</span>{" "}
+          a{" "}
+          <span className="font-medium">
+            {Math.min(indexOfLastItem, data.length)}
+          </span>{" "}
+          de <span className="font-medium">{data.length}</span> resultados
+        </p>
+      )}
+      <div className="mt-3">
+        <Pagination
+          page={currentPage}
+          totalPages={totalPages}
+          onPageChange={paginate}
+        />
       </div>
       <ValueModal
         values={selectedValues}

@@ -282,10 +282,10 @@ export const FileUpload = forwardRef<FileUploadHandle, FileUploadProps>(
         {!file && !hasExistingFile ? (
           <div
             className={classnames(
-              "border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer transition-colors",
+              "flex cursor-pointer flex-wrap items-center gap-5 rounded-2xl border-[1.5px] border-dashed p-7 transition-colors",
               {
-                "border-blue-500 bg-blue-50": isDragging,
-                "border-gray-300 hover:border-blue-300 hover:bg-gray-50":
+                "border-rymel-indigo bg-rymel-tint": isDragging,
+                "border-[#CFCDE2] bg-[#FAFAFD] hover:border-rymel-indigo/50":
                   !isDragging,
               }
             )}
@@ -302,24 +302,48 @@ export const FileUpload = forwardRef<FileUploadHandle, FileUploadProps>(
               className="hidden"
             />
 
-            <div className="flex flex-col items-center gap-2 text-center">
-              <div className="p-3 rounded-full bg-blue-100">
-                <FiUpload className="h-6 w-6 text-blue-500" />
-              </div>
-              <h3 className="font-medium text-lg">Subir un archivo</h3>
-              <p className="text-sm text-gray-500">
-                Arrastre y suelte o haga clic para explorar
-              </p>
-              <p className="text-xs text-gray-500 mt-2">
-                Formatos aceptados: {accept.replace(/,/g, ", ")}
-              </p>
-              <p className="text-xs text-gray-500">
-                Tamaño máximo: {maxSize / (1024 * 1024)}MB
-              </p>
-            </div>
+            <span
+              aria-hidden="true"
+              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-rymel-blue text-rymel-yellow"
+            >
+              <FiUpload className="h-6 w-6" />
+            </span>
+            <span className="flex flex-[1_1_220px] flex-col gap-1">
+              <span className="text-base font-bold text-gray-900">
+                Subir un archivo
+              </span>
+              <span className="text-sm text-gray-600">
+                Arrastra y suelta o{" "}
+                <span className="font-bold text-rymel-indigo underline">
+                  haz clic para explorar
+                </span>
+              </span>
+            </span>
+            <span className="flex flex-col items-end gap-1.5">
+              <span className="flex gap-1.5">
+                {accept
+                  .split(",")
+                  .map((type) =>
+                    type.startsWith("image")
+                      ? "IMAGEN"
+                      : type.replace(/^.*[/.]/, "").toUpperCase(),
+                  )
+                  .map((label) => (
+                    <span
+                      key={label}
+                      className="rounded-md bg-rymel-soft px-2 py-1 text-xs font-bold text-rymel-indigo"
+                    >
+                      {label}
+                    </span>
+                  ))}
+              </span>
+              <span className="text-xs text-gray-600">
+                Tamaño máximo: {maxSize / (1024 * 1024)} MB
+              </span>
+            </span>
           </div>
         ) : (
-          <div className="border rounded-lg p-4">
+          <div className="rounded-2xl border border-gray-300 p-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-medium">Archivo seleccionado</h3>
               <div className="flex items-center">
@@ -362,11 +386,11 @@ export const FileUpload = forwardRef<FileUploadHandle, FileUploadProps>(
                 />
               </div>
             ) : (
-              <div className="flex items-center gap-3 p-3 mb-4 bg-gray-100 rounded-md">
+              <div className="mb-4 flex items-center gap-3 rounded-xl bg-gray-100 p-3">
                 {hasExistingFile ? (
-                  <FiPaperclip className="h-8 w-8 text-blue-500" />
+                  <FiPaperclip className="h-8 w-8 text-rymel-indigo" />
                 ) : (
-                  <FiFile className="h-8 w-8 text-blue-500" />
+                  <FiFile className="h-8 w-8 text-rymel-indigo" />
                 )}
                 <div className="overflow-hidden">
                   <p className="font-medium truncate">{displayFileName}</p>
@@ -388,7 +412,7 @@ export const FileUpload = forwardRef<FileUploadHandle, FileUploadProps>(
               file && (
                 <button
                   onClick={handleUpload}
-                  className="w-full py-2 px-4 rounded-md font-medium text-white bg-blue-500 hover:bg-blue-600 transition-colors"
+                  className="w-full py-2 px-4 rounded-md font-medium text-white bg-rymel-blue hover:bg-rymel-indigo transition-colors"
                 >
                   Cargar archivo
                 </button>
@@ -398,7 +422,7 @@ export const FileUpload = forwardRef<FileUploadHandle, FileUploadProps>(
               <div className="space-y-2">
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div
-                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                    className="bg-rymel-blue h-2 rounded-full transition-all duration-300"
                     style={{ width: `${progress}%` }}
                   />
                 </div>
@@ -451,7 +475,7 @@ export const FileUpload = forwardRef<FileUploadHandle, FileUploadProps>(
                     </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center h-full">
-                      <FiFile className="h-16 w-16 text-blue-500 mb-4" />
+                      <FiFile className="h-16 w-16 text-rymel-indigo mb-4" />
                       <p className="text-lg font-medium mb-2">
                         {displayFileName}
                       </p>
@@ -459,7 +483,7 @@ export const FileUpload = forwardRef<FileUploadHandle, FileUploadProps>(
                         href={existingFileUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                        className="px-4 py-2 bg-rymel-blue text-white rounded hover:bg-rymel-indigo transition-colors"
                       >
                         Abrir archivo
                       </a>
