@@ -64,8 +64,8 @@ const FormulaBar: React.FC<FormulaBarProps> = ({
           placeholder="Ingrese un valor o una fórmula (e.g., =A1+B1, =Sheet1!A1, =design:Sheet1!A1, =cost:Hoja1!A1)"
           className={`flex-1 px-2 py-0.5 h-7 border rounded text-sm focus:outline-none focus:ring-2 ${
             isFormulaBuildingMode
-              ? "border-blue-500 focus:ring-blue-500 bg-blue-50"
-              : "border-gray-300 focus:ring-blue-500"
+              ? "border-rymel-indigo focus:ring-rymel-indigo bg-rymel-tint"
+              : "border-gray-300 focus:ring-rymel-indigo"
           }`}
         />
       </div>
@@ -73,25 +73,25 @@ const FormulaBar: React.FC<FormulaBarProps> = ({
       {styleToolbar}
       {isFormulaBuildingMode && (
         <div className="flex items-center gap-1.5 text-sm">
-          <span className="text-blue-600 font-medium text-xs">
+          <span className="text-rymel-blue font-medium text-xs">
             Modo Formula
           </span>
           <span className="text-xs text-gray-400">
             Cursor: {formulaCursorPosition}
           </span>
           <Button
-            highlight
+            base
+            size="sm"
             onClick={onShowFunctionLibrary}
-            className="px-3 py-1 text-xs rounded font-medium"
             icon={<IoLibraryOutline />}
           >
             Funciones
           </Button>
           <Button
             onClick={onToggleAddingToFormula}
-            className={"px-3 py-1 text-xs rounded font-medium"}
-            success={isAddingToFormula}
-            primary={!isAddingToFormula}
+            base
+            size="sm"
+            active={isAddingToFormula}
             icon={isAddingToFormula ? <FaXmark /> : <FaPlus />}
           >
             {isAddingToFormula
@@ -100,17 +100,17 @@ const FormulaBar: React.FC<FormulaBarProps> = ({
           </Button>
           <Button
             onClick={onHandleRangeSelection}
-            className={`px-3 py-1 text-xs rounded font-medium`}
-            cancel={rangeSelectionStart ? false : true}
-            warning={rangeSelectionStart ? true : false}
+            base
+            size="sm"
+            active={Boolean(rangeSelectionStart)}
             icon={<FaPenRuler />}
           >
             {rangeSelectionStart ? `Rango: ${rangeSelectionStart}:?` : "Rango"}
           </Button>
           <Button
-            danger
+            outline
+            size="sm"
             onClick={onExitFormulaBuildingMode}
-            className="px-2 py-1 text-xs"
             icon={<FaXmark />}
           >
             Salir

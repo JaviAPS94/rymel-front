@@ -29,7 +29,9 @@ const Stepper: React.FC<StepperProps> = ({
   return (
     <>
       {currentStep?.title && (
-        <h2 className="text-lg font-medium">{currentStep?.title}</h2>
+        <h2 className="text-lg font-semibold text-gray-900">
+          {currentStep?.title}
+        </h2>
       )}
 
       <div className="mt-4 max-h-96 overflow-y-auto">
@@ -40,14 +42,12 @@ const Stepper: React.FC<StepperProps> = ({
         <span className="text-red-500 text-sm">{errorMessage}</span>
       )}
 
-      <div className="mt-6 flex justify-center">
+      <div className="mt-6 flex flex-row-reverse justify-start gap-2">
         <Button
-          primary={!currentStep.isFinalStep && !finishFlow}
-          success={currentStep.isFinalStep || finishFlow}
+          primary
           onClick={
             currentStep.isFinalStep || finishFlow ? onFinalAction : onNextStep
           }
-          className="mr-2 text-white px-4 py-2 rounded-md"
           icon={
             currentStep.isFinalStep || finishFlow ? (
               <FaPlus />
@@ -58,11 +58,7 @@ const Stepper: React.FC<StepperProps> = ({
         >
           {currentStep.isFinalStep || finishFlow ? "Finalizar" : "Continuar"}
         </Button>
-        <Button
-          onClick={onCancel}
-          className="bg-gray-300 text-gray-700 px-4 py-2 rounded-md"
-          icon={<FaTimes />}
-        >
+        <Button base onClick={onCancel} icon={<FaTimes />}>
           Cancelar
         </Button>
       </div>

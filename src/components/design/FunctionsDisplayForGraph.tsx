@@ -139,7 +139,7 @@ const FunctionsDisplayForGraph = ({
           placeholder="Buscar funciones..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full px-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rymel-blue focus:border-rymel-blue"
         />
         {searchQuery && (
           <button
@@ -249,7 +249,7 @@ const FunctionsDisplayForGraph = ({
             <button
               key={index}
               className={`w-2 h-2 rounded-full ${
-                currentPage === index ? "bg-blue-500" : "bg-gray-300"
+                currentPage === index ? "bg-rymel-blue" : "bg-gray-300"
               }`}
               onClick={() => setCurrentPage(index)}
               aria-label={`Go to page ${index + 1}`}

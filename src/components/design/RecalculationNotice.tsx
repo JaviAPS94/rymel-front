@@ -89,7 +89,7 @@ export const RecalculationNotice = ({
       className={`mb-3 rounded-lg border p-4 ${
         wasRecalculated
           ? "border-amber-300 bg-amber-50"
-          : "border-blue-200 bg-blue-50"
+          : "border-rymel-indigo/20 bg-rymel-tint"
       }`}
     >
       <div className="flex items-start justify-between gap-4">
@@ -111,10 +111,10 @@ export const RecalculationNotice = ({
             </>
           ) : (
             <>
-              <p className="font-semibold text-blue-900">
+              <p className="font-semibold text-rymel-blue">
                 Esta hoja se calculó con una versión anterior de las fórmulas
               </p>
-              <p className="mt-1 text-sm text-blue-800">
+              <p className="mt-1 text-sm text-rymel-blue">
                 Sus valores siguen siendo los guardados: nadie los ha
                 modificado. Un administrador puede recalcularla cuando
                 corresponda.

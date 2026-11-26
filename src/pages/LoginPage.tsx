@@ -2,67 +2,60 @@ import LoginForm from "../components/auth/LoginForm";
 
 export const LoginPage = () => {
   return (
-    <div className="fixed inset-0 flex overflow-hidden">
-      <div className="hidden lg:flex lg:w-1/2 bg-rymel-blue relative overflow-hidden text-white">
-        <div className="absolute inset-0 bg-gradient-to-br from-rymel-blue via-rymel-blue to-accent opacity-90" />
-        <div className="absolute top-20 left-20 w-32 h-32 bg-rymel-yellow rounded-full opacity-20 blur-3xl" />
-        <div className="absolute bottom-32 right-20 w-40 h-40 bg-accent rounded-full opacity-30 blur-3xl" />
-        <div className="absolute top-1/2 left-1/4 w-24 h-24 bg-rymel-yellow rounded-full opacity-15 blur-2xl" />
+    <div className="fixed inset-0 overflow-y-auto bg-rymel-blue">
+      <div className="h-[3px] bg-rymel-yellow" />
+      <div
+        aria-hidden="true"
+        className="rm-dots pointer-events-none fixed inset-y-0 right-0 w-[46%]"
+      />
+      <div className="relative flex min-h-full items-center justify-center p-4">
+        <div className="grid w-full max-w-6xl items-center gap-8 lg:grid-cols-2">
+          <div className="space-y-8 text-white lg:pr-12">
+            <div className="flex items-center gap-3">
+              <span
+                aria-hidden="true"
+                className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-rymel-yellow text-2xl font-extrabold text-rymel-blue"
+              >
+                R
+              </span>
+              <span className="text-3xl font-bold tracking-[-0.01em]">
+                Rymel
+              </span>
+            </div>
 
-        <div className="relative z-10 flex flex-col justify-between p-12 w-full text-primary-foreground">
-          <div>
-            <img
-              className="h-12 w-auto"
-              src="https://rymel.com.co/wp-content/uploads/2024/07/Logo-Rymel-Oscuro.png"
-            />
-          </div>
+            <div className="space-y-4">
+              <h1 className="text-balance text-4xl font-extrabold leading-[1.05] tracking-[-0.03em] lg:text-5xl">
+                Gestión de normas simplificada
+              </h1>
+              <p className="max-w-md text-lg leading-relaxed text-white/80 lg:text-xl">
+                Accede a tu plataforma de gestión normativa y mantén todo
+                organizado en un solo lugar
+              </p>
+            </div>
 
-          <div className="space-y-6">
-            <h1 className="text-5xl font-bold leading-tight text-balance">
-              {"Gestión de normas simplificada"}
-            </h1>
-            <p className="text-lg text-primary-foreground/90 leading-relaxed max-w-md">
-              {
-                "Accede a tu plataforma de gestión normativa y mantén todo organizado en un solo lugar"
-              }
-            </p>
-
-            <div className="flex gap-8 pt-6">
-              <div>
-                <div className="text-3xl font-bold text-rymel-yellow">
-                  {"500+"}
+            <div className="hidden grid-cols-2 gap-4 lg:grid">
+              <div className="rounded-2xl border border-white/15 bg-white/[.07] p-5">
+                <div className="text-3xl font-extrabold text-rymel-yellow">
+                  500+
                 </div>
-                <div className="text-sm text-primary-foreground/80">
-                  {"Normas activas"}
-                </div>
+                <div className="text-sm text-white/70">Normas activas</div>
               </div>
-              <div>
-                <div className="text-3xl font-bold text-rymel-yellow">
-                  {"24/7"}
+              <div className="rounded-2xl border border-white/15 bg-white/[.07] p-5">
+                <div className="text-3xl font-extrabold text-rymel-yellow">
+                  24/7
                 </div>
-                <div className="text-sm text-primary-foreground/80">
-                  {"Disponibilidad"}
-                </div>
+                <div className="text-sm text-white/70">Disponibilidad</div>
               </div>
             </div>
+
+            <p className="hidden text-sm text-white/70 lg:block">
+              © 2025 Rymel. Todos los derechos reservados.
+            </p>
           </div>
 
-          <div className="text-sm text-primary-foreground/70">
-            {"© 2025 Rymel. Todos los derechos reservados."}
+          <div className="rounded-3xl bg-white p-8 shadow-[0_32px_80px_rgba(0,0,0,.35)] lg:p-12">
+            <LoginForm />
           </div>
-        </div>
-      </div>
-
-      <div className="flex-1 flex items-center justify-center p-8 bg-background overflow-y-auto">
-        <div className="w-full max-w-md my-auto">
-          <div className="lg:hidden mb-8 flex justify-center">
-            <img
-              className="h-12 w-auto"
-              src="https://rymel.com.co/wp-content/uploads/2024/07/Logo-Rymel-Oscuro.png"
-            />
-          </div>
-
-          <LoginForm />
         </div>
       </div>
     </div>

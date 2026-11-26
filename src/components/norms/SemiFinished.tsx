@@ -21,7 +21,7 @@ const SemiFinished = ({ setSelectedSemiFinished }: SemiFinishedProps) => {
 
   const toggleSubItem = (id: number) => {
     setSelectedSubItems((prev) =>
-      prev.includes(id) ? prev.filter((subId) => subId !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((subId) => subId !== id) : [...prev, id],
     );
     setSelectedSemiFinished(findSemiFinished(id));
   };

@@ -3,9 +3,9 @@ import type React from "react";
 import { useEffect, useState } from "react";
 import type { ElementResponse } from "../../commons/types";
 import CountryFlag from "../core/CountryFlag";
-import Checkbox from "../core/Checkbox";
 import classNames from "classnames";
 import { LockIcon } from "lucide-react";
+import { Badge, Checkbox } from "@rymel/ui";
 
 interface ElementCardProps {
   element: ElementResponse;
@@ -39,58 +39,53 @@ const ElementCard: React.FC<ElementCardProps> = ({
     <div
       key={element.id}
       className={classNames(
-        "border rounded-lg p-4 w-full text-sm flex gap-3 transition-all duration-200 hover:border-blue-300 hover:shadow-lg",
-        {
-          "bg-emerald-50 border-emerald-300": checked && !isBlocked,
-          "border-gray-300 hover:bg-gray-50": !checked && !isBlocked,
-          "bg-gray-100 border-gray-300 opacity-75": isBlocked,
-          "cursor-pointer": !isBlocked,
-          "cursor-not-allowed": isBlocked,
-        }
+        "flex w-full flex-col gap-3.5 rounded-2xl p-[18px] text-sm transition-colors",
+        checked
+          ? "border-[1.5px] border-rymel-blue bg-[#FAFAFD]"
+          : "border border-gray-300 bg-white hover:border-gray-400",
+        isBlocked ? "cursor-default" : "cursor-pointer",
       )}
       onClick={() => !isBlocked && handleCheckChange(!checked)}
     >
-      <div className="flex items-start pt-1">
-        <Checkbox
-          checked={checked}
-          onCheckedChange={handleCheckChange}
-          id={`element-${element.id}`}
-          aria-label={`Select ${element.sapReference}`}
-          disabled={isBlocked}
-        />
-      </div>
-      <div className="flex-1">
-        <div className="flex justify-between">
-          <h3 className="font-bold">{element.sapReference}</h3>
-          {isBlocked && (
-            <div className="text-gray-500 flex items-center gap-1">
-              <LockIcon size={16} />
-              <span className="text-xs">Bloqueado</span>
-            </div>
-          )}
-        </div>
-        <p>
-          <b>Referencia ERP:</b> {element.sapReference}
-        </p>
-        <p>
-          <b>Nombre Norma:</b> {element.norm.name}
-        </p>
-        <div className="flex items-center">
-          <b>País:</b>{" "}
-          <CountryFlag
-            isoCode={element.norm.country.isoCode}
-            className="w-8 h-5 object-cover ml-2"
+      <div className="flex items-start gap-3">
+        <div className="pt-0.5">
+          <Checkbox
+            checked={checked}
+            // La tarjeta ya alterna al hacer clic: la casilla no lo repite.
+            onClick={(event) => event.stopPropagation()}
+            onCheckedChange={handleCheckChange}
+            id={`element-${element.id}`}
+            aria-label={`Seleccionar ${element.sapReference}`}
+            disabled={isBlocked}
           />
         </div>
-        <p>
-          <b>Subtipo:</b> {element.subType.name}
-        </p>
-        {isBlocked && blockedReason && (
-          <div className="mt-2 text-xs text-red-600 bg-red-50 p-2 rounded border border-red-200">
-            {blockedReason}
-          </div>
+        <h3 className="m-0 min-w-0 flex-1 break-all font-mono text-[15px] font-bold text-gray-900">
+          {element.sapReference}
+        </h3>
+        {isBlocked && (
+          <span title={blockedReason} className="shrink-0">
+            <Badge icon={<LockIcon size={12} />}>Bloqueado</Badge>
+          </span>
         )}
       </div>
+      <dl className="m-0 flex flex-wrap gap-6 pl-8">
+        <div className="flex flex-col gap-1">
+          <dt className="text-xs font-semibold text-gray-600">Norma</dt>
+          <dd className="m-0 flex items-center gap-2 font-bold text-gray-900">
+            <CountryFlag
+              isoCode={element.norm.country.isoCode}
+              className="h-[15px] w-[22px] shrink-0 rounded-[3px] object-cover"
+            />
+            {element.norm.name}
+          </dd>
+        </div>
+        <div className="flex flex-col gap-1">
+          <dt className="text-xs font-semibold text-gray-600">Subtipo</dt>
+          <dd className="m-0 font-bold text-gray-900">
+            {element.subType.name}
+          </dd>
+        </div>
+      </dl>
     </div>
   );
 };

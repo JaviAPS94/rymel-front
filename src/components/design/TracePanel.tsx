@@ -155,7 +155,7 @@ const Section = ({
           <button
             key={`${item.sheet}!${item.ref}`}
             onClick={() => onNavigate(item)}
-            className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-800 hover:bg-blue-100"
+            className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-800 hover:bg-rymel-soft"
           >
             {item.sheet === currentSheet ? item.ref : `${item.sheet}!${item.ref}`}
           </button>

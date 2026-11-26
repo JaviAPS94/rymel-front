@@ -1,10 +1,9 @@
 import { useNavigate, useParams } from "react-router-dom";
 import DesignViewer from "../components/design/DesignViewer";
 import { useGetDesignByIdQuery } from "../store";
-import Skeleton from "../components/core/skeletons/Skeleton";
 import { useErrorAlert } from "../hooks/useAlertError";
 import Alert from "../components/core/Alert";
-import Button from "../components/core/Button";
+import { PageHeader, Page } from "@rymel/ui";
 
 const DesignDetailsPage = () => {
   const navigate = useNavigate();
@@ -26,28 +25,22 @@ const DesignDetailsPage = () => {
 
   return (
     <>
-      <div className="container mx-auto px-4">
-        <Button
-          outline
-          onClick={handleBackToList}
-          className="my-4 flex items-center text-rymel-blue hover:text-blue-800 transition-colors"
-        >
-          <span className="mr-2">←</span>
-          Volver al catálogo
-        </Button>
-        {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 w-full">
-            <Skeleton count={10} className="mb-4" />
-          </div>
-        ) : (
-          selectedDesign && (
-            <DesignViewer
-              handleBackToList={handleBackToList}
-              design={selectedDesign}
-            />
-          )
-        )}
-      </div>
+      {isLoading || !selectedDesign ? (
+        <>
+          <PageHeader
+            back={{ label: "Volver al catálogo", onClick: handleBackToList }}
+            title={isLoading ? "Cargando…" : "Diseño no disponible"}
+          />
+          <Page>
+            <div className="h-40 animate-pulse rounded-[20px] border bg-white" />
+          </Page>
+        </>
+      ) : (
+        <DesignViewer
+          handleBackToList={handleBackToList}
+          design={selectedDesign}
+        />
+      )}
       {showErrorAlert && (
         <Alert
           messages={errorMessages}

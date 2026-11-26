@@ -14,8 +14,7 @@ import { FileUploadHandle } from "../components/core/FileUpload";
 import { useParams } from "react-router-dom";
 import { CompleteElementData, NormCompleteData } from "../commons/types";
 import { urlToFile } from "../commons/functions";
-import { BiEdit } from "react-icons/bi";
-import { IoMdAdd } from "react-icons/io";
+import { PageHeader, Page } from "@rymel/ui";
 
 export interface ElementValue {
   name: string;
@@ -64,7 +63,7 @@ const NormPage = () => {
     Number(normId),
     {
       skip: !isEditing,
-    }
+    },
   );
 
   // Create a ref to access FirstComponent's function
@@ -108,14 +107,14 @@ const NormPage = () => {
   const [showErrorAlert, setShowErrorAlert] = useState(false);
 
   const mapNormCompleteDataToNormData = async (
-    norm: NormCompleteData
+    norm: NormCompleteData,
   ): Promise<NormData> => {
     return {
       id: norm.id,
       name: norm.name,
       version: norm.version,
       normFile: await urlToFile(
-        norm.normFile ? `http://localhost:3000/${norm.normFile}` : ""
+        norm.normFile ? `http://localhost:3000/${norm.normFile}` : "",
       ),
       country: norm.country?.id, // Assuming `country` has an `id` property
       elements: norm.elements.map(mapCompleteElementDataToNormElement),
@@ -123,7 +122,7 @@ const NormPage = () => {
   };
 
   const mapCompleteElementDataToNormElement = (
-    element: CompleteElementData
+    element: CompleteElementData,
   ): NormElement => {
     return {
       id: element.id,
@@ -137,7 +136,7 @@ const NormPage = () => {
   };
 
   const mapRecordToElementValue = (
-    record: Record<string, unknown>
+    record: Record<string, unknown>,
   ): ElementValue => {
     return {
       name: (record.name as string) || "", // Ensure it is a string
@@ -190,55 +189,44 @@ const NormPage = () => {
   }
 
   if (isLoadingSpecifications) {
-    return <div>Loading specifications...</div>;
+    return <p className="p-8 text-sm text-gray-500">Cargando…</p>;
   }
 
   if (isLoadingNorm) {
-    return <div>Loading norm...</div>;
+    return <p className="p-8 text-sm text-gray-500">Cargando…</p>;
   }
 
   return (
     <NormProvider>
-      <div className="bg-white rounded-lg shadow-lg overflow-hidden mt-4 mx-10">
-        <div className="bg-rymel-blue text-white p-6">
-          <h1 className="font-bold text-3xl text-center flex items-center justify-center gap-2">
-            {isEditing ? (
-              <BiEdit className="text-white h-8 w-8" />
-            ) : (
-              <IoMdAdd className="text-white h-8 w-8" />
-            )}
-            {isEditing ? "Editar Norma" : "Generar Nueva Norma"}
-          </h1>
-        </div>
-
-        <div className="mx-10">
-          <div className="flex h-screen">
-            <div className="w-4/6 p-8 overflow-auto">
-              <NormForm
-                countries={countries}
-                types={types}
-                formData={formData}
-                setFormData={setFormData}
-                elementsByFilters={elementsByFilters}
-                specifications={specifications}
-                handleFileSelect={handleFileSelect}
-                fileUploadRef={fileUploadRef}
-              />
-            </div>
-            <div className="w-2/6 p-8 bg-white overflow-auto">
-              <NormInformation
-                formData={formData}
-                setFormData={setFormData}
-                handleReset={handleReset}
-                isEditing={isEditing}
-              />
-            </div>
-          </div>
-        </div>
+      <PageHeader
+        eyebrow="Normas"
+        title={isEditing ? "Editar norma" : "Nueva norma"}
+        description="Primero los datos generales; después, los elementos de la norma."
+        back={{ label: "Volver a normas", href: "/" }}
+      />
+      <Page width={1040}>
+        <NormForm
+          countries={countries}
+          types={types}
+          formData={formData}
+          setFormData={setFormData}
+          elementsByFilters={elementsByFilters}
+          specifications={specifications}
+          handleFileSelect={handleFileSelect}
+          fileUploadRef={fileUploadRef}
+          elementsSlot={
+            <NormInformation
+              formData={formData}
+              setFormData={setFormData}
+              handleReset={handleReset}
+              isEditing={isEditing}
+            />
+          }
+        />
         {showErrorAlert && (
           <Alert message="Ha ocurrido un error al cargar los datos" error />
         )}
-      </div>
+      </Page>
     </NormProvider>
   );
 };

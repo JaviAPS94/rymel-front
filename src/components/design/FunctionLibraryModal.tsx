@@ -1,7 +1,7 @@
 import React from "react";
 import { Modal } from "../core/Modal";
-import Pagination from "../core/Pagination";
 import { CustomFunction } from "./spreadsheet-types";
+import { Pagination } from "@rymel/ui";
 
 interface FunctionLibraryModalProps {
   isOpen: boolean;
@@ -68,7 +68,7 @@ const FunctionLibraryModal: React.FC<FunctionLibraryModalProps> = ({
                 onSearchChange(e.target.value);
                 onPageChange(1); // Reset to first page when searching
               }}
-              className="w-full px-4 py-2 pl-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 pl-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-rymel-blue"
             />
             <div className="absolute left-3 top-2.5 text-gray-400">🔍</div>
             {searchTerm && (
@@ -113,7 +113,7 @@ const FunctionLibraryModal: React.FC<FunctionLibraryModalProps> = ({
                   className="border rounded-lg p-4 hover:bg-gray-50 flex flex-col"
                 >
                   <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-semibold text-lg text-blue-600">
+                    <h3 className="font-semibold text-lg text-rymel-blue">
                       {func.name}
                     </h3>
                   </div>
@@ -122,7 +122,7 @@ const FunctionLibraryModal: React.FC<FunctionLibraryModalProps> = ({
                   </p>
                   <div className="text-sm mb-3">
                     <strong>Variables:</strong>
-                    <span className="text-blue-600 font-mono">
+                    <span className="text-rymel-blue font-mono">
                       {` ${func.variables.join(", ")}`}
                     </span>
                   </div>
@@ -134,7 +134,7 @@ const FunctionLibraryModal: React.FC<FunctionLibraryModalProps> = ({
                   </div>
                   <button
                     onClick={() => onInsertFunction(func)}
-                    className="w-full px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 mt-auto"
+                    className="w-full px-3 py-2 bg-rymel-blue text-white rounded hover:bg-rymel-blue/90 mt-auto"
                   >
                     Insertar función
                   </button>
@@ -167,7 +167,7 @@ const FunctionLibraryModal: React.FC<FunctionLibraryModalProps> = ({
 
         <div className="flex align-middle mx-auto mt-4 text-2xl space-x-2">
           <Pagination
-            currentPage={currentPage}
+            page={currentPage}
             totalPages={totalPages}
             onPageChange={onPageChange}
           />

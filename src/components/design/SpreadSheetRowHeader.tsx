@@ -31,7 +31,7 @@ const SpreadSheetRowHeader: React.FC<SpreadSheetRowHeaderProps> = ({
       {rowIndex + 1}
       {/* Row resize handle */}
       <div
-        className="absolute bottom-0 left-0 w-full h-1 cursor-row-resize bg-transparent hover:bg-blue-400 group-hover:bg-blue-200"
+        className="absolute bottom-0 left-0 w-full h-1 cursor-row-resize bg-transparent hover:bg-rymel-indigo group-hover:bg-rymel-indigo/30"
         onMouseDown={(e) => onResizeStart(e, "row", rowIndex, rowHeight)}
         title="Arrastrar para redimensionar fila"
       />

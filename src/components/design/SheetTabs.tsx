@@ -51,7 +51,7 @@ const SheetTabs: React.FC<SheetTabsProps> = ({
             key={sheet.id}
             className={`relative flex items-center min-w-0 ${
               sheet.id === activeSheetId
-                ? "bg-white border-t-2 border-blue-500"
+                ? "bg-white border-t-2 border-rymel-blue"
                 : "bg-gray-100 hover:bg-gray-200"
             }`}
           >
@@ -91,7 +91,7 @@ const SheetTabs: React.FC<SheetTabsProps> = ({
           className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-200 border-l"
           title="Agregar nueva hoja"
         >
-          <FaPlus className="inline mr-1 text-blue-600" />
+          <FaPlus className="inline mr-1 text-rymel-blue" />
           Agregar Hoja
         </Button>
       </div>

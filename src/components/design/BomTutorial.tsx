@@ -26,9 +26,9 @@ const BomTutorial: React.FC = () => {
   // el diseñador hace: usarla, generar la lista y ajustarla.
   const steps: Step[] = [
     {
-      title: "Resumen BOM",
+      title: "Resumen de la lista de materiales",
       description:
-        "La lista de materiales (BOM) se genera sola a partir de lo que trae la plantilla y de los valores de tu diseño.",
+        "La lista de materiales se genera sola a partir de lo que trae la plantilla y de los valores de tu diseño.",
       render: () => <SceneIntro />,
     },
     {
@@ -190,7 +190,7 @@ const SceneIntro: React.FC = () => (
         { n: 1, icon: "📚", label: "La plantilla trae el catálogo" },
         { n: 2, icon: "🏷️", label: "y las zonas y vínculos" },
         { n: 3, icon: "✏️", label: "Tú llenas el diseño" },
-        { n: 4, icon: "📋", label: "Genera el BOM" },
+        { n: 4, icon: "📋", label: "Genera la lista" },
       ].map((card, i) => (
         <div
           key={card.n}
@@ -259,7 +259,7 @@ const SceneSource: React.FC = () => (
         <ul className="text-[10px] text-gray-600 space-y-0.5">
           <li>✏️ Los valores de cálculo</li>
           <li>👁️ Las marcas de la plantilla, visibles</li>
-          <li>📋 El resumen BOM generado</li>
+          <li>📋 El resumen de la lista de materiales generado</li>
         </ul>
       </div>
     </div>
@@ -270,7 +270,7 @@ const SceneBom: React.FC = () => (
   <div className="h-full relative flex flex-col">
     {/* Sheet tabs mockup */}
     <div className="flex items-center gap-1 mb-3 anim-fade-in">
-      <div className="px-2 py-1 bg-white border-t-2 border-blue-500 rounded-t text-[10px] font-medium">
+      <div className="px-2 py-1 bg-white border-t-2 border-rymel-indigo rounded-t text-[10px] font-medium">
         Diseño
       </div>
       <div className="px-2 py-1 bg-gray-200 rounded-t text-[10px] font-medium">
@@ -283,7 +283,7 @@ const SceneBom: React.FC = () => (
         className="px-2 py-1 text-[10px] font-semibold bg-cyan-600 text-white rounded anim-pulse-glow"
         style={{ animationDelay: "300ms" }}
       >
-        📋 Resumen BOM
+        📋 Resumen de la lista de materiales
       </div>
     </div>
 
@@ -295,7 +295,7 @@ const SceneBom: React.FC = () => (
       style={{ animationDelay: "1800ms" }}
     >
       <div className="text-[11px] font-bold text-gray-800 mb-2">
-        Resumen de materiales (BOM)
+        Resumen de la lista de materiales
       </div>
       <div className="flex items-baseline gap-2 mb-1">
         <span className="font-bold text-gray-900 text-[10px]">500752</span>
@@ -306,7 +306,7 @@ const SceneBom: React.FC = () => (
       </div>
       <table className="border-collapse text-[10px] ml-12">
         <thead>
-          <tr className="bg-blue-100">
+          <tr className="bg-rymel-soft">
             <th className="border border-gray-300 px-1.5 py-0.5">Item</th>
             <th className="border border-gray-300 px-1.5 py-0.5">
               Descripción
@@ -370,13 +370,13 @@ const SceneDone: React.FC = () => (
     >
       <div>✓ Configuración tomada de la plantilla</div>
       <div>✓ Valores de tu diseño</div>
-      <div>✓ Hoja Resumen BOM autogenerada</div>
+      <div>✓ Hoja resumen de la lista de materiales autogenerada</div>
     </div>
     <div
       className="mt-4 text-xs text-gray-400 italic max-w-md anim-fade-up"
       style={{ animationDelay: "500ms" }}
     >
-      El BOM se actualiza solo al cambiar los valores del diseño. Los vínculos
+      La lista de materiales se actualiza sola al cambiar los valores del diseño. Los vínculos
       huérfanos (catálogo borrado, ítem inexistente) se marcan en rojo: se
       corrigen en la plantilla.
     </div>

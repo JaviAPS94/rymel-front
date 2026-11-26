@@ -29,7 +29,7 @@ const EditNormPage = () => {
   };
 
   const mapCompleteElementDataToNormElement = (
-    element: CompleteElementData
+    element: CompleteElementData,
   ): NormElement => {
     return {
       values: element.values.map(mapRecordToElementValue),
@@ -39,7 +39,7 @@ const EditNormPage = () => {
   };
 
   const mapRecordToElementValue = (
-    record: Record<string, unknown>
+    record: Record<string, unknown>,
   ): ElementValue => {
     return {
       name: (record.name as string) || "", // Ensure it is a string

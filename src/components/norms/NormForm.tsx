@@ -1,3 +1,4 @@
+import { inputClass, inputErrorClass, labelClass } from "../core/styles";
 import React, { useEffect, useState } from "react";
 import Modal from "react-modal";
 import ElementForm from "./ElementForm";
@@ -12,11 +13,12 @@ import DataTable from "./DataTable";
 import { useGetSubTypesWithFieldsByTypeQuery } from "../../store";
 import Alert from "../core/Alert";
 import Button from "../core/Button";
-import { FaPlus, FaTimes } from "react-icons/fa";
+import { FaPlus, FaRegCopy, FaTimes } from "react-icons/fa";
 import Select, { Option } from "../core/Select";
 import { useNorm } from "../../hooks/useNorm";
 import { FileUpload, FileUploadHandle } from "../core/FileUpload";
 import { useAlert } from "../../hooks/useAlert";
+import { SectionCard, IconButton } from "@rymel/ui";
 
 interface NormFormProps {
   countries: Country[] | undefined;
@@ -27,6 +29,8 @@ interface NormFormProps {
   specifications: Specification[] | undefined;
   handleFileSelect: (file: File | null) => void;
   fileUploadRef: React.RefObject<FileUploadHandle | null>;
+  /** La lista de elementos ya cargados; se pinta dentro del paso 2. */
+  elementsSlot?: React.ReactNode;
 }
 
 const NormForm = ({
@@ -38,7 +42,9 @@ const NormForm = ({
   specifications,
   handleFileSelect,
   fileUploadRef,
+  elementsSlot,
 }: NormFormProps) => {
+  const [showLoadable, setShowLoadable] = useState(false);
   const [selectedType, setSelectedType] = useState<number>();
   const [selectedSubType, setSelectedSubType] = useState<number>();
   const [selectedSubTypeName, setSelectedSubTypeName] = useState<string>("");
@@ -131,7 +137,7 @@ const NormForm = ({
     if (Object.keys(newErrors).length === 0) {
       setBaseFields(
         subTypes?.find((subType) => subType.id === Number(selectedSubType))
-          ?.field.base
+          ?.field.base,
       );
       toogleShowAddElement();
       toogleShowAddElementButton();
@@ -141,7 +147,7 @@ const NormForm = ({
   };
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value, type } = e.target;
 
@@ -154,7 +160,7 @@ const NormForm = ({
   const handleCountryChange = (countryId: number | undefined) => {
     setFormData({ ...formData, country: countryId });
     setCountryCode(
-      countries?.find((country) => country.id === countryId)?.isoCode
+      countries?.find((country) => country.id === countryId)?.isoCode,
     );
   };
 
@@ -216,116 +222,197 @@ const NormForm = ({
   useEffect(() => {
     if (formData.country && countries) {
       setCountryCode(
-        countries?.find((country) => country.id === formData.country)?.isoCode
+        countries?.find((country) => country.id === formData.country)?.isoCode,
       );
     }
   }, [formData, countries]);
 
+  // Al abrirse el formulario de un elemento (elegido de la tabla o nuevo) el
+  // atajo ya cumplió: se cierra para que no reaparezca al terminar.
+  useEffect(() => {
+    if (showAddElement) setShowLoadable(false);
+  }, [showAddElement]);
+
+  const locked = formData.elements.length > 0;
+  const loadable = elementsByFilters ?? [];
+
   return (
     <>
-      <div>
-        <h2 className="text-2xl font-bold mb-4">
-          Formulario de ingreso de datos
-        </h2>
-        <label className="block text-sm font-medium text-gray-700">Norma</label>
-        <Select
-          options={specifications?.map(
-            (specification) =>
-              ({
-                label: specification.name,
-                value: specification.code,
-              } as Option<string>)
+      <SectionCard
+        step={1}
+        title="Datos generales"
+        description={
+          locked
+            ? "Bloqueados mientras la norma tenga elementos cargados."
+            : "Identifican la norma. Complétalos antes de cargar elementos."
+        }
+      >
+        <div className="grid gap-4 md:grid-cols-3">
+          <div>
+            <label className={labelClass}>Norma</label>
+            <Select
+              options={specifications?.map(
+                (specification) =>
+                  ({
+                    label: specification.name,
+                    value: specification.code,
+                  }) as Option<string>,
+              )}
+              selectedValue={formData.name}
+              onChange={handleNormChange}
+              isLoading={false}
+              placeholder="Selecciona una norma"
+              error={errors}
+              errorKey="name"
+              disabled={locked}
+            />
+          </div>
+
+          <div>
+            <label className={labelClass}>Versión</label>
+            <input
+              type="text"
+              name="version"
+              value={formData.version}
+              onChange={handleChange}
+              placeholder="Ej. 1.0.0"
+              className={`${inputClass} ${errors.version ? inputErrorClass : ""}`}
+              disabled={locked}
+            />
+            {errors.version && (
+              <span className="text-red-500 text-sm">{errors.version}</span>
+            )}
+          </div>
+
+          <div>
+            <label className={labelClass}>País</label>
+            <Select
+              options={countries?.map(
+                (country) =>
+                  ({
+                    label: country.name,
+                    value: country.id,
+                  }) as Option<number>,
+              )}
+              selectedValue={formData.country}
+              onChange={handleCountryChange}
+              isLoading={false}
+              placeholder="Selecciona un país"
+              error={errors}
+              errorKey="country"
+              disabled={locked}
+            />
+          </div>
+
+          <div className="md:col-span-3">
+            <label className={labelClass}>Documento asociado a la norma</label>
+            <FileUpload
+              ref={fileUploadRef}
+              onFileSelect={handleFileSelect}
+              showUploadButton={false}
+              accept="image/*,application/pdf,.docx"
+              maxSize={10 * 1024 * 1024}
+              initialFile={formData.normFile}
+            />
+            {errors.normFile && (
+              <span className="text-red-500 text-sm">{errors.normFile}</span>
+            )}
+          </div>
+        </div>
+      </SectionCard>
+
+      <SectionCard
+        step={2}
+        title={`Elementos (${formData.elements.length})`}
+        description="Cada elemento es un producto de la norma con sus valores y su referencia ERP."
+        actions={
+          showAddElementButton && (
+            <>
+              {/* El atajo va junto a «Agregar elemento»: es la otra forma de
+                  empezar uno, y aquí se ve sin hacer scroll. */}
+              <Button
+                base
+                active={showLoadable}
+                disabled={loadable.length === 0}
+                title={
+                  loadable.length === 0
+                    ? "No hay elementos registrados para esta norma y país"
+                    : "Usa los valores de un elemento ya registrado como punto de partida"
+                }
+                onClick={() => setShowLoadable((open) => !open)}
+                icon={<FaRegCopy />}
+              >
+                Cargar desde existente
+                <span className="rounded-full bg-gray-100 px-1.5 text-xs text-gray-600">
+                  {loadable.length}
+                </span>
+              </Button>
+              <Button primary onClick={handleOpenTypeModal} icon={<FaPlus />}>
+                Agregar elemento
+              </Button>
+            </>
+          )
+        }
+      >
+        <div className="space-y-4">
+          {showLoadable && showAddElementButton && (
+            <div className="rounded-lg border border-rymel-blue/20 bg-rymel-blue/5 p-4">
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="font-semibold text-gray-900">
+                    Cargar desde un elemento existente
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Elige uno y se abrirá el formulario con sus valores como
+                    punto de partida.
+                  </p>
+                </div>
+                <IconButton
+                  label="Cerrar"
+                  onClick={() => setShowLoadable(false)}
+                >
+                  <FaTimes className="h-4 w-4" />
+                </IconButton>
+              </div>
+              <DataTable
+                data={loadable}
+                setBaseFields={setBaseFields}
+                setSelectedSubType={setSelectedSubType}
+              />
+            </div>
           )}
-          selectedValue={formData.name}
-          onChange={handleNormChange}
-          isLoading={false}
-          placeholder="Selecciona una norma"
-          error={errors}
-          errorKey="name"
-          disabled={formData.elements.length > 0}
-        />
-      </div>
-
-      <div className="mt-4">
-        <label className="block text-sm font-medium text-gray-700">
-          Versión
-        </label>
-        <input
-          type="text"
-          name="version"
-          value={formData.version}
-          onChange={handleChange}
-          className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:outline-none focus:ring-2 ${
-            errors.version
-              ? "border-red-500 focus:ring-red-500"
-              : "focus:ring-blue-500"
-          }`}
-          disabled={formData.elements.length > 0}
-        />
-        {errors.version && (
-          <span className="text-red-500 text-sm">{errors.version}</span>
-        )}
-      </div>
-
-      <div className="mt-4">
-        <label className="block text-sm font-medium text-gray-700">
-          Documento asociado a la norma
-        </label>
-        <FileUpload
-          ref={fileUploadRef}
-          onFileSelect={handleFileSelect}
-          showUploadButton={false}
-          accept="image/*,application/pdf,.docx"
-          maxSize={10 * 1024 * 1024}
-          initialFile={formData.normFile}
-        />
-        {errors.normFile && (
-          <span className="text-red-500 text-sm">{errors.normFile}</span>
-        )}
-      </div>
-
-      <div className="mt-4">
-        <label className="block text-sm font-medium text-gray-700">País</label>
-        <Select
-          options={countries?.map(
-            (country) =>
-              ({
-                label: country.name,
-                value: country.id,
-              } as Option<number>)
+          {elementsSlot}
+          {showAddElement && (baseFields || editingElement !== null) && (
+            <ElementForm
+              baseFieldsValue={baseFields}
+              handleAddElementToNorm={handleAddElementToNorm}
+              handleUpdateElementNorm={handleUpdateElementNorm}
+              handleResetStatesAfterUpdateElementNorm={
+                handleResetStatesAfterUpdateElementNorm
+              }
+              countryCode={countryCode}
+              normData={formData}
+              subTypeCode={subTypeCode}
+              subTypes={subTypes}
+            />
           )}
-          selectedValue={formData.country}
-          onChange={handleCountryChange}
-          isLoading={false}
-          placeholder="Selecciona un país"
-          error={errors}
-          errorKey="country"
-          disabled={formData.elements.length > 0}
-        />
-      </div>
-
-      {showAddElementButton && (
-        <Button
-          success
-          onClick={handleOpenTypeModal}
-          className="mt-2 px-4 py-2 rounded-md"
-          icon={<FaPlus />}
-        >
-          Agregar elemento
-        </Button>
-      )}
+        </div>
+      </SectionCard>
 
       <Modal
         isOpen={typeModalIsOpen}
         onRequestClose={closeTypeModal}
-        className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center"
-        overlayClassName="fixed inset-0 bg-black bg-opacity-25"
+        className="fixed inset-0 flex items-center justify-center p-4 outline-none"
+        overlayClassName="fixed inset-0 z-50 bg-[#0E0C2E]/60"
         ariaHideApp={false}
       >
-        <div className="bg-white p-6 rounded-md shadow-lg">
-          <h2 className="text-lg font-medium">
-            Selecciona el tipo de elemento que quieres agregar
+        <div className="w-full max-w-md rounded-3xl bg-white p-7 shadow-[0_32px_80px_rgba(0,0,0,.35)]">
+          <h2 className="text-xl font-extrabold text-gray-900">
+            Tipo de elemento
           </h2>
+          <p className="mt-1 text-sm text-gray-600">
+            Elige el tipo y el subtipo del elemento que vas a agregar.
+          </p>
           <div className="mt-4">
             <Select
               options={types?.map(
@@ -333,7 +420,7 @@ const NormForm = ({
                   ({
                     label: type.name,
                     value: type.id,
-                  } as Option<number>)
+                  }) as Option<number>,
               )}
               selectedValue={selectedType}
               onChange={handleSelectedType}
@@ -350,7 +437,7 @@ const NormForm = ({
                   ({
                     label: subType.name,
                     value: subType.id,
-                  } as Option<number>)
+                  }) as Option<number>,
               )}
               selectedValue={selectedSubType}
               onChange={handleSubTypeChange}
@@ -361,47 +448,16 @@ const NormForm = ({
             />
           </div>
 
-          <div className="mt-6 flex justify-end">
-            <Button
-              success
-              onClick={handleShowAddElement}
-              className="mr-2 px-4 py-2 rounded-md"
-              icon={<FaPlus />}
-            >
-              Agregar
-            </Button>
-            <Button
-              cancel
-              onClick={handleCancelAddElement}
-              className="mr-2 px-4 py-2 rounded-md"
-              icon={<FaTimes />}
-            >
+          <div className="mt-6 flex justify-end gap-2">
+            <Button base onClick={handleCancelAddElement} icon={<FaTimes />}>
               Cancelar
+            </Button>
+            <Button primary onClick={handleShowAddElement} icon={<FaPlus />}>
+              Agregar
             </Button>
           </div>
         </div>
       </Modal>
-
-      {showAddElement && (baseFields || editingElement !== null) && (
-        <ElementForm
-          baseFieldsValue={baseFields}
-          handleAddElementToNorm={handleAddElementToNorm}
-          handleUpdateElementNorm={handleUpdateElementNorm}
-          handleResetStatesAfterUpdateElementNorm={
-            handleResetStatesAfterUpdateElementNorm
-          }
-          countryCode={countryCode}
-          normData={formData}
-          subTypeCode={subTypeCode}
-          subTypes={subTypes}
-        />
-      )}
-      <h2 className="mt-5 font-bold text-xl">Elementos que podrías cargar</h2>
-      <DataTable
-        data={elementsByFilters ?? []}
-        setBaseFields={setBaseFields}
-        setSelectedSubType={setSelectedSubType}
-      />
       {showErrorAlert && (
         <Alert message="Ha ocurrido un error al cargar los datos" error />
       )}

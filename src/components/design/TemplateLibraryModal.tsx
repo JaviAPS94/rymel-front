@@ -1,11 +1,11 @@
 import React, { useState } from "react";
 import { Template } from "../../commons/types";
 import { Modal } from "../core/Modal";
-import Pagination from "../core/Pagination";
 import CustomInput from "../core/CustomInput";
 import TooltipGeneral from "../core/TooltipGeneral";
 import Button from "../core/Button";
 import { FiDownload } from "react-icons/fi";
+import { Pagination } from "@rymel/ui";
 
 interface TemplateLibraryModalProps {
   isOpen: boolean;
@@ -109,7 +109,7 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({
                 >
                   <div className="flex justify-between items-start mb-2">
                     <div>
-                      <h3 className="font-semibold text-lg text-blue-600">
+                      <h3 className="font-semibold text-lg text-rymel-blue">
                         {template.name}
                       </h3>
                       <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">
@@ -130,7 +130,7 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({
                         outline
                         onClick={() => handleLoadTemplate(template)}
                       >
-                        <FiDownload className="text-blue-600 hover:text-blue-800 h-8 w-8" />
+                        <FiDownload className="text-rymel-blue hover:text-rymel-blue/80 h-8 w-8" />
                       </Button>
                     </TooltipGeneral>
                   </div>
@@ -171,7 +171,7 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({
 
         <div className="flex align-middle mx-auto text-2xl space-x-2">
           <Pagination
-            currentPage={currentPage}
+            page={currentPage}
             totalPages={totalPages}
             onPageChange={onPageChange}
           />

@@ -50,7 +50,7 @@ const EditableInput: React.FC<EditableInputProps> = ({
             ${
               isDisabled
                 ? "bg-gray-100 text-gray-500 cursor-not-allowed"
-                : "bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                : "bg-white text-gray-900 focus:ring-2 focus:ring-rymel-indigo focus:border-rymel-indigo"
             }`}
           type="text"
           name={name}
@@ -69,7 +69,7 @@ const EditableInput: React.FC<EditableInputProps> = ({
             className={`p-1 rounded-full focus:outline-none
               ${
                 isDisabled
-                  ? "text-blue-500 hover:text-blue-600"
+                  ? "text-rymel-indigo hover:text-rymel-blue"
                   : "text-green-500 hover:text-green-600"
               }`}
             onClick={handleEditClick}

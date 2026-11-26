@@ -6,19 +6,23 @@ import {
 import Select, { Option } from "../components/core/Select";
 import CustomInput from "../components/core/CustomInput";
 import { useGetAllSubTypesQuery } from "../store";
-import NoData from "../components/core/NoData";
-import Pagination from "../components/core/Pagination";
 import Button from "../components/core/Button";
 import { BiEraser, BiSearch } from "react-icons/bi";
-import { MdOutlineDesignServices, MdRemoveCircleOutline } from "react-icons/md";
-import ElementCard from "../components/elements/ElementCard";
+import { TbArrowRight } from "react-icons/tb";
+import ElementTable from "../components/elements/ElementTable";
 import { ElementResponse, ElementsPaginated } from "../commons/types";
-import { IoIosAddCircleOutline } from "react-icons/io";
 import { useNavigate } from "react-router-dom";
 import Alert from "../components/core/Alert";
 import { useErrorAlert } from "../hooks/useAlertError";
-import FilterSkeleton from "../components/core/skeletons/FiltersSkeleton";
-import Skeleton from "../components/core/skeletons/Skeleton";
+import {
+  SelectionBar,
+  PageHeader,
+  IconButton,
+  FilterField,
+  Pagination,
+  EmptyState,
+  Page,
+} from "@rymel/ui";
 
 const DesignPage = () => {
   const navigate = useNavigate();
@@ -194,164 +198,158 @@ const DesignPage = () => {
     }
   }, [country, handleSearchClick]);
 
+  const selectedIds = new Set(selectedElements.map((element) => element.id));
+  const isSearching = isFilteringByNorm || getElementsResult.isLoading;
+
   return (
     <>
-      <div
-        className={`max-w-full bg-white rounded-lg shadow-lg overflow-hidden pb-5 my-10 mx-10 ${
-          !elements?.data || elements.data.length === 0 ? "min-h-screen" : ""
-        }`}
-      >
-        <div className="bg-rymel-blue text-white p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex">
-                <MdOutlineDesignServices className="text-white h-8 w-8" />
-                <h1 className="text-3xl font-bold ml-2">Diseño De Elementos</h1>
-              </div>
-              <p className="text-white mt-1">
-                {elements?.total} elementos disponibles
-              </p>
-            </div>
-            <div className="bg-rymel-yellow px-4 py-2 rounded-lg">
-              <span className="text-2xl font-bold">
-                {elements?.data.length}
-              </span>
-              <span className="text-white ml-2">filtrados</span>
-            </div>
+      <PageHeader
+        eyebrow="Paso 1 · Elementos"
+        title="Nuevo diseño"
+        description={
+          elements ? (
+            <>
+              Elige los elementos del diseño.{" "}
+              <strong>{elements.total} disponibles</strong> con estos filtros.
+            </>
+          ) : (
+            "Elige los elementos sobre los que se calcula el diseño."
+          )
+        }
+      />
+
+      <Page className="pb-10">
+        <form
+          role="search"
+          aria-label="Filtrar elementos"
+          className="flex flex-wrap items-end gap-3 rounded-[20px] border bg-white p-5"
+          onSubmit={(event) => {
+            event.preventDefault();
+            handleSearchClick();
+          }}
+        >
+          <FilterField label="País">
+            <Select
+              options={countries?.map(
+                (country) =>
+                  ({
+                    label: country.name,
+                    value: country.id,
+                  }) as Option<number>,
+              )}
+              selectedValue={country}
+              onChange={handleCountryChange}
+              isLoading={isLoadingCountries}
+              placeholder="País"
+              errorKey="country"
+            />
+          </FilterField>
+          <FilterField label="Norma">
+            <CustomInput
+              type="text"
+              value={name}
+              onChange={setName}
+              placeholder="Nombre de la norma"
+            />
+          </FilterField>
+          <FilterField label="Referencia ERP">
+            <CustomInput
+              type="text"
+              mono
+              value={sapReference}
+              onChange={setSapReference}
+              placeholder="Ej. 1-25-220"
+            />
+          </FilterField>
+          <FilterField label="Subtipo">
+            <Select
+              options={subTypes?.map(
+                (subType) =>
+                  ({
+                    label: subType.name,
+                    value: subType.name,
+                  }) as Option<string>,
+              )}
+              selectedValue={subType}
+              onChange={handleSubTypeChange}
+              isLoading={isLoadingSubTypes}
+              placeholder="Todos"
+              errorKey="country"
+            />
+          </FilterField>
+          <div className="flex items-center gap-2">
+            <Button
+              primary
+              type="submit"
+              className="!h-[46px] px-[22px]"
+              loading={getElementsResult.isLoading}
+            >
+              <BiSearch className="h-[17px] w-[17px]" />
+              Buscar
+            </Button>
+            <IconButton
+              label="Limpiar filtros"
+              className="!h-[46px] !w-[46px] !rounded-xl"
+              onClick={handleCleanFilters}
+            >
+              <BiEraser className="h-4 w-4" />
+            </IconButton>
           </div>
-        </div>
-        {isLoadingCountries || isLoadingSubTypes ? (
-          <div className="flex justify-between justify-items-center align-middle min-w-[70rem] mb-5">
-            <FilterSkeleton />
-          </div>
+        </form>
+
+        {isSearching ? (
+          <p className="text-sm text-gray-600">Cargando…</p>
+        ) : !elements || elements.data.length === 0 ? (
+          <EmptyState title="Ningún elemento coincide con los filtros." />
         ) : (
-          <div className="border-b border-gray-200 flex justify-center">
-            <div className="flex max-w-[65rem] min-w-[66rem] justify-between my-5">
-              <Select
-                options={countries?.map(
-                  (country) =>
-                    ({
-                      label: country.name,
-                      value: country.id,
-                    }) as Option<number>,
-                )}
-                selectedValue={country}
-                onChange={handleCountryChange}
-                isLoading={false}
-                placeholder="País"
-                errorKey="country"
+          <ElementTable
+            items={elements.data}
+            selectedIds={selectedIds}
+            onToggle={handleElementCheck}
+            footer={
+              <Pagination
+                page={page}
+                totalPages={elements.totalPages}
+                onPageChange={handlePageChange}
+                totalItems={elements.total}
+                pageSize={limit}
               />
-              <CustomInput
-                type="text"
-                value={name}
-                onChange={setName}
-                placeholder="Nombre norma"
-              />
-              <CustomInput
-                type="text"
-                value={sapReference}
-                onChange={setSapReference}
-                placeholder="Referencia ERP"
-              />
-              <Select
-                options={subTypes?.map(
-                  (subType) =>
-                    ({
-                      label: subType.name,
-                      value: subType.name,
-                    }) as Option<string>,
-                )}
-                selectedValue={subType}
-                onChange={handleSubTypeChange}
-                isLoading={false}
-                placeholder="Subtipo"
-                errorKey="country"
-                className="w-[21rem]"
-              />
-              <Button
-                primary
-                loading={getElementsResult.isLoading}
-                onClick={handleSearchClick}
-              >
-                <BiSearch />
-              </Button>
-              <Button cancel onClick={handleCleanFilters}>
-                <BiEraser />
-              </Button>
-            </div>
-          </div>
+            }
+          />
         )}
 
+        {/* Barra de selección: siempre a la vista al pie mientras haya elegidos. */}
         {selectedElements.length > 0 && (
-          <div className="flex justify-center align-middle transition-all duration-300 ease-in-out">
-            <Button
-              onClick={handleContinueWithSelected}
-              className="mt-5"
-              icon={<IoIosAddCircleOutline />}
-              success
-            >
-              Agregar diseño(s)
-            </Button>
-            <Button
-              onClick={handleDeleteSelected}
-              className="mt-5 ml-2"
-              icon={<MdRemoveCircleOutline />}
-              danger
-            >
-              Quitar seleccionados ({selectedElements.length})
-            </Button>
-          </div>
+          <SelectionBar
+            count={selectedElements.length}
+            label={
+              selectedElements.length === 1
+                ? "elemento seleccionado"
+                : "elementos seleccionados"
+            }
+            hint={`Solo se muestran elementos de la norma ${selectedElements[0].norm.name}.`}
+            actions={
+              <>
+                <Button variant="ghostLight" onClick={handleDeleteSelected}>
+                  Limpiar selección
+                </Button>
+                <Button variant="light" onClick={handleContinueWithSelected}>
+                  Continuar
+                  <TbArrowRight className="h-4 w-4" />
+                </Button>
+              </>
+            }
+          />
         )}
-        {isFilteringByNorm || getElementsResult.isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 w-full">
-            <Skeleton count={10} className="mb-4" />
-          </div>
-        ) : elements?.data.length === 0 ? (
-          <div className="justify-center items-center flex py-12">
-            <NoData
-              className="w-1/2 bg-gray-400"
-              message="No hay resultados para mostrar."
-            />
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 w-full mt-6 px-10">
-            {elements?.data.map((element, index) => (
-              <div
-                key={element.id}
-                className="fade-in-up"
-                style={{
-                  animationDelay: `${index * 100}ms`,
-                  opacity: 0,
-                }}
-              >
-                <ElementCard
-                  element={element}
-                  onCheckChange={handleElementCheck}
-                  isChecked={selectedElements.some(
-                    (item) => item.id === element.id,
-                  )}
-                />
-              </div>
-            ))}
-          </div>
+
+        {showErrorAlert && (
+          <Alert
+            messages={errorMessages}
+            error
+            onClose={() => setShowErrorAlert(false)}
+          />
         )}
-        {elements && elements.data.length > 0 && (
-          <div className="flex justify-center align-middle mx-auto mt-4 text-2xl space-x-2">
-            <Pagination
-              currentPage={page}
-              totalPages={elements.totalPages}
-              onPageChange={handlePageChange}
-            />
-          </div>
-        )}
-      </div>
-      {showErrorAlert && (
-        <Alert
-          messages={errorMessages}
-          error
-          onClose={() => setShowErrorAlert(false)}
-        />
-      )}
+      </Page>
     </>
   );
 };

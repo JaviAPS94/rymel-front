@@ -96,7 +96,7 @@ export function FilePreview({
         className={`flex items-center justify-center ${heightClass} bg-gray-100 rounded-md ${className}`}
       >
         <div className="text-center">
-          <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-2"></div>
+          <div className="animate-spin h-8 w-8 border-4 border-rymel-indigo border-t-transparent rounded-full mx-auto mb-2"></div>
           <p className="text-sm text-gray-500">Cargando vista previa...</p>
         </div>
       </div>
@@ -183,7 +183,7 @@ export function FilePreview({
                 <a
                   href={previewUrl}
                   download={file.name}
-                  className="inline-flex items-center gap-1 px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
+                  className="inline-flex items-center gap-1 px-3 py-1 bg-rymel-blue text-white text-sm rounded hover:bg-rymel-indigo"
                 >
                   <FiDownload className="h-4 w-4" />
                   Descargar original

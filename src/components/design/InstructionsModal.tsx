@@ -46,9 +46,9 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({
   }[] = [
     {
       id: "bom",
-      title: "Resumen BOM",
+      title: "Resumen de la lista de materiales",
       description:
-        "De dónde sale la configuración del BOM y cómo generar la hoja resumen de materiales.",
+        "De dónde sale la configuración de la lista de materiales y cómo generar su hoja resumen.",
       component: BomTutorial,
     },
   ];
@@ -528,85 +528,17 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({
     },
   ];
 
-  const getColorClasses = (color: string) => {
-    const colors: Record<
-      string,
-      { bg: string; border: string; text: string; hover: string }
-    > = {
-      blue: {
-        bg: "bg-blue-50",
-        border: "border-blue-200",
-        text: "text-blue-700",
-        hover: "hover:bg-blue-100",
-      },
-      green: {
-        bg: "bg-green-50",
-        border: "border-green-200",
-        text: "text-green-700",
-        hover: "hover:bg-green-100",
-      },
-      purple: {
-        bg: "bg-purple-50",
-        border: "border-purple-200",
-        text: "text-purple-700",
-        hover: "hover:bg-purple-100",
-      },
-      indigo: {
-        bg: "bg-indigo-50",
-        border: "border-indigo-200",
-        text: "text-indigo-700",
-        hover: "hover:bg-indigo-100",
-      },
-      orange: {
-        bg: "bg-orange-50",
-        border: "border-orange-200",
-        text: "text-orange-700",
-        hover: "hover:bg-orange-100",
-      },
-      red: {
-        bg: "bg-red-50",
-        border: "border-red-200",
-        text: "text-red-700",
-        hover: "hover:bg-red-100",
-      },
-      yellow: {
-        bg: "bg-yellow-50",
-        border: "border-yellow-200",
-        text: "text-yellow-700",
-        hover: "hover:bg-yellow-100",
-      },
-      teal: {
-        bg: "bg-teal-50",
-        border: "border-teal-200",
-        text: "text-teal-700",
-        hover: "hover:bg-teal-100",
-      },
-      cyan: {
-        bg: "bg-cyan-50",
-        border: "border-cyan-200",
-        text: "text-cyan-700",
-        hover: "hover:bg-cyan-100",
-      },
-      pink: {
-        bg: "bg-pink-50",
-        border: "border-pink-200",
-        text: "text-pink-700",
-        hover: "hover:bg-pink-100",
-      },
-      amber: {
-        bg: "bg-amber-50",
-        border: "border-amber-200",
-        text: "text-amber-700",
-        hover: "hover:bg-amber-100",
-      },
-    };
-    return colors[color] || colors.blue;
+  // Todas las secciones comparten el color de marca: antes cada una tenía el
+  // suyo (doce tonos) sin que el color significara nada.
+  const colorClasses = {
+    bg: "bg-rymel-blue/5",
+    border: "border-rymel-blue/20",
+    text: "text-rymel-blue",
+    hover: "hover:bg-rymel-blue/10",
   };
 
   const activeData = sections.find((s) => s.id === activeSection);
-  const colorClasses = activeData
-    ? getColorClasses(activeData.color)
-    : getColorClasses("blue");
+
 
   return (
     <Modal
@@ -624,7 +556,7 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({
           </h3>
           <div className="space-y-2">
             {sections.map((section) => {
-              const sectionColors = getColorClasses(section.color);
+              const sectionColors = colorClasses;
               const isActive = activeSection === section.id;
               return (
                 <button
@@ -676,7 +608,7 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({
                       onClick={() => setActiveTutorialId(t.id)}
                       className={`px-3 py-1.5 rounded-full text-sm font-medium border transition ${
                         isActive
-                          ? "bg-cyan-600 text-white border-cyan-700 shadow"
+                          ? "bg-rymel-blue text-white border-rymel-blue shadow"
                           : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
                       }`}
                       title={t.description}

@@ -11,7 +11,7 @@ interface SpecialSpecificationProps {
   errors?: Record<string, string>;
   updateCustomFieldValue: (
     key: string,
-    newValue: string | File | object
+    newValue: string | File | object,
   ) => void;
   initialSelectedSpecification?: string | undefined;
 }
@@ -32,7 +32,7 @@ const SpecialSpecification = ({
   useEffect(() => {
     if (initialSelectedSpecification) {
       const specialItem = specialItems?.find(
-        (specialItem) => specialItem.letter === initialSelectedSpecification
+        (specialItem) => specialItem.letter === initialSelectedSpecification,
       );
       setSelectedSpecification(specialItem);
     }
@@ -55,7 +55,7 @@ const SpecialSpecification = ({
             ({
               label: specialItem.description,
               value: specialItem,
-            } as Option<SpecialItem>)
+            }) as Option<SpecialItem>,
         )}
         selectedValue={selectedSpecification}
         onChange={handleSpecificationChange}

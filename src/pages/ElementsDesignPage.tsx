@@ -1,3 +1,5 @@
+import { TbLock } from "react-icons/tb";
+import { Notice } from "@rymel/ui";
 import { JSX, useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Select from "../components/core/Select";
@@ -34,18 +36,13 @@ import Alert from "../components/core/Alert";
 import Button from "../components/core/Button";
 import { FaPlus } from "react-icons/fa6";
 import { Modal } from "../components/core/Modal";
-import Pagination from "../components/core/Pagination";
-import NoData from "../components/core/NoData";
 import { useAlert } from "../hooks/useAlert";
-import { FaList, FaRegCheckCircle, FaSearch } from "react-icons/fa";
+import { FaList, FaSearch } from "react-icons/fa";
 import Skeleton from "../components/core/skeletons/Skeleton";
 import DesignCard from "../components/design/DesignCard";
 import FilterSkeleton from "../components/core/skeletons/FiltersSkeleton";
 import CustomInput from "../components/core/CustomInput";
 import { BiEraser, BiSearch } from "react-icons/bi";
-import { BsSliders2 } from "react-icons/bs";
-import { MdOutlineDesignServices } from "react-icons/md";
-import Tabs, { TabItem } from "../components/core/Tabs";
 import { TemplateType } from "../commons/enums";
 import { LuFileSpreadsheet, LuSave } from "react-icons/lu";
 import { IoBookOutline } from "react-icons/io5";
@@ -56,9 +53,28 @@ import { Sheet } from "../components/design/spreadsheet-types";
 import { extractMaterialTagValues } from "../components/design/materialTagUtils";
 import DesignCodePanel from "../components/design/DesignCodePanel";
 import { GenerateDesignCodeResponse } from "../store/apis/designCodeApi";
-import { BookOpen, Calculator, ClipboardList, DollarSign, FileText, PenTool, Plus, Save } from "lucide-react";
+import {
+  BookOpen,
+  Calculator,
+  ClipboardList,
+  DollarSign,
+  FileText,
+  PenTool,
+  Plus,
+  Save,
+} from "lucide-react";
 import InstructionsModal from "../components/design/InstructionsModal";
 import BomSummaryTab from "../components/design/bom/BomSummaryTab";
+import {
+  PageHeader,
+  HeaderChip,
+  FilterField,
+  Pagination,
+  Tabs,
+  type TabItem,
+  EmptyState,
+  Page,
+} from "@rymel/ui";
 
 const ElementsDesignPage = () => {
   const navigate = useNavigate();
@@ -838,7 +854,8 @@ const ElementsDesignPage = () => {
         ["FASE", "POTENCIA", "TENSION_PRIMARIA", "TENSION_SECUNDARIA"] as const
       )
         .map(
-          (k) => designCodePreview.segments.find((s) => s.key === k)?.value ?? "",
+          (k) =>
+            designCodePreview.segments.find((s) => s.key === k)?.value ?? "",
         )
         .join("");
       const yearPrefix = fixedPrefix + baseYear;
@@ -1061,173 +1078,157 @@ const ElementsDesignPage = () => {
     },
   ];
 
+  const typeName = types?.find((type) => type.id === selectedType)?.name;
+  const subTypeName = subTypes?.find(
+    (subType) => subType.id === selectedSubType,
+  )?.name;
+  const isSaving =
+    saveDesignWithSubDesignsResult.isLoading ||
+    updateDesignResult.isLoading ||
+    generateDesignCodeResult.isLoading;
+
   return (
     <>
-      <div className="flex flex-col items-center justify-center p-4">
-        <div className="w-full flex items-start">
-          <Button
-            outline
-            onClick={handleBack}
-            className="flex items-center text-rymel-blue hover:text-blue-800 transition-colors"
-          >
-            <span className="mr-2">←</span>
-            Volver
-          </Button>
-        </div>
-        {showModalAfterSaveDesign && createdDesignId && (
-          <div className="flex justify-center w-1/2 mb-4 bg-green-50 border-green-200 border px-4 py-2 rounded">
-            <FaRegCheckCircle className="h-6 w-6" />
-            <div className="text-green-800">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <span className="font-medium">
-                  ¡Diseño guardado exitosamente!
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    onClick={() =>
-                      handleContinueEditing(
-                        createdDesignId ?? Number(designIdParam),
-                      )
-                    }
-                    className="border-green-300 text-green-700 hover:bg-green-100  bg-transparent"
-                  >
-                    Seguir editando
-                  </Button>
-                  <Button
-                    onClick={handleNewDesign}
-                    className="border-green-300 text-green-700 hover:bg-green-100  bg-transparent"
-                  >
-                    Crear nuevo diseño
-                  </Button>
-                  <Button
-                    onClick={handleNavigateToDesignList}
-                    className="border-green-300 text-green-700 hover:bg-green-100 bg-transparent"
-                    icon={<FaList />}
-                  >
-                    Ver todos los diseños
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-        <div className="w-full mx-auto bg-white rounded-lg shadow-lg overflow-hidden mt-4">
-          <div className="bg-rymel-blue text-white p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex">
-                <MdOutlineDesignServices className="text-white h-8 w-8" />
-                <h1 className="text-3xl font-bold text-center ml-2">
-                  Diseño De Elementos
-                </h1>
-              </div>
-              <div className="flex items-center space-x-4">
-                <Button
-                  success
-                  icon={<FaPlus />}
-                  className="mt-4"
-                  onClick={handleAddNewElements}
-                  disabled={showModalAfterSaveDesign}
-                >
-                  Agregar elementos
-                </Button>
-                <Button
-                  primary
-                  icon={<FaSearch />}
-                  className="mt-4"
-                  onClick={handleSearchDesigns}
-                  disabled={showModalAfterSaveDesign}
-                >
-                  Buscar diseños existentes
-                </Button>
+      <PageHeader
+        back={{ label: "Volver", onClick: handleBack }}
+        title="Diseño de elementos"
+        meta={
+          <>
+            <HeaderChip>{typeName || "Tipo no seleccionado"}</HeaderChip>
+            <HeaderChip>
+              {subTypeName
+                ? `Subtipo ${subTypeName}`
+                : "Subtipo no seleccionado"}
+            </HeaderChip>
+          </>
+        }
+        actions={
+          <>
+            <Button
+              variant="outlineLight"
+              size="lg"
+              icon={<FaSearch />}
+              onClick={handleSearchDesigns}
+              disabled={showModalAfterSaveDesign}
+            >
+              Buscar diseños existentes
+            </Button>
+            <Button
+              variant="light"
+              size="lg"
+              className="!shadow-none"
+              icon={<FaPlus />}
+              onClick={handleAddNewElements}
+              disabled={showModalAfterSaveDesign}
+            >
+              Agregar elementos
+            </Button>
+          </>
+        }
+      />
 
-                <div className="text-center">
-                  <div className="bg-rymel-yellow px-3 py-1 rounded-full text-sm">
-                    {types?.find((type) => type.id === selectedType)?.name ||
-                      "Tipo no seleccionado"}
-                  </div>
-                  <div className="text-blue-100 text-sm mt-1">
-                    Subtipo:{" "}
-                    {subTypes?.find((subType) => subType.id === selectedSubType)
-                      ?.name || "Subtipo no seleccionado"}
-                  </div>
-                </div>
-              </div>
+      <Page>
+        <section
+          aria-label="Elementos seleccionados"
+          className="grid grid-cols-1 gap-4 rounded-[20px] border bg-white p-5 sm:grid-cols-2 lg:grid-cols-3"
+        >
+          {selectedElements?.map((element) => (
+            <ElementCard
+              key={element.id}
+              element={element}
+              onCheckChange={handleElementCheck}
+              isChecked={handleElementIsChecked(element)}
+              isBlocked={selectedElements.length <= 1}
+              blockedReason="Debes seleccionar al menos un elemento"
+            />
+          ))}
+          {selectedElements?.length === 1 && (
+            <div className="self-start">
+              <Notice tone="danger" icon={<TbLock className="h-4 w-4" />}>
+                Debes seleccionar al menos un elemento.
+              </Notice>
             </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 w-full my-5 px-4">
-            {selectedElements?.map((element) => (
-              <ElementCard
-                key={element.id}
-                element={element}
-                onCheckChange={handleElementCheck}
-                isChecked={handleElementIsChecked(element)}
-                isBlocked={selectedElements.length <= 1}
-                blockedReason="Debes seleccionar al menos un elemento"
-              />
-            ))}
-          </div>
-          <div className="space-y-4 w-full">
-            <div className="flex items-center justify-center gap-2">
-              <Calculator className="h-6 w-6 text-rymel-blue" />
-              <h2 className="text-3xl font-bold text-center text-rymel-blue">
-                Cálculos De Elementos
-              </h2>
-            </div>
-            <div className="inline-flex items-center justify-center w-full">
-              <div className="flex items-center gap-1 p-2 bg-white rounded-2xl shadow-xl border border-slate-200">
+          )}
+        </section>
+
+        {showModalAfterSaveDesign && createdDesignId && (
+          <Notice
+            tone="success"
+            title="¡Diseño guardado exitosamente!"
+            actions={
+              <>
                 <Button
-                  className="rounded-xl h-[2.8rem] bg-rymel-blue border-rymel-blue hover:bg-[#241c7a] hover:border-[#241c7a] text-white"
-                  onClick={toogleAccessoryModal}
-                >
-                  <Plus className="h-4 w-4" />
-                  Agregar accesorio
-                </Button>
-                <div className="w-px h-8 bg-slate-200 mx-1" />
-                <Button
-                  outline
-                  className="text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl"
-                  onClick={() => setShowInstructions(true)}
-                >
-                  <BookOpen className="h-4 w-4" />
-                  Instrucciones
-                </Button>
-                <Button
-                  outline
-                  className="text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl"
-                  onClick={() => setShowTemplateLibrary(true)}
-                >
-                  <FileText className="h-4 w-4" />
-                  Plantillas
-                </Button>
-                <div className="w-px h-8 bg-slate-200 mx-1" />
-                <Button
-                  success
-                  className="text-white rounded-xl h-[2.8rem]"
-                  loading={
-                    saveDesignWithSubDesignsResult.isLoading ||
-                    updateDesignResult.isLoading ||
-                    generateDesignCodeResult.isLoading
+                  onClick={() =>
+                    handleContinueEditing(
+                      createdDesignId ?? Number(designIdParam),
+                    )
                   }
-                  disabled={
-                    saveDesignWithSubDesignsResult.isLoading ||
-                    updateDesignResult.isLoading ||
-                    generateDesignCodeResult.isLoading
-                  }
-                  onClick={() => handleSaveDesignWithSubDesigns()}
+                  base
+                  size="sm"
                 >
-                  <Save className="h-4 w-4" />
-                  Guardar
+                  Seguir editando
                 </Button>
-              </div>
-            </div>
-          </div>
-          <Tabs
-            items={tabsElements}
-            defaultActiveTab="design"
-            className="mt-8 px-4"
+                <Button onClick={handleNewDesign} base size="sm">
+                  Crear nuevo diseño
+                </Button>
+                <Button
+                  onClick={handleNavigateToDesignList}
+                  base
+                  size="sm"
+                  icon={<FaList />}
+                >
+                  Ver todos los diseños
+                </Button>
+              </>
+            }
           />
-        </div>
-      </div>
+        )}
+
+        <section
+          aria-labelledby="calc-title"
+          className="overflow-hidden rounded-[20px] border bg-white"
+        >
+          <div className="flex flex-wrap items-center gap-3 border-b border-[#EFEEF5] px-6 py-5">
+            <span
+              aria-hidden="true"
+              className="flex h-10 w-10 items-center justify-center rounded-xl bg-rymel-blue text-rymel-yellow"
+            >
+              <Calculator className="h-5 w-5" />
+            </span>
+            <h2
+              id="calc-title"
+              className="m-0 flex-auto text-xl font-extrabold text-gray-900"
+            >
+              Cálculos de elementos
+            </h2>
+            <Button variant="ghost" onClick={() => setShowInstructions(true)}>
+              <BookOpen className="h-4 w-4" />
+              Instrucciones
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => setShowTemplateLibrary(true)}
+            >
+              <FileText className="h-4 w-4" />
+              Plantillas
+            </Button>
+            <Button variant="secondary" onClick={toogleAccessoryModal}>
+              <Plus className="h-4 w-4" />
+              Agregar accesorio
+            </Button>
+            <Button
+              variant="accent"
+              loading={isSaving}
+              disabled={isSaving}
+              onClick={() => handleSaveDesignWithSubDesigns()}
+            >
+              <Save className="h-4 w-4" />
+              Guardar
+            </Button>
+          </div>
+          <Tabs items={tabsElements} defaultValue="design" className="p-6" />
+        </section>
+      </Page>
       {showErrorAlert && (
         <Alert
           messages={errorMessages}
@@ -1243,21 +1244,18 @@ const ElementsDesignPage = () => {
         title="Elementos disponibles"
         size="full"
       >
-        <div className="bg-white flex flex-col justify-center items-center">
+        <div className="flex flex-col bg-white">
           <Button
             primary
             icon={<FaPlus />}
-            className="w-64 mb-4"
+            className="mb-4 self-end"
             onClick={handleAddNewSelectedElements}
             disabled={newSelectedElements.length === 0}
           >
             Agregar seleccionados
           </Button>
           {newElements?.data.length === 0 && (
-            <NoData
-              className="w-1/2 bg-gray-400"
-              message="No hay resultados para mostrar."
-            />
+            <EmptyState title="No hay resultados para mostrar." />
           )}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 w-full">
             {newElements?.data &&
@@ -1274,9 +1272,9 @@ const ElementsDesignPage = () => {
               ))}
           </div>
           {newElements?.data && newElements.data.length > 0 && (
-            <div className="flex align-middle mx-auto mt-2 text-2xl space-x-2">
+            <div className="mt-4">
               <Pagination
-                currentPage={page}
+                page={page}
                 totalPages={newElements?.totalPages || 1}
                 onPageChange={handlePageChange}
               />
@@ -1289,7 +1287,7 @@ const ElementsDesignPage = () => {
         onClose={() => {
           handleToggleDesignModal();
         }}
-        title="Elige un diseño existente para tomar como base"
+        title="Elige un diseño existente como base"
         size="full"
         closeOnOutsideClick={false}
       >
@@ -1299,107 +1297,110 @@ const ElementsDesignPage = () => {
               <FilterSkeleton />
             </div>
           ) : (
-            <div className="justify-center items-center flex">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <BsSliders2 className="h-5 w-5 text-muted-foreground" />
-                  <h3 className="text-lg font-semibold">Filtros de búsqueda</h3>
-                </div>
+            <form
+              role="search"
+              aria-label="Filtros de búsqueda"
+              className="-mx-5 -mt-5 mb-5 flex flex-wrap items-end gap-3 border-b border-[#EFEEF5] bg-gray-50 px-5 py-5 sm:-mx-7 sm:px-7"
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (country) handleSearchDesignsClick();
+              }}
+            >
+              <FilterField label="País">
+                <Select
+                  options={countries?.map(
+                    (country) =>
+                      ({
+                        label: country.name,
+                        value: country.id,
+                      }) as Option<number>,
+                  )}
+                  selectedValue={country}
+                  onChange={handleCountryChange}
+                  isLoading={false}
+                  placeholder="País"
+                  errorKey="country"
+                />
+              </FilterField>
+              <FilterField label="Código de diseño">
+                <CustomInput
+                  type="text"
+                  value={designCode}
+                  onChange={setDesignCode}
+                  placeholder="Ej. 1DAA2612"
+                />
+              </FilterField>
+              <FilterField label="Norma">
+                <CustomInput
+                  type="text"
+                  value={normName}
+                  onChange={setNormName}
+                  placeholder="Nombre de la norma"
+                />
+              </FilterField>
+              <FilterField label="Tipo" className="basis-[150px]">
+                <Select
+                  options={types?.map(
+                    (type) =>
+                      ({
+                        label: type.name,
+                        value: type.id,
+                      }) as Option<number>,
+                  )}
+                  selectedValue={selectedTypeDesignFilter}
+                  onChange={handleSelectedTypeDesignFilter}
+                  isLoading={isLoadingTypes}
+                  placeholder="Todos"
+                />
+              </FilterField>
+              <FilterField label="Subtipo" className="basis-[150px]">
+                <Select
+                  options={subTypes?.map(
+                    (subType) =>
+                      ({
+                        label: subType.name,
+                        value: subType.id,
+                      }) as Option<number>,
+                  )}
+                  selectedValue={selectedSubTypeDesignFilter}
+                  onChange={handleSubTypeChange}
+                  isLoading={isLoadingSubTypes}
+                  placeholder="Todos"
+                  disabled={!selectedTypeDesignFilter}
+                />
+              </FilterField>
+              <div className="flex gap-2">
+                <Button
+                  primary
+                  type="submit"
+                  aria-label="Buscar"
+                  className="!h-[46px] !w-[46px] !px-0"
+                  loading={getDesignsResult.isLoading}
+                  disabled={!country}
+                >
+                  <BiSearch className="h-[18px] w-[18px]" />
+                </Button>
+                <Button
+                  variant="secondary"
+                  aria-label="Limpiar filtros"
+                  className="!h-[46px] !w-[46px] !px-0"
+                  disabled={!country && !selectedType && !selectedSubType}
+                  onClick={handleCleanFilters}
+                >
+                  <BiEraser className="h-[18px] w-[18px]" />
+                </Button>
               </div>
-              <div className="space-y-4 py-6 px-4">
-                <div className="max-w-[50rem]">
-                  <div className="grid grid-cols-3 gap-4 mt-4">
-                    <Select
-                      options={countries?.map(
-                        (country) =>
-                          ({
-                            label: country.name,
-                            value: country.id,
-                          }) as Option<number>,
-                      )}
-                      selectedValue={country}
-                      onChange={handleCountryChange}
-                      isLoading={false}
-                      placeholder="País"
-                      errorKey="country"
-                    />
-                    <CustomInput
-                      type="text"
-                      value={designCode}
-                      onChange={setDesignCode}
-                      placeholder="Código diseño"
-                    />
-                    <CustomInput
-                      type="text"
-                      value={normName}
-                      onChange={setNormName}
-                      placeholder="Nombre norma"
-                    />
-                  </div>
-                  <div className="flex justify-between gap-2 mt-4">
-                    <Select
-                      options={types?.map(
-                        (type) =>
-                          ({
-                            label: type.name,
-                            value: type.id,
-                          }) as Option<number>,
-                      )}
-                      selectedValue={selectedTypeDesignFilter}
-                      onChange={handleSelectedTypeDesignFilter}
-                      isLoading={isLoadingTypes}
-                      placeholder="Selecciona un tipo"
-                      className="w-64"
-                    />
-                    <Select
-                      options={subTypes?.map(
-                        (subType) =>
-                          ({
-                            label: subType.name,
-                            value: subType.id,
-                          }) as Option<number>,
-                      )}
-                      selectedValue={selectedSubTypeDesignFilter}
-                      onChange={handleSubTypeChange}
-                      isLoading={isLoadingSubTypes}
-                      placeholder="Selecciona un sub tipo"
-                      disabled={!selectedTypeDesignFilter}
-                      className="w-60"
-                    />
-                    <Button
-                      primary
-                      loading={getDesignsResult.isLoading}
-                      disabled={!country}
-                      onClick={handleSearchDesignsClick}
-                    >
-                      <BiSearch />
-                    </Button>
-                    <Button
-                      cancel
-                      disabled={!country && !selectedType && !selectedSubType}
-                      onClick={handleCleanFilters}
-                    >
-                      <BiEraser />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
+            </form>
           )}
           <div className="mt-2">
             {getDesignsResult.isLoading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 w-full">
-                <Skeleton count={10} className="mb-4" />
-              </div>
+              <p className="text-sm text-gray-500">Cargando…</p>
             ) : !designs?.data || designs.data.length === 0 ? (
-              <div className="justify-center items-center flex py-12">
-                <NoData
-                  className="w-1/2 bg-gray-400"
-                  message="No hay resultados para mostrar."
-                />
+              <div>
+                <EmptyState title="No hay resultados para mostrar." />
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {designs?.data.map((design, index) => (
                   <DesignCard
                     key={design.id}
@@ -1413,9 +1414,9 @@ const ElementsDesignPage = () => {
               </div>
             )}
             {designs && designs.data.length > 0 && (
-              <div className="flex justify-center align-middle mx-auto mt-4 text-2xl space-x-2">
+              <div className="mt-4">
                 <Pagination
-                  currentPage={designPage}
+                  page={designPage}
                   totalPages={designs.totalPages}
                   onPageChange={handleDesignsPageChange}
                 />

@@ -1,24 +1,29 @@
+import rymel from "@rymel/ui/preset";
+
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+  // Colores, tipografía y sombras de marca vienen de @rymel/ui.
+  presets: [rymel],
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+    // Las clases que usan los componentes del paquete.
+    "./node_modules/@rymel/ui/dist/**/*.js",
+  ],
   theme: {
     extend: {
-      fontFamily: {
-        sans: ["Montserrat", "sans-serif"], // Set Montserrat as the default sans-serif font
-      },
       animation: {
         pulse: "pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite",
       },
+      // Nombres antiguos que aún usa alguna pantalla, apuntando a los tokens.
       colors: {
-        "rymel-blue": "#1b1363",
-        "rymel-yellow": "#d4c034",
         "primary-foreground": "#fcfcfc",
         accent: "#0086e3",
-        background: "#f9f9f9",
-        foreground: "#1a1a1a",
-        muted: "#6b7280",
-        "muted-foreground": "#60607a",
-        input: "#e5e7eb",
+        background: "#F5F5F9",
+        foreground: "#14132B",
+        muted: "#6E6C86",
+        "muted-foreground": "#5D5B76",
+        input: "#E3E2EE",
       },
     },
   },

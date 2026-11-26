@@ -2,8 +2,6 @@ import { Design } from "../../commons/types";
 import Button from "../core/Button";
 import CountryFlag from "../core/CountryFlag";
 import { BiCopy } from "react-icons/bi";
-import { Activity } from "react";
-import TooltipGeneral from "../core/TooltipGeneral";
 
 interface DesignCardProps {
   design: Design;
@@ -28,96 +26,94 @@ export default function DesignCard({
     });
   };
 
+  const norm = design.designElements[0]?.element.norm;
+
   return (
-    <div
-      className="fade-in-up border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-all duration-200 hover:border-blue-300 group"
+    <article
+      className="fade-in-up flex flex-col gap-4 rounded-[18px] border border-gray-300 bg-white p-5 transition-shadow hover:shadow-float"
       style={{
         animationDelay: `${index * 100}ms`,
         opacity: 0,
       }}
     >
-      {/* Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex-1">
-          <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-1">
+          <h3 className="m-0 text-[17px] font-extrabold text-gray-900">
             {design.name}
           </h3>
-          <p className="text-sm text-gray-500 font-mono">{design.code}</p>
-        </div>
-        <div className="flex flex-col items-end">
-          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
-            {design.designSubType?.designType.name}
+          <span className="break-all font-mono text-[13px] text-gray-600">
+            {design.code}
           </span>
+        </div>
+        <div className="flex shrink-0 gap-1.5">
+          {design.designSubType?.designType.name && (
+            <span className="flex h-[26px] items-center rounded-full bg-rymel-soft px-2.5 text-xs font-bold text-rymel-indigo">
+              {design.designSubType.designType.name}
+            </span>
+          )}
+          {design.designSubType?.name && (
+            <span className="flex h-[26px] items-center rounded-lg border border-gray-300 px-2 text-xs font-bold">
+              {design.designSubType.name}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2.5">
+        {[
+          { value: design.designElements.length, label: "Elementos" },
+          { value: design.subDesigns.length, label: "Sub-diseños" },
+        ].map((stat) => (
           <div
-            className={`flex ${
-              isReused ? "justify-between" : "justify-end"
-            } w-full`}
+            key={stat.label}
+            className="flex items-baseline gap-2 rounded-xl bg-surface p-3.5"
           >
-            <Activity mode={isReused ? "visible" : "hidden"}>
-              <TooltipGeneral
-                content="Copiar Cálculos"
-                position="bottom"
-                delay={100}
-              >
-                <Button outline onClick={onClickCopy}>
-                  <BiCopy className="text-blue-600 hover:text-blue-800" />
-                </Button>
-              </TooltipGeneral>
-            </Activity>
-            <span className="text-xs text-gray-500 mt-1">
-              {design.designSubType?.name}
+            <span className="text-[26px] font-extrabold tabular-nums text-rymel-blue">
+              {stat.value}
+            </span>
+            <span className="text-[13px] font-semibold text-gray-600">
+              {stat.label}
             </span>
           </div>
-        </div>
+        ))}
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-4 mb-4">
-        <div className="bg-gray-50 rounded-lg p-3 text-center">
-          <div className="text-xl font-bold text-blue-600">
-            {design.designElements.length}
-          </div>
-          <div className="text-xs text-gray-600">Elementos</div>
-        </div>
-        <div className="bg-gray-50 rounded-lg p-3 text-center">
-          <div className="text-xl font-bold text-green-600">
-            {design.subDesigns.length}
-          </div>
-          <div className="text-xs text-gray-600">Sub-diseños</div>
-        </div>
-      </div>
-
-      {/* Technical Info */}
-      <div className="space-y-2 mb-4">
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-600">Norma:</span>
-          <span className="font-medium text-orange-600">
-            {design.designElements[0]?.element.norm.name}
+      <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+        {norm ? (
+          <span className="flex items-center gap-2 font-bold">
+            <CountryFlag
+              isoCode={norm.country.isoCode}
+              className="h-[15px] w-[22px] rounded-[3px] object-cover"
+            />
+            {norm.name} · {norm.country.name}
           </span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-600">País:</span>
-          <CountryFlag
-            isoCode={design.designElements[0]?.element.norm.country.isoCode}
-            className="w-8 h-5 object-cover ml-2"
-          />
-        </div>
+        ) : (
+          <span />
+        )}
+        <span className="text-[13px] text-gray-600">
+          Act. {formatDate(design.updatedAt)}
+        </span>
       </div>
 
-      {/* Footer */}
-      <div className="pt-4 border-t border-gray-100">
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-500">
-            Actualizado: {formatDate(design.updatedAt)}
-          </span>
-          <div
-            onClick={() => onClick(design)}
-            className="text-blue-600 cursor-pointer group-hover:text-blue-800 transition-colors"
+      <div className="mt-auto flex gap-2 border-t border-[#EFEEF5] pt-4">
+        <Button
+          variant="secondary"
+          className="flex-1"
+          onClick={() => onClick(design)}
+        >
+          Ver detalles
+        </Button>
+        {isReused && (
+          <Button
+            primary
+            className="flex-1"
+            icon={<BiCopy className="h-4 w-4" />}
+            onClick={onClickCopy}
           >
-            <span className="text-sm font-medium">Ver detalles →</span>
-          </div>
-        </div>
+            Usar como base
+          </Button>
+        )}
       </div>
-    </div>
+    </article>
   );
 }
